@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CHRONARCHIVE</title>
+  <meta name="description" content="CHRONARCHIVE. Your time capsule. Search, files, blog and services, all in one place.">
+  <link rel="icon" type="image/png" href="assets/CA-favicon-192x192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/now.css">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/socialpreviewnow.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="assets/socialpreviewnow.png">
+</head>
+<body>
+
+  <!-- Temporal background (lava lamp, filled by JS) -->
+  <div class="temporal-stream" id="temporal-stream" aria-hidden="true"></div>
+
+  <!-- Navbar -->
+  <header id="navbar">
+    <a href="#hero" id="navbar-logo">CHRONARCHIVE</a>
+    <div id="navbar-clock" aria-live="polite"></div>
+    <nav id="navbar-links">
+      <a href="#hero"     class="nav-link active">Search</a>
+      <a href="#files"    class="nav-link">Files</a>
+      <a href="#blog"     class="nav-link">Blog</a>
+      <a href="#services" class="nav-link">Services</a>
+    </nav>
+    <button id="nav-hamburger" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <script>
+    (function () {
+      var el = document.getElementById('navbar-clock');
+      // Unix Y2K38: 2^31 - 1 = 2147483647 seconds from epoch = 2038-01-19T03:14:07Z
+      var Y2K38 = new Date(2147483647 * 1000);
+
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+      function phxNow() {
+        var now = new Date();
+        var utc = now.getTime() + now.getTimezoneOffset() * 60000;
+        return new Date(utc - 7 * 3600000); // Phoenix is always UTC-7
+      }
+
+      function formatClock(phx) {
+        var m = phx.getMonth() + 1;
+        var d = phx.getDate();
+        var y = String(phx.getFullYear()).slice(-2);
+        var h = phx.getHours();
+        var min = pad(phx.getMinutes());
+        var base = m + '/' + d + '/' + y + '@' + h + ':' + min;
+        if (window.innerWidth >= 768) base += ':' + pad(phx.getSeconds());
+        return base;
+      }
+
+      function formatCountdown(ms) {
+        if (ms <= 0) return 'OVERFLOW';
+        var s  = Math.floor(ms / 1000);
+        var yr = Math.floor(s / 31557600); s -= yr * 31557600;
+        var dy = Math.floor(s / 86400);    s -= dy * 86400;
+        var hr = Math.floor(s / 3600);     s -= hr * 3600;
+        var mn = Math.floor(s / 60);       s -= mn * 60;
+        return yr + 'y ' + dy + 'd ' + pad(hr) + ':' + pad(mn) + ':' + pad(s) + ' until Y2K38';
+      }
+
+      function tick() {
+        var phx = phxNow();
+        var remaining = Y2K38.getTime() - Date.now();
+        el.innerHTML =
+          '<span id="clock-time">' + formatClock(phx) + '</span>' +
+          '<span id="clock-sep"> &nbsp;&middot;&nbsp; </span>' +
+          '<a id="clock-y2k38" href="https://www.clock32.com" target="_blank" rel="noopener">' + formatCountdown(remaining) + '</a>';
+      }
+      tick();
+      setInterval(tick, 1000);
+    })();
+
+    // ---- Hamburger menu toggle ----
+    (function() {
+      var btn   = document.getElementById('nav-hamburger');
+      var links = document.getElementById('navbar-links');
+      if (!btn || !links) return;
+      btn.addEventListener('click', function() {
+        var open = links.classList.toggle('open');
+        btn.classList.toggle('open', open);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      // Close menu when any nav link is tapped
+      links.addEventListener('click', function(e) {
+        if (e.target.classList.contains('nav-link')) {
+          links.classList.remove('open');
+          btn.classList.remove('open');
+          btn.setAttribute('aria-expanded', 'false');
+        }
+      });
+    })();
+  </script>
+
+  <main>
+
+    <!-- ══ Search Hero ══ -->
+    <section id="hero">
+      <div class="section-wrap">
+        <div class="hero-inner">
+
+          <div>
+            <h1 id="site-title">CHRONARCHIVE</h1>
+            <div id="tagline-row">
+              <span class="tagline-rule"></span>
+              <span id="tagline">Your Time Capsule</span>
+              <span class="tagline-rule"></span>
+            </div>
+          </div>
+
+          <div id="search-wrap">
+
+            <form action="https://www.bing.com/search" method="GET">
+              <div id="search-box">
+                <span class="material-symbols-outlined search-icon">search</span>
+                <input
+                  type="text"
+                  name="q"
+                  id="search-input"
+                  placeholder="Search the web..."
+                  autocomplete="off">
+                <div class="enter-hint">
+                  <span class="kbd">&#8629; Enter</span>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <div id="hero-around">
+            <div class="section-rule-row">
+              <span class="section-rule-label">Around the Web</span>
+              <span class="section-rule"></span>
+            </div>
+            <div class="files-card-grid">
+
+              <a class="files-card" href="http://system7today.com">
+                <span class="files-card-name">System 7 Today</span>
+                <span class="files-card-desc">Classic Mac news and nostalgia.</span>
+                <span class="files-card-arrow">&rarr;</span>
+              </a>
+
+              <a class="files-card" href="https://macintoshgarden.org">
+                <span class="files-card-name">Macintosh Garden</span>
+                <span class="files-card-desc">Abandonware for classic Macs.</span>
+                <span class="files-card-arrow">&rarr;</span>
+              </a>
+
+              <a class="files-card" href="http://frogfind.com">
+                <span class="files-card-name">FrogFind</span>
+                <span class="files-card-desc">Web search for old browsers.</span>
+                <span class="files-card-arrow">&rarr;</span>
+              </a>
+
+              <a class="files-card" href="https://archive.org">
+                <span class="files-card-name">Internet Archive</span>
+                <span class="files-card-desc">The web's digital library.</span>
+                <span class="files-card-arrow">&rarr;</span>
+              </a>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ Files ══ -->
+    <section id="files">
+      <div class="section-wrap">
+
+        <h2 class="section-heading section-heading-lg services-title">Files</h2>
+
+        <div class="services-group">
+          <div class="section-rule-row">
+            <span class="section-rule-label">File Server</span>
+            <span class="section-rule"></span>
+          </div>
+          <a class="files-card files-card-full" href="https://beta.chronarchive.com">
+            <span class="files-card-name">Files</span>
+            <span class="files-card-desc">Browse the archive: retro software, disk images, and documents.</span>
+            <span class="files-card-arrow">&rarr;</span>
+          </a>
+        </div>
+
+        <div class="services-group">
+          <div class="section-rule-row">
+            <span class="section-rule-label">Public Archive</span>
+            <span class="section-rule"></span>
+          </div>
+          <div class="files-card-grid">
+            <a class="files-card" href="https://beta.chronarchive.com/Chronarchive/Applications/">
+              <span class="files-card-name">Applications/</span>
+              <span class="files-card-desc">5 files &middot; ~615 KB</span>
+              <span class="files-card-arrow">&rarr;</span>
+            </a>
+            <a class="files-card" href="https://beta.chronarchive.com/Chronarchive/Old-iOS-Tools/">
+              <span class="files-card-name">Old-iOS-Tools/</span>
+              <span class="files-card-desc">2 files &middot; ~181 KB</span>
+              <span class="files-card-arrow">&rarr;</span>
+            </a>
+            <a class="files-card" href="https://beta.chronarchive.com/Chronarchive/Information-Legal/">
+              <span class="files-card-name">Information-Legal/</span>
+              <span class="files-card-desc">2 files &middot; ~113 KB</span>
+              <span class="files-card-arrow">&rarr;</span>
+            </a>
+            <a class="files-card" href="https://beta.chronarchive.com/Chronarchive/Test-Footage/">
+              <span class="files-card-name">Test-Footage/</span>
+              <span class="files-card-desc">1 file &middot; ~79 KB</span>
+              <span class="files-card-arrow">&rarr;</span>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- blog -->
+    <section id="blog">
+      <div class="section-wrap">
+
+        <h2 class="section-heading section-heading-lg services-title">Blog</h2>
+
+        <div class="services-group">
+          <div class="section-rule-row">
+            <span class="section-rule-label">Latest</span>
+            <span class="section-rule"></span>
+          </div>
+          <div id="blog-posts">
+
+            <article class="blog-card" data-post-id="0">
+              <div class="blog-thumb">
+                <img src="assets/blogphotos/Patreonthumbnail.jpg" alt="">
+              </div>
+              <div class="blog-meta">
+                <time class="blog-date" datetime="2026-04-12">April 12, 2026</time>
+                <h3 class="blog-title">We now have a Patreon!</h3>
+                <p class="blog-excerpt">Completley optional and nothing is paywalled here</p>
+                <a class="blog-read-more" href="blog/posts/2026-04-12-patreon/now.html">Read More &rarr;</a>
+              </div>
+            </article>
+
+            <article class="blog-card" data-post-id="1">
+              <div class="blog-thumb">
+                <img src="assets/blogplacehold.png" alt="">
+              </div>
+              <div class="blog-meta">
+                <time class="blog-date" datetime="2026-04-12">April 12, 2026</time>
+                <h3 class="blog-title">Beta 13 is Live!</h3>
+                <p class="blog-excerpt">New update! Changelog inside!</p>
+                <a class="blog-read-more" href="blog/posts/2026-04-12-beta-13/now.html">Read More &rarr;</a>
+              </div>
+            </article>
+
+            <article class="blog-card" data-post-id="1">
+              <div class="blog-thumb">
+                <img src="assets/blogplacehold.png" alt="">
+              </div>
+              <div class="blog-meta">
+                <time class="blog-date" datetime="2026-04-11">April 11, 2026</time>
+                <h3 class="blog-title">Beta 12 is Live!</h3>
+                <p class="blog-excerpt">New update! Changelog inside!</p>
+                <a class="blog-read-more" href="blog/posts/2026-04-11-beta-12/now.html">Read More &rarr;</a>
+              </div>
+            </article>
+
+            <article class="blog-card" data-post-id="1">
+              <div class="blog-thumb">
+                <img src="assets/blogplacehold.png" alt="">
+              </div>
+              <div class="blog-meta">
+                <time class="blog-date" datetime="2026-04-11">April 11, 2026</time>
+                <h3 class="blog-title">Hello World.</h3>
+                <p class="blog-excerpt">New update! Changelog inside!</p>
+                <a class="blog-read-more" href="blog/posts/2026-04-11-hello-world/now.html">Read More &rarr;</a>
+              </div>
+            </article>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ══ Services ══ -->
+    <section id="services">
+      <div class="section-wrap">
+
+        <h2 class="section-heading section-heading-lg services-title">Services</h2>
+
+        <!-- Active -->
+        <div class="services-group">
+          <div class="section-rule-row">
+            <span class="section-rule-label">Live</span>
+            <span class="section-rule"></span>
+          </div>
+          <div class="service-list">
+
+            <div class="service-row">
+              <span class="service-row-name">Files</span>
+              <span class="service-row-desc">Retro software, disk images and archives.</span>
+              <a class="service-row-link" href="https://beta.chronarchive.com">beta.chronarchive.com</a>
+              <span class="service-badge live">Live</span>
+            </div>
+
+            <div class="service-row">
+              <span class="service-row-name">Search</span>
+              <span class="service-row-desc">Web search, reluctantly, via Bing (for now).</span>
+              <a class="service-row-link" href="#hero">Bing search</a>
+              <span class="service-badge partial">Partial</span>
+            </div>
+
+            <div class="service-row">
+              <span class="service-row-name">Blog</span>
+              <span class="service-row-desc">News, updates and project notes.</span>
+              <a class="service-row-link" href="#blog">This page</a>
+              <span class="service-badge live">Live</span>
+            </div>
+
+            <div class="service-row">
+              <span class="service-row-name">Discord</span>
+              <span class="service-row-desc">Community server.</span>
+              <a class="service-row-link" href="https://discord.gg/fXweAjeZde">Join</a>
+              <span class="service-badge live">Live</span>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Benchmarks -->
+        <div class="services-group">
+          <div class="section-rule-row">
+            <span class="section-rule-label">Benchmarks</span>
+            <span class="section-rule"></span>
+          </div>
+          <div class="service-list">
+
+            <div class="service-row">
+              <span class="service-row-name">SunSpider</span>
+              <span class="service-row-desc">Classic JavaScript speed benchmark.</span>
+              <a class="service-row-link" href="benchmarks/sunspider/index.html">Open</a>
+              <span class="service-badge live">Live</span>
+            </div>
+
+            <div class="service-row">
+              <span class="service-row-name">V8</span>
+              <span class="service-row-desc">Google V8 JavaScript benchmark suite.</span>
+              <a class="service-row-link" href="benchmarks/v8/index.html">Open</a>
+              <span class="service-badge live">Live</span>
+            </div>
+
+            <div class="service-row">
+              <span class="service-row-name">ChronGL</span>
+              <span class="service-row-desc">Custom GPU rendering benchmark via WebGL.</span>
+              <a class="service-row-link" href="benchmarks/webgl/index.html">Open</a>
+              <span class="service-badge live">Live</span>
+            </div>
+
+            <div class="service-row">
+              <span class="service-row-name">Chron2D</span>
+              <span class="service-row-desc">Custom 2D canvas rendering speed benchmark.</span>
+              <a class="service-row-link" href="benchmarks/canvas/index.html">Open</a>
+              <span class="service-badge live">Live</span>
+            </div>
+
+            <div class="service-row">
+              <span class="service-row-name">ChronCodecs</span>
+              <span class="service-row-desc">Custom browser video &amp; audio codec checker.</span>
+              <a class="service-row-link" href="benchmarks/video-compat/index.html">Open</a>
+              <span class="service-badge live">Live</span>
+            </div>
+
+            <div class="service-row">
+              <span class="service-row-name">DOMspeed</span>
+              <span class="service-row-desc">Custom DOM manipulation speed benchmark.</span>
+              <a class="service-row-link" href="benchmarks/domspeed/index.html">Open</a>
+              <span class="service-badge live">Live</span>
+            </div>
+
+            <div class="service-row">
+              <span class="service-row-name">memTestJS</span>
+              <span class="service-row-desc">Custom JavaScript memory &amp; GC stress benchmark.</span>
+              <a class="service-row-link" href="benchmarks/memtestjs/index.html">Open</a>
+              <span class="service-badge live">Live</span>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Tools -->
+        <div class="services-group">
+          <div class="section-rule-row">
+            <span class="section-rule-label">Tools</span>
+            <span class="section-rule"></span>
+          </div>
+          <div class="service-list">
+
+            <div class="service-row">
+              <span class="service-row-name">HTTP Headers</span>
+              <span class="service-row-desc">View HTTP headers and browser properties your client is sending.</span>
+              <a class="service-row-link" href="tools/http-headers/index.html">Open</a>
+              <span class="service-badge live">Live</span>
+            </div>
+
+            <div class="service-row">
+              <span class="service-row-name">Display Info</span>
+              <span class="service-row-desc">Screen dimensions, viewport, pixel ratio, and browser environment.</span>
+              <a class="service-row-link" href="tools/display-info/index.html">Open</a>
+              <span class="service-badge live">Live</span>
+            </div>
+
+            <div class="service-row">
+              <span class="service-row-name">TLS Check</span>
+              <span class="service-row-desc">Check which TLS versions your browser supports.</span>
+              <a class="service-row-link" href="tools/tls-check/index.html">Open</a>
+              <span class="service-badge live">Live</span>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Network Tests -->
+        <div class="services-group">
+          <div class="section-rule-row">
+            <span class="section-rule-label">Network Tests</span>
+            <span class="section-rule"></span>
+          </div>
+          <div class="service-list">
+
+            <div class="service-row">
+              <span class="service-row-name">Bandwidth</span>
+              <span class="service-row-desc">Download, upload, ping and jitter test.</span>
+              <a class="service-row-link" href="networktests/bandwidth.html">Open</a>
+              <span class="service-badge live">Live</span>
+            </div>
+
+            <div class="service-row">
+              <span class="service-row-name">Ping</span>
+              <span class="service-row-desc">Round-trip latency to this server.</span>
+              <a class="service-row-link" href="networktests/ping.html">Open</a>
+              <span class="service-badge live">Live</span>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Planned -->
+        <div class="services-group">
+          <div class="section-rule-row">
+            <span class="section-rule-label">Planned</span>
+            <span class="section-rule"></span>
+          </div>
+          <div class="service-list">
+
+            <div class="service-row">
+              <span class="service-row-name">HTTPS Proxy</span>
+              <span class="service-row-desc">Browse modern sites on legacy browsers.</span>
+              <span class="service-badge planned">Maybe Someday</span>
+            </div>
+
+            <div class="service-row">
+              <span class="service-row-name">Browservice</span>
+              <span class="service-row-desc">Full browser-as-a-service for ancient clients.</span>
+              <span class="service-badge planned">Maybe Someday</span>
+            </div>
+
+            <div class="service-row">
+              <span class="service-row-name">Webmail</span>
+              <span class="service-row-desc">Hosted email with a retro-friendly interface.</span>
+              <span class="service-badge planned">Maybe Someday</span>
+            </div>
+
+            <div class="service-row">
+              <span class="service-row-name">chronBBS</span>
+              <span class="service-row-desc">A bulletin board system. Obviously.</span>
+              <span class="service-badge planned">Maybe Someday</span>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Donate -->
+        <div class="services-group">
+          <div class="section-rule-row">
+            <span class="section-rule-label">Donate</span>
+            <span class="section-rule"></span>
+          </div>
+          <div class="service-list">
+
+            <div class="service-row">
+              <span class="service-row-name">Patreon</span>
+              <span class="service-row-desc">Our tip jar!</span>
+              <a class="service-row-link" href="http://patreon.com/ChronArchive">Patreon</a>
+              <span class="service-badge live">Live</span>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- contact -->
+    <section id="contact">
+      <div class="section-wrap">
+        <div class="contact-grid">
+
+          <!-- Info -->
+          <div>
+            <h2 class="section-heading section-heading-lg contact-info-title">Contact</h2>
+            <p class="contact-body">
+              CHRONARCHIVE is a passion project. For questions, feedback, or file server access,
+              use the form or email <a href="mailto:contact@chronarchive.com">contact@chronarchive.com</a>.
+              We reply to the email you provide.
+            </p>
+            <div class="contact-dmca">
+              <p class="contact-dmca-title">DMCA &amp; Content Removal</p>
+              <p>
+                We respond to all valid DMCA requests. Send removal requests with claim details to
+                <a href="mailto:contact@chronarchive.com">contact@chronarchive.com</a>.
+              </p>
+            </div>
+          </div>
+
+          <!-- Form -->
+          <form id="contact-form" method="POST" action="/api/contact" novalidate>
+
+            <input type="hidden" name="_csrf" id="csrf-token" value="">
+
+            <span class="form-honeypot" aria-hidden="true">
+              <input type="text" name="_gotcha" tabindex="-1" autocomplete="off">
+            </span>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="field-name">Name</label>
+                <input
+                  class="form-input"
+                  type="text"
+                  id="field-name"
+                  name="full_name"
+                  autocomplete="name"
+                  required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="field-email">Email</label>
+                <input
+                  class="form-input"
+                  type="email"
+                  id="field-email"
+                  name="email"
+                  autocomplete="email"
+                  required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="field-subject">Subject</label>
+              <div class="form-select-wrap">
+                <select class="form-select" id="field-subject" name="subject">
+                  <option value="account">Account Request</option>
+                  <option value="feedback">Feedback</option>
+                  <option value="general">General</option>
+                  <option value="dmca">DMCA / Content Removal</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="field-message">Message</label>
+              <textarea
+                class="form-textarea"
+                id="field-message"
+                name="message"
+                rows="5"
+                required></textarea>
+            </div>
+
+            <div id="form-status" role="alert" aria-live="polite"></div>
+
+            <button class="form-submit" type="submit">Send</button>
+
+          </form>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Chronodulator (timeline) + ticker -->
+  <div id="chronodulator-wrap">
+    <div id="chrono-timeline">
+      <span id="chrono-title">Chronodulator</span>
+      <div id="chrono-track">
+
+        <a href="95/index.html" class="era-node">
+          <span class="node-dot"></span>
+          <span class="node-label">'95</span>
+        </a>
+
+        <a href="05/index.html" class="era-node">
+          <span class="node-dot"></span>
+          <span class="node-label">'05</span>
+        </a>
+
+        <a href="index.html" class="era-node">
+          <span class="node-dot"></span>
+          <span class="node-label">'10</span>
+        </a>
+
+        <span class="era-node era-active">
+          <span class="node-dot"></span>
+          <span class="node-label">Now</span>
+        </span>
+
+      </div>
+    </div>
+
+    <div id="ticker">
+      <div class="ticker-left">
+        <span class="ticker-dot"></span>
+        <span>Like the new look? Stay tuned. More to come!&nbsp;&nbsp;&bull;&nbsp;&nbsp;Service availability may vary! This is beta [13].</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---- Lava lamp temporal background ----
+    (function() {
+      var container = document.getElementById('temporal-stream');
+      var today = new Date();
+      var isApr19 = (today.getMonth() === 3 && today.getDate() === 19); // April = month 3
+
+      var yearColors = {
+        2026: ['rgb(40,200,90)',    1.00], // always green
+        2025: ['rgb(212,170,20)',   1.00], // always gold
+        2000: ['rgb(220,50,50)',    0.10],
+        2038: ['rgb(220,50,50)',    0.10],
+        1997: ['rgb(70,110,230)',   0.08],
+        2001: ['rgb(70,110,230)',   0.08],
+        2011: ['rgb(70,110,230)',   0.08],
+        2003: ['rgb(20,50,210)',    0.07],
+        2005: ['rgb(170,60,210)',   0.07],
+        2007: ['rgb(210,50,160)',   0.08],
+      };
+
+      var goldColor = 'rgb(212,170,20)';
+
+      for (var i = 0; i < 22; i++) {
+        var year = 1995 + Math.floor(Math.random() * 44); // 1995-2038
+        var el = document.createElement('span');
+        el.className = 'year-float';
+        el.textContent = year;
+        el.style.fontSize = (4 + Math.random() * 12).toFixed(1) + 'rem';
+        el.style.left     = (Math.random() * 85).toFixed(1) + '%';
+        el.style.top      = (Math.random() * 110).toFixed(1) + 'vh';
+        var dur = 22 + Math.random() * 43;
+        el.style.animationDuration = dur.toFixed(1) + 's';
+        el.style.animationDelay    = -(Math.random() * dur).toFixed(1) + 's';
+
+        if (isApr19) {
+          // April 19: every number is gold
+          el.style.color = goldColor;
+          el.className = 'year-float year-float-vivid';
+        } else {
+          var rule = yearColors[year];
+          if (rule && Math.random() < rule[1]) {
+            el.style.color = rule[0];
+            el.className = 'year-float year-float-vivid';
+          }
+        }
+
+        container.appendChild(el);
+      }
+    })();
+
+    // contact form
+    (function() {
+      var form   = document.getElementById('contact-form');
+      var status = document.getElementById('form-status');
+      if (!form) return;
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Honeypot check (client-side pre-filter)
+        if (form._gotcha && form._gotcha.value) return;
+
+        var btn = form.querySelector('.form-submit');
+        btn.disabled = true;
+        status.className = '';
+        status.style.display = 'none';
+
+        var payload = {
+          full_name: form.full_name.value.trim(),
+          email:     form.email.value.trim(),
+          subject:   form.subject.value,
+          message:   form.message.value.trim(),
+          _csrf:     document.getElementById('csrf-token').value
+        };
+
+        fetch('/api/contact', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(payload)
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(json) {
+          if (json.ok) {
+            status.className = 'success';
+            status.textContent = 'Transmission received. We\'ll be in touch.';
+            form.reset();
+          } else {
+            status.className = 'error';
+            status.textContent = json.error || 'Something went wrong. Please try again.';
+          }
+          btn.disabled = false;
+        })
+        .catch(function() {
+          status.className = 'error';
+          status.textContent = 'Could not reach the server. Please try again later.';
+          btn.disabled = false;
+        });
+      });
+    })();
+
+    // blog: dynamically load posts from blog/posts.json for modern browsers
+    (function() {
+      try {
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState !== 4 || xhr.status !== 200) return;
+          try {
+            var posts = JSON.parse(xhr.responseText);
+            if (!posts || !posts.length) return;
+            var container = document.getElementById('blog-posts');
+            if (!container) return;
+            var html = '';
+            for (var i = 0; i < posts.length; i++) {
+              var p = posts[i];
+              var thumb = p.thumb || 'assets/blogplacehold.png';
+              html += '<article class="blog-card">' +
+                '<div class="blog-thumb"><img src="' + thumb + '" alt=""></div>' +
+                '<div class="blog-meta">' +
+                '<time class="blog-date">' + p.date + '</time>' +
+                '<h3 class="blog-title">' + p.title + '</h3>' +
+                '<p class="blog-excerpt">New update! Changelog inside!</p>' +
+                '<a class="blog-read-more" href="blog/posts/' + p.slug + '/now.html">Read More \u2192</a>' +
+                '</div></article>';
+            }
+            container.innerHTML = html;
+          } catch(e) {}
+        };
+        xhr.open('GET', 'blog/posts.json', true);
+        xhr.send();
+      } catch(e) {}
+    })();
+
+    // chronodulator scroll
+    (function() {
+      var track = document.getElementById('chrono-track');
+      if (!track) return;
+      function updateChrono() {
+        var scrolled = window.scrollY || window.pageYOffset;
+        var maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+        var t = Math.min(scrolled / maxScroll, 1);
+        // 75% (Now node) → 104% (well past the end of the track) as user scrolls to bottom
+        var fill = 75 + t * 29;
+        track.style.setProperty('--chrono-fill', fill.toFixed(2) + '%');
+      }
+      window.addEventListener('scroll', updateChrono, { passive: true });
+      updateChrono();
+    })();
+  </script>
+
+</body>
+</html>

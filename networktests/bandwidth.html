@@ -1,0 +1,197 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <title>Bandwidth Test | CHRONARCHIVE</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="../assets/CA-favicon-192x192.png">
+  <link rel="stylesheet" type="text/css" href="../assets/10.css">
+  <style type="text/css">
+    #bw-box { margin-top: 8px; text-align: center; padding: 20px 0 10px; }
+    #bw-btn { font-size: 13px; padding: 6px 22px; cursor: pointer; }
+    #bw-status { font-size: 12px; color: #999999; margin: 10px 0 6px; min-height: 18px; }
+    #bw-bar-wrap { display: none; margin: 12px auto 0; width: 100%; max-width: 280px; height: 6px; background: #e8e8e8; border-radius: 3px; overflow: hidden; }
+    #bw-bar { height: 6px; width: 0%; background: #4d90fe; border-radius: 3px; transition: width 0.15s; }
+    #bw-results { display: none; margin: 14px auto 0; width: 100%; max-width: 300px; border-collapse: collapse; font-size: 13px; }
+    #bw-results td { padding: 5px 12px; border-bottom: 1px solid #eeeeee; }
+    #bw-results td:first-child { color: #666666; text-align: left; }
+    #bw-results td:last-child { font-weight: bold; color: #333333; text-align: right; }
+    .bw-note { font-size: 11px; color: #999; margin-top: 16px; text-align: center; }
+  </style>
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="../assets/socialpreview10.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="../assets/socialpreview10.png">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <div id="navbar">
+    <div id="navbar-inner">
+      <div id="navbar-left">
+        <a href="../index.html" id="navbar-logo">CHRONARCHIVE</a>
+        <a href="../index.html" class="navbar-link">Search</a>
+        <a href="https://beta.chronarchive.com" class="navbar-link">Files</a>
+        <a href="../blog.html" class="navbar-link">Blog</a>
+        <a href="../services.html" class="navbar-link active">Services</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="wrapper">
+
+    <!-- Logo -->
+    <div id="logo-area">
+      <a href="../index.html"><img src="../assets/CALogo.png" alt="CHRONARCHIVE"></a>
+      <p id="tagline">Your Time Capsule</p>
+    </div>
+
+    <!-- Bandwidth test panel -->
+    <div class="content-panel" style="margin-top: 28px;">
+      <h2>Bandwidth Test</h2>
+      <div class="content-panel-body">
+        <p class="blog-post-meta">Measures download speed to this server over multiple requests.</p>
+
+        <div id="bw-box">
+          <button id="bw-btn" onclick="startTest()">Start Test</button>
+          <div id="bw-bar-wrap"><div id="bw-bar"></div></div>
+          <div id="bw-status">Press Start to begin.</div>
+          <table id="bw-results">
+            <tr><td>Download</td><td id="r-dl">--</td></tr>
+            <tr><td>Latency (first byte)</td><td id="r-lat">--</td></tr>
+            <tr><td>Data transferred</td><td id="r-bytes">--</td></tr>
+            <tr><td>Samples</td><td id="r-cnt">--</td></tr>
+          </table>
+          <p class="bw-note">Measures connection to ChronArchive's server only.<br>
+            Results depend on server load and network conditions.</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Chronodulator -->
+    <div id="chronodulator" class="clearfix">
+      <span id="chrono-label">Chronodulator</span>
+      <div id="chrono-buttons">
+        <a href="../95/services.html" class="era-btn">'95</a>
+        <a href="../05/services.html" class="era-btn">'05</a>
+        <a href="../services.html" class="era-btn era-active">'10</a>
+        <a href="../now.html#services" class="era-btn">Now</a>
+      </div>
+    </div>
+
+    <div id="footer">
+      &copy; 2026 CHRONARCHIVE &nbsp;&middot;&nbsp;
+      <a href="../services.html#contact">Contact</a> &nbsp;&middot;&nbsp;
+      <a href="../services.html#dmca">DMCA</a>
+    </div>
+
+  </div>
+
+  <script type="text/javascript">
+  // Download a known file multiple times and measure throughput.
+  // Uses CALogo.png (~546 KB) for a meaningful sample size.
+  // Avoids any external HTTPS dependency — everything runs against this server.
+
+  var TEST_URL = '../assets/CALogo.png';
+  var TEST_BYTES = 546597; // approximate; actual bytes counted from XHR response
+  var NUM_PASSES = 4;
+  var running = false;
+  var isFile = (typeof window !== 'undefined' && window.location && window.location.protocol === 'file:');
+
+  function startTest() {
+    if (running) return;
+    running = true;
+    document.getElementById('bw-btn').disabled = true;
+    document.getElementById('bw-results').style.display = 'none';
+    document.getElementById('bw-bar-wrap').style.display = 'block';
+    document.getElementById('bw-bar').style.width = '0%';
+    setStatus('Testing\u2026 pass 1 / ' + NUM_PASSES);
+    var timings = [];
+    var latencies = [];
+    var totalBytes = 0;
+
+    function runPass(n) {
+      if (n >= NUM_PASSES) {
+        finish(timings, latencies, totalBytes);
+        return;
+      }
+      var url = TEST_URL + '?_=' + new Date().getTime();
+      var start = new Date().getTime();
+      var firstByte = -1;
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.responseType = 'arraybuffer';
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 2 && firstByte < 0) {
+          firstByte = new Date().getTime() - start;
+        }
+        if (xhr.readyState === 4) {
+          var ok = (xhr.status === 200) || (isFile && xhr.status === 0);
+          if (ok) {
+            var elapsed = new Date().getTime() - start;
+            var bytes = xhr.response ? xhr.response.byteLength : TEST_BYTES;
+            timings.push(elapsed);
+            if (firstByte >= 0) latencies.push(firstByte);
+            totalBytes += bytes;
+          }
+          var pct = Math.round(((n + 1) / NUM_PASSES) * 100);
+          document.getElementById('bw-bar').style.width = pct + '%';
+          setStatus('Testing\u2026 pass ' + (n + 2) + ' / ' + NUM_PASSES);
+          setTimeout(function() { runPass(n + 1); }, 0);
+        }
+      };
+      xhr.onerror = function() {
+        var pct = Math.round(((n + 1) / NUM_PASSES) * 100);
+        document.getElementById('bw-bar').style.width = pct + '%';
+        setTimeout(function() { runPass(n + 1); }, 0);
+      };
+      xhr.send();
+    }
+
+    runPass(0);
+  }
+
+  function finish(timings, latencies, totalBytes) {
+    running = false;
+    document.getElementById('bw-btn').disabled = false;
+    if (timings.length === 0) {
+      setStatus('No responses. Check your connection or try from a web server.');
+      return;
+    }
+
+    // Total time for all passes
+    var totalMs = 0;
+    for (var i = 0; i < timings.length; i++) totalMs += timings[i];
+
+    // Mbps = (totalBytes * 8) / (totalMs / 1000) / 1000000
+    var mbps = (totalBytes * 8) / (totalMs / 1000) / 1000000;
+
+    // Average latency
+    var avgLat = 0;
+    for (var i = 0; i < latencies.length; i++) avgLat += latencies[i];
+    avgLat = latencies.length > 0 ? Math.round(avgLat / latencies.length) : '--';
+
+    var dlStr = mbps >= 1 ? mbps.toFixed(2) + ' Mbps' :
+                mbps >= 0.001 ? (mbps * 1000).toFixed(1) + ' Kbps' : '< 1 Kbps';
+
+    var kbTransferred = Math.round(totalBytes / 1024);
+    var bytesStr = kbTransferred >= 1024 ?
+      (kbTransferred / 1024).toFixed(2) + ' MB' : kbTransferred + ' KB';
+
+    document.getElementById('r-dl').textContent = dlStr;
+    document.getElementById('r-lat').textContent = (typeof avgLat === 'number') ? avgLat + ' ms' : '--';
+    document.getElementById('r-bytes').textContent = bytesStr;
+    document.getElementById('r-cnt').textContent = timings.length;
+    document.getElementById('bw-results').style.display = 'table';
+    setStatus('Done. ' + dlStr + ' download.');
+  }
+
+  function setStatus(msg) {
+    document.getElementById('bw-status').textContent = msg;
+  }
+  </script>
+
+</body>
+</html>

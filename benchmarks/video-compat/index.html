@@ -1,0 +1,238 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <title>ChronCodecs | CHRONARCHIVE</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="../../assets/CA-favicon-192x192.png">
+  <link rel="stylesheet" type="text/css" href="../../assets/10.css">
+  <style type="text/css">
+    #compat-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+    #compat-table th { background: #ddeeff; border: 1px solid #bbccdd; padding: 5px 6px; text-align: left; font-weight: bold; }
+    #compat-table td { border: 1px solid #dddddd; padding: 5px 6px; vertical-align: middle; }
+    .compat-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .cod-yes  { color: #267F00; font-weight: bold; }
+    .cod-prob { color: #886600; font-weight: bold; }
+    .cod-no   { color: #cc0000; font-weight: bold; }
+    .cod-unk  { color: #888888; }
+    .compat-section { margin-top: 20px; font-size: 12px; font-weight: bold; color: #333; padding: 6px 0 2px; border-bottom: 1px solid #ddd; }
+    #run-btn { font-size: 13px; padding: 6px 22px; cursor: pointer; margin-top: 8px; }
+    .codec-desc { font-size: 11px; color: #888; }
+    #summary { margin-top: 14px; padding: 8px 12px; background: #f5f8ff; border: 1px solid #c0d0ee; font-size: 12px; display: none; }
+    .bench-note { font-size: 11px; color: #888888; margin-top: 10px; }
+    #webrtc-row { display: none; }
+  </style>
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="../../assets/socialpreview10.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="../../assets/socialpreview10.png">
+</head>
+<body>
+
+  <div id="navbar">
+    <div id="navbar-inner">
+      <div id="navbar-left">
+        <a href="../../index.html" id="navbar-logo">CHRONARCHIVE</a>
+        <a href="../../index.html" class="navbar-link">Search</a>
+        <a href="https://beta.chronarchive.com" class="navbar-link">Files</a>
+        <a href="../../blog.html" class="navbar-link">Blog</a>
+        <a href="../../services.html" class="navbar-link active">Services</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="wrapper">
+    <div id="logo-area">
+      <a href="../../index.html"><img src="../../assets/CALogo.png" alt="CHRONARCHIVE"></a>
+      <p id="tagline">Your Time Capsule</p>
+    </div>
+
+    <div class="content-panel" style="margin-top: 28px;">
+      <h2>ChronCodecs</h2>
+      <div class="content-panel-body">
+        <p class="blog-post-meta">Custom browser codec checker. Shows which video and audio formats your browser supports via the W3C <code>canPlayType()</code> API — no files downloaded.</p>
+
+        <button id="run-btn" onclick="runCheck()">Check My Browser</button>
+
+        <div id="summary"></div>
+
+        <p class="compat-section">Video Codecs</p>
+        <div class="compat-table-wrap"><table id="compat-table">
+          <tr>
+            <th>Codec / Format</th>
+            <th>Container</th>
+            <th>Support</th>
+            <th>Notes</th>
+          </tr>
+          <tbody id="table-video"></tbody>
+        </table></div>
+
+        <p class="compat-section">Audio Codecs</p>
+        <div class="compat-table-wrap"><table style="width:100%; border-collapse:collapse; margin-top:4px; font-size:12px;" id="compat-table-audio">
+          <tr>
+            <th style="background:#ddeeff; border:1px solid #bbccdd; padding:5px 6px; text-align:left; font-weight:bold;">Codec / Format</th>
+            <th style="background:#ddeeff; border:1px solid #bbccdd; padding:5px 6px; text-align:left; font-weight:bold;">Container</th>
+            <th style="background:#ddeeff; border:1px solid #bbccdd; padding:5px 6px; text-align:left; font-weight:bold;">Support</th>
+            <th style="background:#ddeeff; border:1px solid #bbccdd; padding:5px 6px; text-align:left; font-weight:bold;">Notes</th>
+          </tr>
+          <tbody id="table-audio"></tbody>
+        </table></div>
+
+        <p class="compat-section">Media Features</p>
+        <div class="compat-table-wrap"><table style="width:100%; border-collapse:collapse; margin-top:4px; font-size:12px;">
+          <tr>
+            <th style="background:#ddeeff; border:1px solid #bbccdd; padding:5px 6px; text-align:left; font-weight:bold;">Feature</th>
+            <th style="background:#ddeeff; border:1px solid #bbccdd; padding:5px 6px; text-align:left; font-weight:bold;">Support</th>
+            <th style="background:#ddeeff; border:1px solid #bbccdd; padding:5px 6px; text-align:left; font-weight:bold;">Notes</th>
+          </tr>
+          <tbody id="table-features"></tbody>
+        </table></div>
+
+        <p class="bench-note">* "Probably" means the browser is confident it can play the type. "Maybe" means partial/uncertain support.<br>
+          Empty / No = browser reports it cannot play. Results depend on OS codecs and hardware decoders.<br>
+          This test does not download or play any video.</p>
+      </div>
+    </div>
+
+    <div id="chronodulator" class="clearfix">
+      <span id="chrono-label">Chronodulator</span>
+      <div id="chrono-buttons">
+        <a href="../../95/services.html" class="era-btn">'95</a>
+        <a href="../../05/services.html" class="era-btn">'05</a>
+        <a href="../../services.html" class="era-btn era-active">'10</a>
+        <a href="../../now.html#services" class="era-btn">Now</a>
+      </div>
+    </div>
+
+    <div id="footer">
+      &copy; 2026 CHRONARCHIVE &nbsp;&middot;&nbsp;
+      <a href="../../services.html#contact">Contact</a> &nbsp;&middot;&nbsp;
+      <a href="../../services.html#dmca">DMCA</a>
+    </div>
+  </div>
+
+<script type="text/javascript">
+/* ---------------------------------------------------------------
+ * Video / Audio Codec Compat Checker
+ * Uses HTMLMediaElement.canPlayType() — no network requests.
+ * ------------------------------------------------------------- */
+
+var VIDEO_TESTS = [
+  { name: 'H.264 Baseline',   container: 'MP4',   mime: 'video/mp4; codecs="avc1.42E01E"',          notes: 'H.264 BP — widest hardware decode support, iOS/Android, most browsers' },
+  { name: 'H.264 Main',       container: 'MP4',   mime: 'video/mp4; codecs="avc1.4D401E"',          notes: 'H.264 MP — common web video profile' },
+  { name: 'H.264 High',       container: 'MP4',   mime: 'video/mp4; codecs="avc1.640028"',          notes: 'H.264 HP 4.0 — highest quality standard profile' },
+  { name: 'H.265 / HEVC',     container: 'MP4',   mime: 'video/mp4; codecs="hvc1"',                 notes: 'HEVC — requires hardware decoder; Safari/Edge on Windows 11+' },
+  { name: 'H.265 (hev1)',     container: 'MP4',   mime: 'video/mp4; codecs="hev1"',                 notes: 'HEVC alternate brand codec string' },
+  { name: 'MPEG-4 Part 2',    container: 'MP4',   mime: 'video/mp4; codecs="mp4v.20.3"',            notes: 'MPEG-4 ASP — older codec, DivX/Xvid era' },
+  { name: 'MPEG-4 (generic)', container: 'MP4',   mime: 'video/mp4',                                notes: 'MP4 container, unspecified codec' },
+  { name: 'VP8',              container: 'WebM',  mime: 'video/webm; codecs="vp8"',                 notes: 'VP8 — Chrome/Firefox/Opera; not Safari' },
+  { name: 'VP9',              container: 'WebM',  mime: 'video/webm; codecs="vp9"',                 notes: 'VP9 — Chrome/Firefox; limited Safari/Edge support' },
+  { name: 'VP9 Profile 2',    container: 'WebM',  mime: 'video/webm; codecs="vp09.02.10.10"',       notes: 'VP9 HDR profile 2' },
+  { name: 'AV1',              container: 'MP4',   mime: 'video/mp4; codecs="av01.0.08M.08"',        notes: 'AV1 in MP4 — Chrome 70+, Firefox 67+, Edge 89+, NOT Safari < 17' },
+  { name: 'AV1',              container: 'WebM',  mime: 'video/webm; codecs="av01"',                notes: 'AV1 in WebM — same support as MP4 variant' },
+  { name: 'Theora',           container: 'OGG',   mime: 'video/ogg; codecs="theora"',               notes: 'Theora — Firefox/Chrome; never IE/Safari' },
+  { name: 'Dirac / Schro',    container: 'OGG',   mime: 'video/ogg; codecs="dirac"',                notes: 'Dirac — rarely supported' },
+  { name: 'WebM (generic)',   container: 'WebM',  mime: 'video/webm',                               notes: 'WebM container, unspecified codec' },
+  { name: 'OGG (generic)',    container: 'OGG',   mime: 'video/ogg',                                notes: 'OGG container, unspecified codec' },
+  { name: 'MOV / QuickTime',  container: 'MOV',   mime: 'video/quicktime',                          notes: 'QuickTime — Safari only' },
+  { name: 'WMV / VC-1',       container: 'ASF',   mime: 'video/x-ms-wmv',                           notes: 'Windows Media Video — IE/Edge on Windows' }
+];
+
+var AUDIO_TESTS = [
+  { name: 'AAC-LC',         container: 'MP4/AAC', mime: 'audio/mp4; codecs="mp4a.40.2"',   notes: 'AAC-LC — universal support in iOS, Android, modern browsers' },
+  { name: 'AAC-HE v1',      container: 'MP4/AAC', mime: 'audio/mp4; codecs="mp4a.40.5"',   notes: 'HE-AAC/SBR — broad support' },
+  { name: 'AAC-HE v2',      container: 'MP4/AAC', mime: 'audio/mp4; codecs="mp4a.40.29"',  notes: 'HE-AAC v2/PS — less common' },
+  { name: 'MP3',            container: 'MP3',     mime: 'audio/mpeg',                       notes: 'MP3 — universal in all browsers' },
+  { name: 'MP3 (mp3 mime)', container: 'MP3',     mime: 'audio/mp3',                        notes: 'Alternate MP3 MIME type' },
+  { name: 'Vorbis',         container: 'OGG',     mime: 'audio/ogg; codecs="vorbis"',       notes: 'Vorbis OGG — Firefox/Chrome; not Safari/IE' },
+  { name: 'Opus',           container: 'OGG',     mime: 'audio/ogg; codecs="opus"',         notes: 'Opus (OGG) — Chrome/Firefox; Safari 18+' },
+  { name: 'Opus',           container: 'WebM',    mime: 'audio/webm; codecs="opus"',        notes: 'Opus (WebM) — same browser support' },
+  { name: 'FLAC',           container: 'FLAC',    mime: 'audio/flac',                       notes: 'FLAC lossless — Chrome, Firefox, Safari 11+' },
+  { name: 'FLAC',           container: 'OGG',     mime: 'audio/ogg; codecs="flac"',         notes: 'FLAC in OGG — Firefox 51+, Chrome 52+' },
+  { name: 'WAV PCM',        container: 'WAV',     mime: 'audio/wav; codecs="1"',            notes: 'Linear PCM — nearly universal' },
+  { name: 'WAV (generic)',  container: 'WAV',     mime: 'audio/wave',                       notes: 'Alternate WAV MIME' },
+  { name: 'AC-3 / Dolby',  container: 'MP4',     mime: 'audio/mp4; codecs="ac-3"',         notes: 'AC-3 — Safari/Apple devices only' },
+  { name: 'EC-3 / E-AC-3', container: 'MP4',     mime: 'audio/mp4; codecs="ec-3"',         notes: 'Enhanced AC-3 — Apple/Dolby Atmos only' },
+  { name: 'AMR-NB',         container: '3GP',     mime: 'audio/3gpp',                       notes: 'AMR narrow band — mobile legacy' },
+  { name: 'Windows Media',  container: 'WMA',     mime: 'audio/x-ms-wma',                   notes: 'WMA — IE/Edge on Windows' }
+];
+
+var FEATURE_TESTS = [
+  { name: 'HTMLVideoElement',  fn: function(){ return typeof document.createElement('video').canPlayType === 'function'; }, notes: '<video> tag support' },
+  { name: 'HTMLAudioElement',  fn: function(){ return typeof document.createElement('audio').canPlayType === 'function'; }, notes: '<audio> tag support' },
+  { name: 'MediaSource API',   fn: function(){ return typeof window.MediaSource !== 'undefined'; },                         notes: 'Required for adaptive streaming (HLS/DASH)' },
+  { name: 'WebRTC (RTCPeerConnection)', fn: function(){ return typeof window.RTCPeerConnection !== 'undefined' || typeof window.webkitRTCPeerConnection !== 'undefined'; }, notes: 'Real-time communication / video chat' },
+  { name: 'Web Audio API',     fn: function(){ return typeof window.AudioContext !== 'undefined' || typeof window.webkitAudioContext !== 'undefined'; }, notes: 'AudioContext — advanced audio processing' },
+  { name: 'Picture-in-Picture',fn: function(){ return document.pictureInPictureEnabled === true; },                        notes: 'Floating video window' },
+  { name: 'requestVideoFrameCallback', fn: function(){ var v = document.createElement('video'); return typeof v.requestVideoFrameCallback === 'function'; }, notes: 'Per-frame video processing hook' }
+];
+
+function canPlayLabel(result) {
+  if (result === 'probably') return '<span class="cod-yes">&#10003; Probably</span>';
+  if (result === 'maybe')    return '<span class="cod-prob">&#126; Maybe</span>';
+  return '<span class="cod-no">&#10007; No</span>';
+}
+
+function boolLabel(val) {
+  return val ? '<span class="cod-yes">&#10003; Yes</span>' : '<span class="cod-no">&#10007; No</span>';
+}
+
+function runCheck() {
+  document.getElementById('run-btn').disabled = true;
+
+  var vid = document.createElement('video');
+  var aud = document.createElement('audio');
+  var hasVideo = typeof vid.canPlayType === 'function';
+  var hasAudio = typeof aud.canPlayType === 'function';
+
+  var supported = 0, maybe = 0, total = VIDEO_TESTS.length + AUDIO_TESTS.length;
+
+  // Video
+  var vtbody = document.getElementById('table-video');
+  vtbody.innerHTML = '';
+  for (var i = 0; i < VIDEO_TESTS.length; i++) {
+    var t = VIDEO_TESTS[i];
+    var result = hasVideo ? vid.canPlayType(t.mime) : '';
+    if (result === 'probably') supported++;
+    else if (result === 'maybe') maybe++;
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + t.name + '</td><td>' + t.container + '</td><td>' + canPlayLabel(result) + '</td><td class="codec-desc">' + t.notes + '</td>';
+    vtbody.appendChild(tr);
+  }
+
+  // Audio
+  var atbody = document.getElementById('table-audio');
+  atbody.innerHTML = '';
+  for (var i = 0; i < AUDIO_TESTS.length; i++) {
+    var t = AUDIO_TESTS[i];
+    var result = hasAudio ? aud.canPlayType(t.mime) : '';
+    if (result === 'probably') supported++;
+    else if (result === 'maybe') maybe++;
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td style="border:1px solid #ddd;padding:5px 10px;">' + t.name + '</td><td style="border:1px solid #ddd;padding:5px 10px;">' + t.container + '</td><td style="border:1px solid #ddd;padding:5px 10px;">' + canPlayLabel(result) + '</td><td style="border:1px solid #ddd;padding:5px 10px;" class="codec-desc">' + t.notes + '</td>';
+    atbody.appendChild(tr);
+  }
+
+  // Features
+  var ftbody = document.getElementById('table-features');
+  ftbody.innerHTML = '';
+  for (var i = 0; i < FEATURE_TESTS.length; i++) {
+    var t = FEATURE_TESTS[i];
+    var ok = false;
+    try { ok = !!t.fn(); } catch(e) {}
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td style="border:1px solid #ddd;padding:5px 10px;">' + t.name + '</td><td style="border:1px solid #ddd;padding:5px 10px;">' + boolLabel(ok) + '</td><td style="border:1px solid #ddd;padding:5px 10px;" class="codec-desc">' + t.notes + '</td>';
+    ftbody.appendChild(tr);
+  }
+
+  // Summary
+  var s = document.getElementById('summary');
+  var ua = navigator.userAgent;
+  s.innerHTML = '<b>Summary:</b> ' + supported + ' codecs confirmed (<span class="cod-yes">&#10003; Probably</span>), ' + maybe + ' uncertain (<span class="cod-prob">&#126; Maybe</span>), out of ' + total + ' tested. &nbsp;|&nbsp; <b>Browser:</b> ' + ua;
+  s.style.display = 'block';
+}
+</script>
+
+</body>
+</html>

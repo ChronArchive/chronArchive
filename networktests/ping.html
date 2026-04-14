@@ -1,0 +1,194 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <title>Ping Test | CHRONARCHIVE</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="../assets/CA-favicon-192x192.png">
+  <link rel="stylesheet" type="text/css" href="../assets/10.css">
+  <style>
+    #ping-box {
+      margin-top: 8px;
+      text-align: center;
+      padding: 20px 0 10px;
+    }
+    #ping-btn {
+      font-size: 13px;
+      padding: 6px 22px;
+      cursor: pointer;
+    }
+    #ping-status {
+      font-size: 12px;
+      color: #999999;
+      margin: 10px 0 6px;
+      min-height: 18px;
+    }
+    #ping-results {
+      display: none;
+      margin: 14px auto 0;
+      width: 100%;
+      max-width: 260px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    #ping-results td {
+      padding: 5px 12px;
+      border-bottom: 1px solid #eeeeee;
+    }
+    #ping-results td:first-child { color: #666666; text-align: left; }
+    #ping-results td:last-child { font-weight: bold; color: #333333; text-align: right; }
+    #ping-bar-wrap {
+      display: none;
+      margin: 12px auto 0;
+      width: 100%;
+      max-width: 260px;
+      height: 6px;
+      background: #e8e8e8;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    #ping-bar {
+      height: 6px;
+      width: 0%;
+      background: #4d90fe;
+      border-radius: 3px;
+      transition: width 0.1s;
+    }
+  </style>
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="../assets/socialpreview10.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="../assets/socialpreview10.png">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <div id="navbar">
+    <div id="navbar-inner">
+      <div id="navbar-left">
+        <a href="../index.html" id="navbar-logo">CHRONARCHIVE</a>
+        <a href="../index.html" class="navbar-link">Search</a>
+        <a href="https://beta.chronarchive.com" class="navbar-link">Files</a>
+        <a href="../blog.html" class="navbar-link">Blog</a>
+        <a href="../services.html" class="navbar-link active">Services</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="wrapper">
+
+    <div id="logo-area">
+      <a href="../index.html"><img src="../assets/CALogo.png" alt="CHRONARCHIVE"></a>
+      <p id="tagline">Your Time Capsule</p>
+    </div>
+
+    <div class="content-panel" style="margin-top: 28px;">
+      <h2>Ping Test</h2>
+      <div class="content-panel-body">
+        <p class="blog-post-meta">Measures round-trip latency to this server over 15 requests.</p>
+
+        <div id="ping-box">
+          <button id="ping-btn" onclick="startPing()">Start Test</button>
+          <div id="ping-bar-wrap"><div id="ping-bar"></div></div>
+          <div id="ping-status">Press Start to begin.</div>
+          <table id="ping-results">
+            <tr><td>Minimum</td><td id="r-min">--</td></tr>
+            <tr><td>Average</td><td id="r-avg">--</td></tr>
+            <tr><td>Maximum</td><td id="r-max">--</td></tr>
+            <tr><td>Samples</td><td id="r-cnt">--</td></tr>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Chronodulator -->
+    <div id="chronodulator" class="clearfix">
+      <span id="chrono-label">Chronodulator</span>
+      <div id="chrono-buttons">
+        <a href="../95/services.html" class="era-btn">'95</a>
+        <a href="../05/services.html" class="era-btn">'05</a>
+        <a href="../services.html" class="era-btn era-active">'10</a>
+        <a href="../now.html#services" class="era-btn">Now</a>
+      </div>
+    </div>
+
+    <div id="footer">
+      &copy; 2026 CHRONARCHIVE &nbsp;&middot;&nbsp;
+      <a href="../services.html#contact">Contact</a> &nbsp;&middot;&nbsp;
+      <a href="../services.html#dmca">DMCA</a>
+    </div>
+
+  </div>
+
+  <script type="text/javascript">
+  var TOTAL = 15;
+  var DELAY = 80;
+  var results = [];
+  var running = false;
+
+  function startPing() {
+    if (running) return;
+    running = true;
+    results = [];
+    document.getElementById('ping-btn').disabled = true;
+    document.getElementById('ping-results').style.display = 'none';
+    document.getElementById('ping-bar-wrap').style.display = 'block';
+    document.getElementById('ping-bar').style.width = '0%';
+    setStatus('Testing\u2026 0 / ' + TOTAL);
+    runOne(0);
+  }
+
+  function runOne(n) {
+    if (n >= TOTAL) {
+      finish();
+      return;
+    }
+    var start = (new Date()).getTime();
+    var xhr = new XMLHttpRequest();
+    var isFile = (typeof window !== 'undefined' && window.location && window.location.protocol === 'file:');
+    xhr.open('GET', 'ping.txt?_=' + start, true);
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200 || (isFile && xhr.status === 0)) {
+          results.push((new Date()).getTime() - start);
+        }
+        var pct = Math.round(((n + 1) / TOTAL) * 100);
+        document.getElementById('ping-bar').style.width = pct + '%';
+        setStatus('Testing\u2026 ' + (n + 1) + ' / ' + TOTAL);
+        setTimeout(function() { runOne(n + 1); }, DELAY);
+      }
+    };
+    xhr.send();
+  }
+
+  function finish() {
+    running = false;
+    document.getElementById('ping-btn').disabled = false;
+    if (results.length === 0) {
+      setStatus('No responses received. Check your connection.');
+      return;
+    }
+    var min = results[0], max = results[0], sum = 0;
+    for (var i = 0; i < results.length; i++) {
+      if (results[i] < min) min = results[i];
+      if (results[i] > max) max = results[i];
+      sum += results[i];
+    }
+    var avg = Math.round(sum / results.length);
+    document.getElementById('r-min').textContent = min + ' ms';
+    document.getElementById('r-avg').textContent = avg + ' ms';
+    document.getElementById('r-max').textContent = max + ' ms';
+    document.getElementById('r-cnt').textContent = results.length;
+    document.getElementById('ping-results').style.display = 'table';
+    setStatus('Done.');
+  }
+
+  function setStatus(msg) {
+    document.getElementById('ping-status').textContent = msg;
+  }
+  </script>
+
+</body>
+</html>
