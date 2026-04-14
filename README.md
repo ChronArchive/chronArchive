@@ -1,13 +1,3 @@
-# -----------------------------------------
-#   _____ _                                       _     _           
-#  / ____| |                       /\            | |   (_)          
-# | |    | |__  _ __ ___  _ __    /  \   _ __ ___| |__  ___   _____ 
-# | |    | '_ \| '__/ _ \| '_ \  / /\ \ | '__/ __| '_ \| \ \ / / _ \
-# | |____| | | | | | (_) | | | |/ ____ \| | | |__| | | | |\ V /  __/
-#  \_____|_| |_|_|  \___/|_| |_/_/    \_\_|  \___|_| |_|_| \_/ \___|
-#
-# -----------------------------------------
-
 Mission Statement: 
 The ChronArchive is designed to be a living, bi-directional time capsule. It will serve as a portal between the hardware and internet of today, yesterday, and tomorrow. 
 
@@ -86,3 +76,13 @@ Beta 13: Created 4-12-26 | Changelog: Bugfixes and Improvements! The chronodulat
 
 More to come :)
  
+ I put the ASCII Art down here because it doesnt display correctly on github :(
+# -----------------------------------------
+#   _____ _                                       _     _           
+#  / ____| |                       /\            | |   (_)          
+# | |    | |__  _ __ ___  _ __    /  \   _ __ ___| |__  ___   _____ 
+# | |    | '_ \| '__/ _ \| '_ \  / /\ \ | '__/ __| '_ \| \ \ / / _ \
+# | |____| | | | | | (_) | | | |/ ____ \| | | |__| | | | |\ V /  __/
+#  \_____|_| |_|_|  \___/|_| |_/_/    \_\_|  \___|_| |_|_| \_/ \___|
+#
+# -----------------------------------------
