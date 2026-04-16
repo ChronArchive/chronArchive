@@ -109,7 +109,7 @@ a.navbar-link.active, a.navbar-link.active:link, a.navbar-link.active:visited { 
   text-align: center;
   padding: 32px 0 0;
 }
-#logo-area img { width: 300px; max-width: 100%; }
+#logo-area img { width: 100%; max-width: 520px; height: auto; }
 
 #tagline {
   font-size: 13px;
@@ -130,14 +130,15 @@ a.navbar-link.active, a.navbar-link.active:link, a.navbar-link.active:visited { 
 
 #search-area form {
   display: inline-block;    /* fallback: centered by parent text-align: center */
-  display: -webkit-inline-box;
-  display: -webkit-inline-flex;
-  display: inline-flex;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;            /* block-level flex: width % is rock-solid in all engines */
   width: 90%;
-  max-width: 420px;
+  max-width: 520px;
+  margin: 0 auto;           /* centering for block/flex; harmless on inline-block */
   -webkit-box-sizing: border-box;
   box-sizing: border-box;
-  vertical-align: middle;
+  vertical-align: middle;   /* used only by inline-block fallback */
 }
 
 #search-input {

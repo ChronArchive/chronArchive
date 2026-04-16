@@ -74,6 +74,8 @@ Beta 12: Created 4-11-26 | Changelog: The 2005 era page is finally live. Dark re
 
 Beta 13: Created 4-12-26 | Changelog: Bugfixes and Improvements! The chronodulator should now be centered on older devices, the blog pages are cleaned up, benhmarks should now fit on small screens, Search bar should now center and scale on old safari. Active progress being made to enable searXNG and eliminate bing. 
 
+Beta 14: Created 4-15-26 | Changelog: New logos! The old logo is on the 1995 page, the 2005 page is completley redesigned to reflect a more aqua centric design language, and the main logo is my new Dark Aero style one, I plan on adding more color to it later but like the look for now. Scaling demons and div centering is behing as poorly across devices as ever but IE9 should now accuratley use placeholder sizes instead of attempting to use responsive design
+
 More to come :)
  
  I put the ASCII Art down here because it doesnt display correctly on github :(
