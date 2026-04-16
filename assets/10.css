@@ -109,7 +109,16 @@ a.navbar-link.active, a.navbar-link.active:link, a.navbar-link.active:visited { 
   text-align: center;
   padding: 32px 0 0;
 }
-#logo-area img { width: 100%; max-width: 520px; height: auto; }
+#logo-area img { width: 100%; max-width: 572px; height: auto; }
+
+@media (max-width: 572px) {
+  #logo-area {
+    margin-left: -12px;
+    margin-right: -12px;
+    padding-bottom: 0;
+  }
+  #tagline { margin-top: 2px; padding-bottom: 8px; }
+}
 
 #tagline {
   font-size: 13px;
@@ -641,7 +650,9 @@ a.era-btn.era-active, a.era-btn.era-active:link, a.era-btn.era-active:visited { 
 
 /* ---- Cydia-style site notice ---- */
 #site-notice {
-  margin: 20px 18px 28px;
+  width: 90%;
+  max-width: 520px;
+  margin: 20px auto 28px;
   padding: 12px 16px;
   background-image: -webkit-linear-gradient(top,
     rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.04) 50%,
