@@ -5,6 +5,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <title>ChronArchive</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Your Time Capsule! A platform agnostic homepage designed to serve as a bridge, portal, and repository to enable compatibility between old and new devices.">
   <link rel="icon" type="image/png" href="../assets/CA-favicon-192x192.png">
   <meta property="og:type" content="website">
   <meta property="og:image" content="../assets/socialpreview95.png">
@@ -27,6 +28,72 @@
     img { border: 0; }
     ::-webkit-input-placeholder { color: #ffffff; }
     :-ms-input-placeholder { color: #ffffff; }
+
+    /* ---- Logo ---- */
+    .logo05 { display: block; margin: 0 auto; width: 100%; max-width: 520px; height: auto; }
+    @media (max-width: 579px) { .logo05 { max-width: 100%; } }
+
+    /* ---- Search (responsive) ---- */
+    .search-wrap {
+      width: 90%;
+      max-width: 468px;
+      margin: 0 auto;
+    }
+    .search-form {
+      display: -webkit-box;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-box-align: center;
+          -ms-flex-align: center;
+              align-items: center;
+    }
+    .search-input {
+      -webkit-box-flex: 1;
+          -ms-flex: 1 1 auto;
+              flex: 1 1 auto;
+      min-width: 0;
+      background: #444444;
+      border: 1px solid #666666;
+      -webkit-border-radius: 6px;
+      border-radius: 6px;
+      outline: none;
+      font-family: 'Lucida Grande', Arial, sans-serif;
+      font-size: 14px;
+      color: #ffffff;
+      height: 34px;
+      padding: 0 10px;
+      -webkit-box-sizing: border-box;
+      box-sizing: border-box;
+    }
+    .search-btn {
+      -ms-flex-negative: 0;
+          flex-shrink: 0;
+      cursor: pointer;
+      margin-left: 6px;
+    }
+
+    /* ---- Around the Web (4 → 2 → 1 cols, never 3) ---- */
+    .atw-grid {
+      display: -ms-grid;
+      display: grid;
+      -ms-grid-columns: auto auto auto auto;
+      grid-template-columns: repeat(4, auto);
+      gap: 8px 10px;
+      justify-content: center;
+      margin: 0 auto;
+    }
+    @media (max-width: 539px) {
+      .atw-grid {
+        -ms-grid-columns: auto auto;
+        grid-template-columns: repeat(2, auto);
+      }
+    }
+    @media (max-width: 279px) {
+      .atw-grid {
+        -ms-grid-columns: auto;
+        grid-template-columns: repeat(1, auto);
+      }
+    }
   </style>
 </head>
 <body>
@@ -52,7 +119,7 @@
 
   <!-- Logo -->
   <center>
-    <img src="../assets/2005aqua/CaLogoLight05.png" alt="CHRONARCHIVE" width="520" style="max-width: 90%; height: auto;">
+    <img src="../assets/2005aqua/CaLogoLight05.png" alt="CHRONARCHIVE" class="logo05">
     <br>
     <font face="Lucida Grande, Geneva, Helvetica, Arial, sans-serif" size="2">
       <i><font color="#e8f4ff">Your Time Capsule</font></i>
@@ -62,13 +129,12 @@
   <br><br>
 
   <!-- Search -->
-  <center>
-    <form action="https://www.bing.com/search" method="GET">
-      <input type="text" name="q" size="32"
-        style="background: #444444; border: 1px solid #666666; -webkit-border-radius: 6px; border-radius: 6px; outline: none; font-family: 'Lucida Grande', Arial, sans-serif; font-size: 14px; color: #ffffff; vertical-align: middle; height: 34px; width: 220px; padding: 0 10px;" placeholder="Search the web&#8230;">
-      <input type="image" src="../assets/2005aqua/Search05.png" alt="Search" width="38" height="38" style="vertical-align: middle; cursor: pointer; margin-left: 6px;">
+  <div class="search-wrap">
+    <form class="search-form" action="https://www.bing.com/search" method="GET">
+      <input type="text" name="q" class="search-input" placeholder="Search the web&#8230;">
+      <input type="image" src="../assets/2005aqua/Search05.png" alt="Search" width="38" height="38" class="search-btn">
     </form>
-  </center>
+  </div>
 
   <br><br>
 
@@ -78,7 +144,12 @@
       <b>AROUND THE WEB</b>
     </font>
     <br><br>
-    <a href="http://frogfind.com"><img src="../assets/2005aqua/FrogFind05.png" alt="FrogFind" height="48" style="margin: 0 5px 8px;"></a><a href="http://system7today.com"><img src="../assets/2005aqua/S7T05.png" alt="System 7 Today" height="48" style="margin: 0 5px 8px;"></a><a href="https://macintoshgarden.org"><img src="../assets/2005aqua/MacGarden05.png" alt="Macintosh Garden" height="48" style="margin: 0 5px 8px;"></a><a href="https://archive.org"><img src="../assets/2005aqua/IA05.png" alt="Internet Archive" height="48" style="margin: 0 5px 8px;"></a>
+    <div class="atw-grid">
+      <a href="http://frogfind.com"><img src="../assets/2005aqua/FrogFind05.png" alt="FrogFind" height="48"></a>
+      <a href="http://system7today.com"><img src="../assets/2005aqua/S7T05.png" alt="System 7 Today" height="48"></a>
+      <a href="https://macintoshgarden.org"><img src="../assets/2005aqua/MacGarden05.png" alt="Macintosh Garden" height="48"></a>
+      <a href="https://archive.org"><img src="../assets/2005aqua/IA05.png" alt="Internet Archive" height="48"></a>
+    </div>
   </center>
 
   <br><br>

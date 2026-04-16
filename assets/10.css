@@ -7,9 +7,11 @@
 
 body {
   background-color: #c8c8c8;
-  background-image: -webkit-linear-gradient(top, #dedede 0%, #c0c0c0 100%);
-  background-image: linear-gradient(to bottom, #dedede 0%, #c0c0c0 100%);
+  background-image: url('2010bg.jpg');
+  background-repeat: no-repeat;
+  background-position: center top;
   background-attachment: fixed;
+  background-size: cover;
   font-family: 'Lucida Grande', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 13px;
   color: #222222;
@@ -125,7 +127,7 @@ a.navbar-link.active, a.navbar-link.active:link, a.navbar-link.active:visited { 
   padding-bottom: 20px;
   text-align: center;
 }
-#tagline img { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+#tagline img { display: block; margin: 0 auto; width: 172px; max-width: 30%; height: auto; }
 
 /* ---- Search area ---- */
 #search-area {
