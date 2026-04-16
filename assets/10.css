@@ -121,15 +121,11 @@ a.navbar-link.active, a.navbar-link.active:link, a.navbar-link.active:visited { 
 }
 
 #tagline {
-  font-size: 13px;
-  font-style: italic;
-  color: #555555;
-  font-family: Georgia, serif;
   margin-top: 6px;
   padding-bottom: 20px;
-  letter-spacing: 0.5px;
-  text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+  text-align: center;
 }
+#tagline img { display: block; margin: 0 auto; max-width: 100%; height: auto; }
 
 /* ---- Search area ---- */
 #search-area {

@@ -76,6 +76,15 @@ Beta 13: Created 4-12-26 | Changelog: Bugfixes and Improvements! The chronodulat
 
 Beta 14: Created 4-15-26 | Changelog: New logos! The old logo is on the 1995 page, the 2005 homepage is completley redesigned to reflect a more aqua centric design language, and the main logo is my new Dark Aero style one, I plan on adding more color to it later but like the look for now. Scaling demons and div centering is behaving as poorly across devices as ever but IE9 should now accuratley use placeholder sizes instead of attempting to use responsive design.
 
+Update 0.2.1: Created 4-16-26 | Changelog: 
+• 2005 site should no longer use a billion terabytes of bandwidth
+• 2005 site is more readable
+• 2005 site pages should now reflect the home page style better
+• New release numbering to reflect the altered pace of progress
+• New colorful logo on the 2010 site!
+• New Your Time Capsule text on 2010 site!
+More to come, thank you for visiting!
+
 More to come :)
  
  I put the ASCII Art down here because it doesnt display correctly on github :(

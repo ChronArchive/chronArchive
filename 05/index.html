@@ -13,8 +13,8 @@
   <style type="text/css">
     * { margin: 0; padding: 0; }
     body {
-      background-color: #5a9fd4;
-      background-image: url('../assets/2005aqua/background.jpg');
+      background-color: #333333;
+      background-image: url('../assets/2005aqua/LowQualityBackgroundImage.jpg');
       background-repeat: no-repeat;
       background-position: center top;
       background-size: cover;
@@ -25,6 +25,8 @@
     a { text-decoration: none; }
     a:hover { text-decoration: underline; }
     img { border: 0; }
+    ::-webkit-input-placeholder { color: #ffffff; }
+    :-ms-input-placeholder { color: #ffffff; }
   </style>
 </head>
 <body>
@@ -61,10 +63,10 @@
 
   <!-- Search -->
   <center>
-    <form action="https://www.bing.com/search" method="GET" style="display: inline-block; background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.55); -webkit-border-radius: 24px; border-radius: 24px; padding: 6px 8px 6px 14px; -webkit-box-shadow: 0 2px 8px rgba(0,0,0,0.18); box-shadow: 0 2px 8px rgba(0,0,0,0.18);">
+    <form action="https://www.bing.com/search" method="GET">
       <input type="text" name="q" size="32"
-        style="background: transparent; border: none; outline: none; font-family: 'Lucida Grande', Arial, sans-serif; font-size: 14px; color: #ffffff; vertical-align: middle; height: 32px; width: 220px;" placeholder="Search the web&#8230;">
-      <input type="image" src="../assets/2005aqua/Search05.png" alt="Search" width="34" height="34" style="vertical-align: middle; cursor: pointer; margin-left: 4px;">
+        style="background: #444444; border: 1px solid #666666; -webkit-border-radius: 6px; border-radius: 6px; outline: none; font-family: 'Lucida Grande', Arial, sans-serif; font-size: 14px; color: #ffffff; vertical-align: middle; height: 34px; width: 220px; padding: 0 10px;" placeholder="Search the web&#8230;">
+      <input type="image" src="../assets/2005aqua/Search05.png" alt="Search" width="38" height="38" style="vertical-align: middle; cursor: pointer; margin-left: 6px;">
     </form>
   </center>
 
@@ -97,11 +99,6 @@
 
   <br><br>
 
-  <!-- Beta notice -->
-  <center>
-    <img src="../assets/2005aqua/NewLook05.png" alt="New Look! Stay tuned. More to come!" height="40" style="max-width: 80%;">
-  </center>
-
   <br><br>
 
   <!-- Footer -->
@@ -111,6 +108,8 @@
       <a href="services.html#contact" style="color: #a0c8e8;">Contact</a>
       &nbsp;&middot;&nbsp;
       <a href="services.html#dmca" style="color: #a0c8e8;">DMCA</a>
+      &nbsp;&middot;&nbsp;
+      v0.2.1
     </font>
   </center>
 
