@@ -76,6 +76,11 @@ Update 0.2.2: Created 4-16-26 | Changelog:
 • RSS added maybe??
 More to come, thank you for visiting!
 
+Update 0.2.3: Created 4-16-26 | Changelog: 
+• Bugfixes and Improvements
+• iPhone 4 safari now uses page backgrounds, and centers the 05 search bar
+• Page backgrounds now work better on new and old devices in general
+
 More to come :)
  
  I put the ASCII Art down here because it doesnt display correctly on github :(

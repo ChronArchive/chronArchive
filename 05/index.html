@@ -35,22 +35,25 @@
 
     /* ---- Search (responsive) ---- */
     .search-wrap {
+      text-align: center;
+    }
+    .search-form {
+      display: inline-block;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: flex;
       width: 90%;
       max-width: 468px;
       margin: 0 auto;
-    }
-    .search-form {
-      display: -webkit-box;
-      display: -ms-flexbox;
-      display: flex;
-      -webkit-box-align: center;
-          -ms-flex-align: center;
-              align-items: center;
+      -webkit-box-sizing: border-box;
+      box-sizing: border-box;
+      vertical-align: middle;
     }
     .search-input {
+      width: 78%;
       -webkit-box-flex: 1;
-          -ms-flex: 1 1 auto;
-              flex: 1 1 auto;
+      -webkit-flex: 1 1 auto;
+      flex: 1 1 auto;
       min-width: 0;
       background: #444444;
       border: 1px solid #666666;
@@ -64,12 +67,12 @@
       padding: 0 10px;
       -webkit-box-sizing: border-box;
       box-sizing: border-box;
+      vertical-align: middle;
     }
     .search-btn {
-      -ms-flex-negative: 0;
-          flex-shrink: 0;
       cursor: pointer;
       margin-left: 6px;
+      vertical-align: middle;
     }
 
     /* ---- Around the Web (4 → 2 → 1 cols, never 3) ---- */
@@ -96,7 +99,7 @@
     }
   </style>
 </head>
-<body>
+<body style="background-attachment: fixed;">
 
   <!-- Header -->
   <table width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#333333">
@@ -180,7 +183,7 @@
       &nbsp;&middot;&nbsp;
       <a href="services.html#dmca" style="color: #a0c8e8;">DMCA</a>
       &nbsp;&middot;&nbsp;
-      v0.2.2
+      v0.2.3
     </font>
   </center>
 
