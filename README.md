@@ -13,12 +13,13 @@ This will be realized with a few key objectives, subject to change.
 
 -----------------------------------------
 
-Planned Public Services:
+Planned Services:
 (* indicates an account would be required to access this service)
 (** indicates an account would be required to access a better version of this service)
 
 • Network Speedtest and Benchmarks
 • Hardware Benchmarks
+• RSS
 • BBS with online and dial-up options
 • Email Server with Fowarding Options *
 • Minimal Site Hosting *
@@ -29,25 +30,6 @@ Planned Public Services:
 
 -----------------------------------------
 
-Planned Internal Services:
-• SSH Relay
-• (S)FTP Relay
-• TTS-Phone
-
------------------------------------------
-
-Currently Implemented Public Services:
-(* indicates α implimentation, very unstable/minimal)
-(** indicates β implimentation, incomplete but functional)
-([RC] indicates release candidate, complete and fully functional for final validation)
-
-• Main Landing Pages ** 5-16-25
-• File Repository ** 5-16-25
-• Network Tests ** 5-16-25
-• Benchmarks ** 5-20-25
-• Social Links * 5-20-25
-
------------------------------------------
 Beta 1 Created: 4-19-25 | Changelog: Hello World!
 
 Beta 2 Created: 4-22-25 | Changelog: Sort of fixed the site for old machines, needs to be fixed more so images are desired resolution in the file itself, FrogFind button does not work anymore (needs to be fixed)
@@ -83,6 +65,15 @@ Update 0.2.1: Created 4-16-26 | Changelog:
 • New release numbering to reflect the altered pace of progress
 • New colorful logo on the 2010 site!
 • New Your Time Capsule text on 2010 site!
+More to come, thank you for visiting!
+
+Update 0.2.2: Created 4-16-26 | Changelog: 
+• Bugfixes and Improvements
+• Added a 404 page
+• Improved SEO with meta tags
+• Open button is no longer the size of New South Wales
+• Going forward there will only be blog posts for more important releases
+• RSS added maybe??
 More to come, thank you for visiting!
 
 More to come :)
