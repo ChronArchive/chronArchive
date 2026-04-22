@@ -9,12 +9,6 @@
   <link rel="stylesheet" type="text/css" href="assets/10.css">
   <style>
     body { background-color: #f0f0f0; }
-    #cgram-panel {
-      position: relative; background: #fff;
-      border: 1px solid #c0c0c0; border-radius: 6px;
-      -webkit-box-shadow: 0 2px 8px rgba(0,0,0,0.12); box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-      overflow: hidden; min-height: 580px; margin-bottom: 28px;
-    }
     /* ── Tab bar ── */
     .cgr-tab-bar {
       position: relative; display: table; width: 100%;
@@ -283,26 +277,13 @@
     .post-comment-input::-webkit-input-placeholder { color: #bbb; }
     .post-comment-send { margin-top: 6px; display: block; width: 100%; padding: 8px; background: #0055cc; border: none; -webkit-border-radius: 6px; border-radius: 6px; color: #fff; font-size: 13px; font-weight: bold; cursor: pointer; -webkit-appearance: none; }
     .post-comment-send:disabled { background: #9ab6e0; }
+    html, body { height: 100%; }
+    #cgram-panel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; border: none; border-radius: 0; -webkit-box-shadow: none; box-shadow: none; }
   </style>
 </head>
-<body style="background-attachment: fixed;">
+<body style="margin:0;padding:0;">
 
-  <!-- Navbar -->
-  <div id="navbar">
-    <div id="navbar-inner">
-      <div id="navbar-left">
-        <a href="index.html" id="navbar-logo">CHRONARCHIVE</a><a href="index.html" class="navbar-link">Search</a><a href="https://beta.chronarchive.com" class="navbar-link">Files</a><a href="blog.html" class="navbar-link">Blog</a><a href="services.html" class="navbar-link">Services</a><a href="chronograph.html" class="navbar-link active">Chronograph</a>
-      </div>
-    </div>
-  </div>
-
-  <div id="wrapper">
-    <div id="logo-area">
-      <a href="index.html"><img src="assets/CAlog10.png" alt="CHRONARCHIVE"></a>
-      <p id="tagline"><img src="assets/ytc10.png" alt="Your Time Capsule"></p>
-    </div>
-
-    <div id="cgram-panel" style="margin-top:28px;">
+  <div id="cgram-panel">
 
       <!-- Tab bar -->
       <div class="cgr-tab-bar" id="cgr-tab-bar">
@@ -552,20 +533,8 @@
 
     </div><!-- /#cgram-panel -->
 
-    <!-- Chronodulator -->
-    <div id="chronodulator" class="clearfix">
-      <span id="chrono-label">Chronodulator</span>
-      <div id="chrono-buttons">
-        <a href="95/index.html" class="era-btn">'95</a>
-        <a href="05/index.html" class="era-btn">'05</a>
-        <a href="chronograph.html" class="era-btn era-active">'10</a>
-        <a href="now.html" class="era-btn">Now</a>
-      </div>
-    </div>
-  </div><!-- /#wrapper -->
-
 <script type="text/javascript">
-var CGRAPI = 'https://chat.chronarchive.com';
+var CGRAPI = 'http://chat.chronarchive.com';
 
 var cgrPJ = (window.JSON && JSON.parse)
   ? function(s){ return JSON.parse(s); }
