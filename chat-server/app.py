@@ -274,7 +274,8 @@ def register():
     conn.close()
 
     resp = jsonify({'ok': True, 'token': token, 'user_id': uid,
-                    'username': username, 'is_admin': bool(row['is_admin'])})
+                    'username': username, 'is_admin': bool(row['is_admin']),
+                    'avatar_b64': '', 'friend_code': ''})
     resp.set_cookie('cg_session', token, max_age=30*24*3600, httponly=True, path='/')
     return resp, 201
 
@@ -287,7 +288,7 @@ def login():
 
     conn = get_db()
     row  = conn.execute(
-        'SELECT id, password_hash, is_admin, is_banned FROM users WHERE username=?', (username,)
+        'SELECT id, password_hash, is_admin, is_banned, avatar_b64, friend_code FROM users WHERE username=?', (username,)
     ).fetchone()
     conn.close()
 
@@ -304,7 +305,9 @@ def login():
     conn.close()
 
     resp = jsonify({'ok': True, 'token': token, 'user_id': row['id'],
-                    'username': username, 'is_admin': bool(row['is_admin'])})
+                    'username': username, 'is_admin': bool(row['is_admin']),
+                    'avatar_b64': row['avatar_b64'] or '',
+                    'friend_code': row['friend_code'] or ''})
     resp.set_cookie('cg_session', token, max_age=30*24*3600, httponly=True, path='/')
     return resp
 
