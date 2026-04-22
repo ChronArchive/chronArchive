@@ -1,0 +1,412 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <title>Chat | CHRONARCHIVE</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ChronArchive Chat &mdash; message other Anachronauts.">
+  <link rel="icon" type="image/png" href="assets/CA-favicon-192x192.png">
+  <link rel="stylesheet" type="text/css" href="assets/10.css">
+  <style>
+    body { background-color: #f0f0f0; }
+
+    /* ── Chat panel wrapper ── */
+    #chat-panel {
+      position: relative;
+      background: #fff;
+      border: 1px solid #c0c0c0;
+      border-radius: 6px;
+      -webkit-box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      overflow: hidden;
+      height: 520px;
+      margin-bottom: 28px;
+    }
+
+    /* ── Screens ── */
+    .cg-screen { position:absolute; top:0; left:0; right:0; bottom:0; background:#f7f7f7; display:none; }
+    .cg-screen.active { display:block; }
+
+    /* ── Header bar ── */
+    .cg-header {
+      position:absolute; top:0; left:0; right:0; height:40px;
+      background-image: -webkit-linear-gradient(top, #d8d8d8 0%, #c2c2c2 45%, #b8b8b8 50%, #c0c0c0 100%);
+      background-image: linear-gradient(to bottom, #d8d8d8 0%, #c2c2c2 45%, #b8b8b8 50%, #c0c0c0 100%);
+      border-bottom: 1px solid #888;
+      text-align: center; line-height: 40px; font-size: 14px; font-weight: bold; color: #222;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+    }
+    .cg-header-left  { position:absolute; left:0;  top:0; height:40px; line-height:40px; padding:0 12px; color:#0055cc; cursor:pointer; font-size:13px; }
+    .cg-header-right { position:absolute; right:0; top:0; height:40px; line-height:40px; padding:0 12px; color:#0055cc; cursor:pointer; font-size:13px; font-weight:bold; }
+    .cg-header-left:hover, .cg-header-right:hover { color:#003399; }
+
+    /* ── Scroll body ── */
+    .cg-scroll { position:absolute; top:40px; left:0; right:0; bottom:0; overflow-y:auto; -webkit-overflow-scrolling:touch; background:#fff; }
+
+    /* ── AUTH ── */
+    .auth-wrap  { padding:36px 28px 24px; max-width:360px; margin:0 auto; }
+    .auth-title { text-align:center; font-size:20px; font-weight:bold; color:#222; margin-bottom:8px; }
+    .auth-sub   { text-align:center; font-size:13px; color:#888; margin-bottom:24px; }
+    .auth-tabs  { display:table; width:100%; border-collapse:collapse; margin-bottom:18px; }
+    .auth-tab   { display:table-cell; text-align:center; padding:9px 0; border-bottom:2px solid #ccc; color:#888; cursor:pointer; font-size:14px; }
+    .auth-tab.on { border-bottom-color:#0055cc; color:#0055cc; font-weight:bold; }
+    .auth-field {
+      display:block; width:100%; padding:10px 12px; margin-bottom:10px;
+      background:#fff; border:1px solid #bbb; border-radius:6px;
+      color:#222; font-size:14px; outline:none; -webkit-appearance:none;
+      -webkit-box-sizing:border-box; box-sizing:border-box;
+    }
+    .auth-field:focus { border-color:#0055cc; }
+    .auth-field::-webkit-input-placeholder { color:#aaa; }
+    .auth-btn {
+      display:block; width:100%; padding:11px;
+      background-image: -webkit-linear-gradient(top, #0066dd 0%, #004cb3 100%);
+      background-image: linear-gradient(to bottom, #0066dd 0%, #004cb3 100%);
+      border:1px solid #003a99; border-radius:6px;
+      color:#fff; font-size:15px; font-weight:bold; cursor:pointer; -webkit-appearance:none;
+      margin-top:4px;
+    }
+    .auth-btn:disabled { background:#9ab6e0; border-color:#7090c0; color:#eee; cursor:default; }
+    .auth-err { color:#cc2200; font-size:13px; margin-top:10px; text-align:center; display:none; }
+
+    /* ── CONVERSATIONS ── */
+    .convo-row { display:table; width:100%; padding:11px 14px; border-bottom:1px solid #eee; cursor:pointer; }
+    .convo-row:hover { background:#f4f8ff; }
+    .convo-avatar { display:table-cell; width:46px; vertical-align:middle; }
+    .avatar-circle { width:40px; height:40px; border-radius:20px; background:#0055cc; text-align:center; line-height:40px; font-size:17px; font-weight:bold; color:#fff; }
+    .convo-body  { display:table-cell; vertical-align:middle; padding-left:11px; }
+    .convo-name  { font-weight:bold; font-size:14px; color:#222; }
+    .convo-preview { color:#888; font-size:12px; margin-top:2px; white-space:nowrap; overflow:hidden; }
+    .convo-meta  { display:table-cell; vertical-align:middle; width:40px; text-align:right; }
+    .unread-dot  { display:inline-block; width:20px; height:20px; border-radius:10px; background:#0055cc; text-align:center; line-height:20px; font-size:11px; font-weight:bold; color:#fff; }
+    .cg-empty    { text-align:center; color:#aaa; padding:56px 28px; }
+    .cg-empty p  { margin-bottom:14px; line-height:1.6; font-size:14px; }
+    .cg-loading  { text-align:center; color:#aaa; padding:20px; font-size:13px; }
+
+    /* ── USERS ── */
+    .user-row   { display:table; width:100%; padding:11px 14px; border-bottom:1px solid #eee; cursor:pointer; }
+    .user-row:hover { background:#f4f8ff; }
+    .user-avatar { display:table-cell; width:42px; vertical-align:middle; }
+    .user-circle { width:34px; height:34px; border-radius:17px; background:#dde8f8; text-align:center; line-height:34px; font-size:15px; font-weight:bold; color:#0055cc; }
+    .user-name-cell { display:table-cell; vertical-align:middle; padding-left:11px; font-size:14px; color:#222; }
+
+    /* ── THREAD ── */
+    #cg-thread-screen .cg-scroll { bottom:50px; }
+    .msg-row    { padding:4px 12px; }
+    .msg-bubble { display:inline-block; max-width:72%; padding:8px 12px; border-radius:16px; font-size:14px; line-height:1.45; word-wrap:break-word; }
+    .msg-out    { text-align:right; }
+    .msg-out .msg-bubble { background:#0055cc; color:#fff; border-bottom-right-radius:4px; }
+    .msg-in     { text-align:left; }
+    .msg-in .msg-bubble  { background:#ebebeb; color:#222; border-bottom-left-radius:4px; }
+    .msg-time   { font-size:11px; color:#bbb; margin-top:2px; }
+
+    /* ── INPUT BAR ── */
+    .input-bar  { position:absolute; bottom:0; left:0; right:0; height:50px; background:#f0f0f0; border-top:1px solid #ccc; padding:6px 8px; display:table; width:100%; -webkit-box-sizing:border-box; box-sizing:border-box; }
+    .input-field-cell { display:table-cell; vertical-align:middle; }
+    .input-send-cell  { display:table-cell; vertical-align:middle; width:58px; text-align:right; }
+    .msg-input  {
+      width:100%; padding:7px 12px;
+      background:#fff; border:1px solid #ccc; border-radius:16px;
+      color:#222; font-size:14px; outline:none; -webkit-appearance:none;
+      -webkit-box-sizing:border-box; box-sizing:border-box;
+    }
+    .msg-input:focus { border-color:#0055cc; }
+    .msg-input::-webkit-input-placeholder { color:#bbb; }
+    .send-btn {
+      background-image: -webkit-linear-gradient(top, #0066dd 0%, #004cb3 100%);
+      background-image: linear-gradient(to bottom, #0066dd 0%, #004cb3 100%);
+      color:#fff; border:1px solid #003a99; border-radius:14px;
+      padding:7px 12px; font-size:13px; font-weight:bold; cursor:pointer; -webkit-appearance:none;
+    }
+    .send-btn:disabled { background:#9ab6e0; border-color:#7090c0; color:#eee; }
+  </style>
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/socialpreview10.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="assets/socialpreview10.png">
+</head>
+<body style="background-attachment: fixed;">
+
+  <!-- Navbar -->
+  <div id="navbar">
+    <div id="navbar-inner">
+      <div id="navbar-left">
+        <a href="index.html" id="navbar-logo">CHRONARCHIVE</a><a href="index.html" class="navbar-link">Search</a><a href="https://beta.chronarchive.com" class="navbar-link">Files</a><a href="blog.html" class="navbar-link">Blog</a><a href="services.html" class="navbar-link">Services</a><a href="chat.html" class="navbar-link active">Chat</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="wrapper">
+
+    <!-- Logo -->
+    <div id="logo-area">
+      <a href="index.html"><img src="assets/CAlog10.png" alt="CHRONARCHIVE"></a>
+      <p id="tagline"><img src="assets/ytc10.png" alt="Your Time Capsule"></p>
+    </div>
+
+    <!-- Chat panel -->
+    <div id="chat-panel" style="margin-top: 28px;">
+
+      <!-- AUTH SCREEN -->
+      <div id="cg-auth-screen" class="cg-screen">
+        <div class="cg-scroll">
+          <div class="auth-wrap">
+            <div class="auth-title">ChronArchive Chat</div>
+            <div class="auth-sub">Message other Anachronauts</div>
+            <div class="auth-tabs">
+              <div class="auth-tab on"  id="cg-tab-login"    onclick="cgSetMode('login')">Sign In</div>
+              <div class="auth-tab"     id="cg-tab-register" onclick="cgSetMode('register')">Register</div>
+            </div>
+            <form id="cg-auth-form" onsubmit="cgDoAuth(); return false;" autocomplete="off">
+              <input type="text"     id="cg-f-user"    class="auth-field" placeholder="Username"          autocorrect="off" autocapitalize="off">
+              <input type="password" id="cg-f-pass"    class="auth-field" placeholder="Password">
+              <div id="cg-f-confirm-row" style="display:none;">
+                <input type="password" id="cg-f-confirm" class="auth-field" placeholder="Confirm password">
+              </div>
+              <input type="submit" id="cg-auth-btn" class="auth-btn" value="Sign In">
+            </form>
+            <div id="cg-auth-err" class="auth-err"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONVERSATIONS SCREEN -->
+      <div id="cg-convos-screen" class="cg-screen">
+        <div class="cg-header">
+          Messages
+          <span class="cg-header-left"  onclick="cgDoLogout()" style="font-size:12px;">Sign Out</span>
+          <span class="cg-header-right" onclick="cgGoUsers()">+ New</span>
+        </div>
+        <div class="cg-scroll" id="cg-convos-body"><div class="cg-loading">Loading&#8230;</div></div>
+      </div>
+
+      <!-- USERS SCREEN -->
+      <div id="cg-users-screen" class="cg-screen">
+        <div class="cg-header">
+          New Message
+          <span class="cg-header-left" onclick="cgGoConvos()">&#8249; Back</span>
+        </div>
+        <div class="cg-scroll" id="cg-users-body"><div class="cg-loading">Loading&#8230;</div></div>
+      </div>
+
+      <!-- THREAD SCREEN -->
+      <div id="cg-thread-screen" class="cg-screen">
+        <div class="cg-header">
+          <span id="cg-thread-title">Chat</span>
+          <span class="cg-header-left" onclick="cgGoConvos()">&#8249; Back</span>
+        </div>
+        <div class="cg-scroll" id="cg-thread-body"></div>
+        <div class="input-bar">
+          <div class="input-field-cell">
+            <input type="text" id="cg-msg-input" class="msg-input" placeholder="Message&#8230;" autocorrect="off">
+          </div>
+          <div class="input-send-cell">
+            <button id="cg-send-btn" class="send-btn" onclick="cgSendMsg()">Send</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /#chat-panel -->
+
+    <!-- Chronodulator -->
+    <div id="chronodulator" class="clearfix">
+      <span id="chrono-label">Chronodulator</span>
+      <div id="chrono-buttons">
+        <a href="95/index.html" class="era-btn">'95</a>
+        <a href="05/index.html" class="era-btn">'05</a>
+        <a href="chat.html" class="era-btn era-active">'10</a>
+        <a href="now.html" class="era-btn">Now</a>
+      </div>
+    </div>
+
+  </div><!-- /#wrapper -->
+
+<script type="text/javascript">
+var CGAPI = 'https://chat.chronarchive.com';
+
+var cgParseJSON = (window.JSON && JSON.parse)
+  ? function(s){ return JSON.parse(s); }
+  : function(s){ return eval('(' + s + ')'); };
+var _cgMem = {};
+var cgStore = {
+  get: function(k){ try{ return localStorage.getItem(k); }catch(e){ return _cgMem[k]||null; } },
+  set: function(k,v){ try{ localStorage.setItem(k,v); }catch(e){ _cgMem[k]=v; } },
+  del: function(k){ try{ localStorage.removeItem(k); }catch(e){ delete _cgMem[k]; } }
+};
+
+var CG = { token:null, userId:null, username:null, threadUid:null, lastMsgId:0, pollXhr:null, polling:false };
+
+function cgReq(method, path, body, cb, timeout) {
+  var x;
+  try { x = new XMLHttpRequest(); } catch(e) {
+    try { x = new ActiveXObject('Microsoft.XMLHTTP'); } catch(e2) { return null; }
+  }
+  x.open(method, CGAPI + path, true);
+  x.setRequestHeader('Content-Type', 'application/json');
+  if (CG.token) x.setRequestHeader('X-CG-Token', CG.token);
+  if (timeout) x.timeout = timeout;
+  x.onreadystatechange = function() {
+    if (x.readyState !== 4) return;
+    if (x.status === 0) { if (cb) cb(null, 'Network error'); return; }
+    var d; try { d = cgParseJSON(x.responseText); } catch(e) { d = {ok:false,error:'Bad response'}; }
+    if (cb) cb(d, x.status >= 400 ? (d.error||'Error') : null);
+  };
+  x.send(body ? JSON.stringify(body) : null);
+  return x;
+}
+
+var CG_SCREENS = ['cg-auth-screen','cg-convos-screen','cg-users-screen','cg-thread-screen'];
+function cgShow(id) {
+  for (var i=0; i<CG_SCREENS.length; i++) {
+    var el = document.getElementById(CG_SCREENS[i]);
+    if (el) el.className = 'cg-screen'+(CG_SCREENS[i]===id?' active':'');
+  }
+}
+function cgEscH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cgFmtTime(ts) { var d=new Date(ts*1000),h=d.getHours(),m=d.getMinutes(),ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+(m<10?'0':'')+m+' '+ap; }
+
+/* ── AUTH ── */
+var cgAuthMode = 'login';
+function cgSetMode(mode) {
+  cgAuthMode = mode;
+  document.getElementById('cg-tab-login').className    = 'auth-tab'+(mode==='login'    ?' on':'');
+  document.getElementById('cg-tab-register').className = 'auth-tab'+(mode==='register' ?' on':'');
+  document.getElementById('cg-f-confirm-row').style.display = mode==='register'?'block':'none';
+  document.getElementById('cg-auth-btn').value = mode==='login'?'Sign In':'Create Account';
+  document.getElementById('cg-auth-err').style.display = 'none';
+}
+function cgShowErr(m) { var e=document.getElementById('cg-auth-err'); e.innerHTML=cgEscH(m); e.style.display='block'; }
+function cgDoAuth() {
+  var u=document.getElementById('cg-f-user').value.replace(/^\s+|\s+$/g,'');
+  var p=document.getElementById('cg-f-pass').value;
+  document.getElementById('cg-auth-err').style.display='none';
+  if (!u||!p){ cgShowErr('Please fill in all fields.'); return; }
+  if (cgAuthMode==='register' && p!==document.getElementById('cg-f-confirm').value){ cgShowErr('Passwords do not match.'); return; }
+  var btn=document.getElementById('cg-auth-btn');
+  btn.disabled=true; btn.value='Please wait\u2026';
+  cgReq('POST','/api/'+(cgAuthMode==='login'?'login':'register'),{username:u,password:p},function(d,err){
+    btn.disabled=false; btn.value=cgAuthMode==='login'?'Sign In':'Create Account';
+    if (err||!d||!d.ok){ cgShowErr((d&&d.error)||err||'Error'); return; }
+    CG.token=d.token; CG.userId=d.user_id; CG.username=d.username;
+    cgStore.set('cg_t',d.token); cgStore.set('cg_u',String(d.user_id)); cgStore.set('cg_n',d.username);
+    cgGoConvos();
+  });
+}
+function cgDoLogout() {
+  cgStopPoll(); cgReq('POST','/api/logout',null,function(){});
+  CG.token=CG.userId=CG.username=null;
+  cgStore.del('cg_t'); cgStore.del('cg_u'); cgStore.del('cg_n');
+  cgShow('cg-auth-screen');
+}
+
+/* ── CONVERSATIONS ── */
+function cgGoConvos() {
+  cgStopPoll(); cgShow('cg-convos-screen');
+  document.getElementById('cg-convos-body').innerHTML='<div class="cg-loading">Loading&#8230;</div>';
+  cgReq('GET','/api/conversations',null,function(d,err){
+    if (err||!d||!d.ok||!d.conversations||!d.conversations.length){
+      document.getElementById('cg-convos-body').innerHTML='<div class="cg-empty"><p>No conversations yet.<br>Click <strong>+ New</strong> to start one.</p></div>'; return;
+    }
+    var html='';
+    for (var i=0;i<d.conversations.length;i++){
+      var c=d.conversations[i];
+      var init=c.username.charAt(0).toUpperCase();
+      var preview=c.last_text?cgEscH(c.last_text.length>48?c.last_text.substring(0,48)+'\u2026':c.last_text):'';
+      var badge=c.unread>0?'<span class="unread-dot">'+(c.unread>99?'99+':c.unread)+'</span>':'';
+      html+='<div class="convo-row" onclick="cgOpenThread('+c.id+',\''+cgEscH(c.username)+'\')">'
+           +'<div class="convo-avatar"><div class="avatar-circle">'+init+'</div></div>'
+           +'<div class="convo-body"><div class="convo-name">'+cgEscH(c.username)+'</div>'
+           +'<div class="convo-preview">'+preview+'</div></div>'
+           +'<div class="convo-meta">'+badge+'</div></div>';
+    }
+    document.getElementById('cg-convos-body').innerHTML=html;
+  });
+}
+
+/* ── USERS ── */
+function cgGoUsers() {
+  cgShow('cg-users-screen');
+  document.getElementById('cg-users-body').innerHTML='<div class="cg-loading">Loading&#8230;</div>';
+  cgReq('GET','/api/users',null,function(d,err){
+    if (err||!d||!d.ok||!d.users||!d.users.length){
+      document.getElementById('cg-users-body').innerHTML='<div class="cg-empty"><p>'+((!d||!d.ok)?'Could not load users.':'No other users yet.')+'</p></div>'; return;
+    }
+    var html='';
+    for (var i=0;i<d.users.length;i++){
+      var u=d.users[i];
+      html+='<div class="user-row" onclick="cgOpenThread('+u.id+',\''+cgEscH(u.username)+'\')">'
+           +'<div class="user-avatar"><div class="user-circle">'+u.username.charAt(0).toUpperCase()+'</div></div>'
+           +'<div class="user-name-cell">'+cgEscH(u.username)+'</div></div>';
+    }
+    document.getElementById('cg-users-body').innerHTML=html;
+  });
+}
+
+/* ── THREAD ── */
+function cgOpenThread(uid, uname) {
+  cgStopPoll(); CG.threadUid=uid; CG.lastMsgId=0;
+  document.getElementById('cg-thread-title').innerHTML=cgEscH(uname);
+  document.getElementById('cg-thread-body').innerHTML='<div class="cg-loading">Loading&#8230;</div>';
+  document.getElementById('cg-msg-input').value='';
+  cgShow('cg-thread-screen');
+  cgReq('GET','/api/messages?with='+uid+'&after_id=0',null,function(d){
+    document.getElementById('cg-thread-body').innerHTML='';
+    if (d&&d.messages&&d.messages.length){ cgRenderMsgs(d.messages); CG.lastMsgId=d.messages[d.messages.length-1].id; cgScrollBot(); }
+    cgStartPoll();
+  });
+}
+function cgRenderMsgs(msgs) {
+  var body=document.getElementById('cg-thread-body');
+  for (var i=0;i<msgs.length;i++){
+    var m=msgs[i],mine=m.from_user_id===CG.userId;
+    var div=document.createElement('div');
+    div.className='msg-row '+(mine?'msg-out':'msg-in');
+    div.innerHTML='<div class="msg-bubble">'+cgEscH(m.text)+'</div><div class="msg-time">'+cgFmtTime(m.created_at)+'</div>';
+    body.appendChild(div);
+  }
+}
+function cgScrollBot(){ var b=document.getElementById('cg-thread-body'); b.scrollTop=b.scrollHeight+9999; }
+function cgSendMsg() {
+  var input=document.getElementById('cg-msg-input');
+  var text=input.value.replace(/^\s+|\s+$/g,'');
+  if (!text||!CG.threadUid) return;
+  input.value='';
+  document.getElementById('cg-send-btn').disabled=true;
+  cgReq('POST','/api/messages',{to_user_id:CG.threadUid,text:text},function(d,err){
+    document.getElementById('cg-send-btn').disabled=false;
+    if (d&&d.ok&&d.message){ cgRenderMsgs([d.message]); CG.lastMsgId=d.message.id; cgScrollBot(); }
+  });
+}
+(function(){
+  var inp=document.getElementById('cg-msg-input');
+  if (inp.addEventListener) inp.addEventListener('keydown',function(e){ if((e.keyCode||e.which)===13){cgSendMsg();return false;} },false);
+  else if (inp.attachEvent) inp.attachEvent('onkeydown',function(){ if((window.event.keyCode||window.event.which)===13){cgSendMsg();} });
+})();
+
+/* ── LONG POLL ── */
+function cgStartPoll(){ if(CG.polling)return; CG.polling=true; cgDoPoll(); }
+function cgStopPoll(){ CG.polling=false; if(CG.pollXhr){try{CG.pollXhr.abort();}catch(e){} CG.pollXhr=null;} }
+function cgDoPoll(){
+  if(!CG.polling||!CG.threadUid)return;
+  CG.pollXhr=cgReq('GET','/api/messages?with='+CG.threadUid+'&after_id='+CG.lastMsgId,null,function(d,err){
+    if(!CG.polling)return;
+    if(d&&d.messages&&d.messages.length){ cgRenderMsgs(d.messages); CG.lastMsgId=d.messages[d.messages.length-1].id; cgScrollBot(); }
+    if(err){ setTimeout(function(){if(CG.polling)cgDoPoll();},4000); } else { cgDoPoll(); }
+  },30000);
+}
+
+/* ── BOOT ── */
+(function(){
+  var t=cgStore.get('cg_t'),u=cgStore.get('cg_u'),n=cgStore.get('cg_n');
+  if(t&&u&&n){
+    CG.token=t; CG.userId=parseInt(u,10); CG.username=n;
+    cgReq('GET','/api/me',null,function(d,err){
+      if(d&&d.ok){ cgGoConvos(); }
+      else{ cgStore.del('cg_t');cgStore.del('cg_u');cgStore.del('cg_n');cgShow('cg-auth-screen'); }
+    });
+  } else { cgShow('cg-auth-screen'); }
+})();
+</script>
+</body>
+</html>

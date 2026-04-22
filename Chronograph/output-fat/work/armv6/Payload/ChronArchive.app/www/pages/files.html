@@ -9,26 +9,24 @@
     * { margin: 0; padding: 0; -webkit-box-sizing: border-box; box-sizing: border-box; }
     html, body {
       height: 100%; overflow: hidden;
-      display: -webkit-box; -webkit-box-orient: vertical;
-      display: -webkit-flex; -webkit-flex-direction: column;
-      display: flex; flex-direction: column;
-      background: #f2f2f2;
+      background: #1a1a1a;
     }
     #files-header {
-      -webkit-flex-shrink: 0; flex-shrink: 0;
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 44px;
       background: -webkit-linear-gradient(top, #2a2a2a 0%, #1a1a1a 100%);
       background: linear-gradient(to bottom, #2a2a2a 0%, #1a1a1a 100%);
       border-bottom: 1px solid #000;
-      text-align: center;
-      padding: 8px 0;
+      text-align: center; line-height: 44px;
     }
-    #files-header img {
-      height: 28px; display: inline-block; vertical-align: middle;
-    }
+    #files-header img { height: 28px; vertical-align: middle; }
     #files-frame {
-      -webkit-box-flex: 1; -webkit-flex: 1 1 auto; flex: 1 1 auto;
-      width: 100%; border: none; display: block;
+      position: absolute; top: 45px; left: 0; right: 0; bottom: 0;
+      width: 100%; border: none;
+      /* iOS UIWebView: overflow-scrolling on a fixed-height container
+         gives the iframe a real scroll context */
       -webkit-overflow-scrolling: touch;
+      overflow-y: scroll;
     }
   </style>
 </head>
@@ -37,5 +35,21 @@
     <img src="../assets/Colorful2010Logo.png" alt="ChronArchive">
   </div>
   <iframe id="files-frame" src="https://beta.chronarchive.com/Chronarchive/?b=1/" scrolling="yes" frameborder="0"></iframe>
+  <script type="text/javascript">
+    /* Force iframe to a tall fixed height so Mobile Safari treats it as
+       scrollable rather than trying to show the whole page at once */
+    function sizeFrame() {
+      var frame = document.getElementById('files-frame');
+      var avail = (window.innerHeight || document.documentElement.clientHeight) - 45;
+      frame.style.height = avail + 'px';
+    }
+    sizeFrame();
+    if (window.addEventListener) {
+      window.addEventListener('resize', sizeFrame, false);
+      window.addEventListener('orientationchange', sizeFrame, false);
+    } else if (window.attachEvent) {
+      window.attachEvent('onresize', sizeFrame);
+    }
+  </script>
 </body>
 </html>

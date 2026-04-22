@@ -7,6 +7,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" type="text/css" href="../assets/10.css">
   <style>body { background-color: #f0f0f0; background-image: none; }</style>
+  <style id="theme-style"></style>
+  <script type="text/javascript">
+    /* Theme definitions — applied before paint to avoid flash */
+    var THEMES = {
+      light: { '--bg':'#f0f0f0','--panel':'#fff','--text':'#111','--sub':'#555' },
+      dark:  { '--bg':'#111',   '--panel':'#1e1e1e','--text':'#e8e8e8','--sub':'#aaa' },
+      oled:  { '--bg':'#000',   '--panel':'#0a0a0a','--text':'#fff','--sub':'#888' }
+    };
+    function applyTheme(name) {
+      var t = THEMES[name] || THEMES.light;
+      var s = document.getElementById('theme-style');
+      s.innerHTML = 'body{background-color:'+t['--bg']+'!important}'
+        +'.content-panel{background:'+t['--panel']+'!important;border-color:#444!important}'
+        +'.content-panel h2,.service-name-active,.section-heading{color:'+t['--text']+'!important}'
+        +'.service-desc,.service-desc-soon{color:'+t['--sub']+'!important}'
+        +'a,a:visited{color:'+t['--text']+'!important}'
+        +'.form-input,.form-select,.form-textarea{background:'+t['--panel']+'!important;color:'+t['--text']+'!important;border-color:#555!important}';
+      try { localStorage.setItem('cg-theme', name); } catch(e) {}
+    }
+    (function(){
+      var saved = 'light';
+      try { saved = localStorage.getItem('cg-theme') || 'light'; } catch(e) {}
+      applyTheme(saved);
+    })();
+  </script>
 </head>
 <body>
 
@@ -15,6 +40,36 @@
       <img src="../assets/CAlog10.png" alt="ChronArchive"
            style="width:65%; max-width:65%; display:inline-block;">
     </div>
+
+    <!-- Preferences panel -->
+    <div class="content-panel" style="margin-top: 16px;">
+      <h2>Preferences</h2>
+      <div class="content-panel-body">
+        <p class="section-heading">Theme</p>
+        <table class="service-list">
+          <tr>
+            <td colspan="2"><span class="service-desc">Choose a color theme for this app.</span></td>
+            <td style="text-align:right;">
+              <select id="theme-select" class="form-select" style="width:auto;min-width:90px;"
+                onchange="applyTheme(this.value)">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="oled">OLED Black</option>
+              </select>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+    <script type="text/javascript">
+      /* Sync select to saved theme after DOM ready */
+      (function(){
+        var saved = 'light';
+        try { saved = localStorage.getItem('cg-theme') || 'light'; } catch(e) {}
+        var sel = document.getElementById('theme-select');
+        if (sel) sel.value = saved;
+      })();
+    </script>
 
     <!-- Services panel -->
     <div class="content-panel" style="margin-top: 16px;">

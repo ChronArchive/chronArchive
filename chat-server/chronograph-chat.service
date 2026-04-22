@@ -1,0 +1,14 @@
+[Unit]
+Description=ChronoGraph Chat API
+After=network.target
+
+[Service]
+User=redmond
+WorkingDirectory=/opt/chronograph-chat
+ExecStart=/opt/chronograph-chat/venv/bin/python /opt/chronograph-chat/app.py
+Restart=always
+RestartSec=5
+Environment=CHAT_DB=/opt/chronograph-chat/chat.db
+
+[Install]
+WantedBy=multi-user.target

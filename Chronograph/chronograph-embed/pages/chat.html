@@ -4,30 +4,320 @@
 <head>
   <title>Chat | Chronograph</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" type="text/css" href="../assets/10.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
-    body { background-image: none; background-color: #f2f2f2; }
-    #home-wrap { padding: 40px 20px 20px; text-align: center; }
-    #home-logo {
-      max-width: 320px; width: 85%;
-      display: block; margin: 0 auto;
-    }
-    #home-sub { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      font-size: 14px; color: #555; margin-top: 14px; }
-    .cyd-btn-row {
-      margin-top: 32px;
-      display: -webkit-flex; display: flex;
-      -webkit-justify-content: center; justify-content: center;
-      gap: 12px;
-    }
-    .cyd-btn { display: inline-block; }
+    /* ── Reset ── */
+    * { margin:0; padding:0; -webkit-box-sizing:border-box; box-sizing:border-box; }
+    html, body { height:100%; overflow:hidden; font-family:Helvetica,Arial,sans-serif; font-size:15px; -webkit-text-size-adjust:none; background:#1a1a1a; color:#fff; }
+
+    /* ── Screens: only one visible at a time ── */
+    .screen { position:absolute; top:0; left:0; right:0; bottom:0; background:#1a1a1a; display:none; }
+    .screen.active { display:block; }
+
+    /* ── Header bar ── */
+    .header { position:absolute; top:0; left:0; right:0; height:44px; background:#1e1e1e; border-bottom:1px solid #333; text-align:center; line-height:44px; font-size:17px; font-weight:bold; color:#fff; }
+    .header-left { position:absolute; left:0; top:0; height:44px; line-height:44px; padding:0 14px; color:#0a84ff; cursor:pointer; font-size:15px; }
+    .header-right { position:absolute; right:0; top:0; height:44px; line-height:44px; padding:0 14px; color:#0a84ff; cursor:pointer; font-size:15px; }
+
+    /* ── Scrollable body below header ── */
+    .scroll-body { position:absolute; top:44px; left:0; right:0; bottom:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+
+    /* ── AUTH ── */
+    .auth-wrap { padding:48px 28px 28px; }
+    .auth-logo { text-align:center; margin-bottom:32px; }
+    .auth-logo img { height:44px; }
+    .auth-tabs { display:table; width:100%; border-collapse:collapse; margin-bottom:24px; }
+    .auth-tab { display:table-cell; text-align:center; padding:10px 0; border-bottom:2px solid #333; color:#888; cursor:pointer; font-size:15px; }
+    .auth-tab.on { border-bottom-color:#0a84ff; color:#fff; }
+    .auth-field { display:block; width:100%; padding:13px 14px; margin-bottom:12px; background:#2a2a2a; border:1px solid #444; border-radius:10px; color:#fff; font-size:15px; outline:none; -webkit-appearance:none; }
+    .auth-field::-webkit-input-placeholder { color:#666; }
+    .auth-btn { display:block; width:100%; padding:14px; margin-top:4px; background:#0a84ff; border:none; border-radius:10px; color:#fff; font-size:16px; font-weight:bold; cursor:pointer; -webkit-appearance:none; }
+    .auth-btn:disabled { background:#2a4a70; color:#999; }
+    .auth-err { color:#ff453a; font-size:13px; margin-top:10px; text-align:center; display:none; }
+
+    /* ── CONVERSATIONS ── */
+    .convo-row { display:table; width:100%; padding:12px 16px; border-bottom:1px solid #2a2a2a; cursor:pointer; }
+    .convo-avatar { display:table-cell; width:48px; vertical-align:middle; }
+    .avatar-circle { width:42px; height:42px; border-radius:21px; background:#0a84ff; text-align:center; line-height:42px; font-size:19px; font-weight:bold; color:#fff; }
+    .convo-body { display:table-cell; vertical-align:middle; padding-left:12px; }
+    .convo-name { font-weight:bold; font-size:15px; color:#fff; }
+    .convo-preview { color:#888; font-size:13px; margin-top:3px; }
+    .convo-meta { display:table-cell; vertical-align:middle; width:42px; text-align:right; }
+    .unread-dot { display:inline-block; width:22px; height:22px; border-radius:11px; background:#0a84ff; text-align:center; line-height:22px; font-size:12px; font-weight:bold; color:#fff; }
+    .empty { text-align:center; color:#666; padding:64px 28px; }
+    .empty p { margin-bottom:16px; line-height:1.5; }
+
+    /* ── USERS ── */
+    .user-row { display:table; width:100%; padding:13px 16px; border-bottom:1px solid #2a2a2a; cursor:pointer; }
+    .user-avatar { display:table-cell; width:44px; vertical-align:middle; }
+    .user-circle { width:36px; height:36px; border-radius:18px; background:#3a3a3a; text-align:center; line-height:36px; font-size:16px; font-weight:bold; color:#ccc; }
+    .user-name-cell { display:table-cell; vertical-align:middle; padding-left:12px; font-size:15px; color:#fff; }
+
+    /* ── THREAD ── */
+    #thread-screen .scroll-body { bottom:50px; }
+    .msg-row { padding:3px 12px; }
+    .msg-bubble { display:inline-block; max-width:74%; padding:9px 13px; border-radius:18px; font-size:15px; line-height:1.4; word-wrap:break-word; }
+    .msg-out { text-align:right; }
+    .msg-out .msg-bubble { background:#0a84ff; color:#fff; border-bottom-right-radius:4px; }
+    .msg-in { text-align:left; }
+    .msg-in .msg-bubble { background:#2c2c2e; color:#fff; border-bottom-left-radius:4px; }
+    .msg-time { font-size:11px; color:#666; margin-top:2px; }
+
+    /* ── INPUT BAR ── */
+    .input-bar { position:absolute; bottom:0; left:0; right:0; height:50px; background:#1e1e1e; border-top:1px solid #333; padding:6px 8px; display:table; width:100%; }
+    .input-field-cell { display:table-cell; vertical-align:middle; }
+    .input-send-cell { display:table-cell; vertical-align:middle; width:60px; text-align:right; }
+    .msg-input { width:100%; padding:8px 13px; background:#2c2c2e; border:1px solid #444; border-radius:18px; color:#fff; font-size:15px; outline:none; -webkit-appearance:none; }
+    .msg-input::-webkit-input-placeholder { color:#666; }
+    .send-btn { background:#0a84ff; color:#fff; border:none; border-radius:16px; padding:8px 13px; font-size:14px; font-weight:bold; cursor:pointer; -webkit-appearance:none; }
+    .send-btn:disabled { background:#2a4a70; color:#888; }
+    .loading { text-align:center; color:#666; padding:20px; font-size:14px; }
   </style>
 </head>
 <body>
-  <div id="home-wrap">
-    <img id="home-logo" src="../assets/ChronoGraphLogo.png" alt="ChronoGraph" style="width:90vw;max-width:90vw;">
-    <p id="home-sub">Chat &mdash; Coming Soon</p>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen" class="screen">
+  <div class="auth-wrap">
+    <div class="auth-logo"><img src="../assets/ChronoGraphLogo.png" alt="ChronoGraph"></div>
+    <div class="auth-tabs">
+      <div class="auth-tab on"  id="tab-login"    onclick="setMode('login')">Sign In</div>
+      <div class="auth-tab"     id="tab-register" onclick="setMode('register')">Register</div>
+    </div>
+    <form id="auth-form" onsubmit="doAuth(); return false;" autocomplete="off">
+      <input type="text"     id="f-user"    class="auth-field" placeholder="Username"         autocorrect="off" autocapitalize="off">
+      <input type="password" id="f-pass"    class="auth-field" placeholder="Password">
+      <div id="f-confirm-row" style="display:none;">
+        <input type="password" id="f-confirm" class="auth-field" placeholder="Confirm password">
+      </div>
+      <input type="submit" id="auth-btn" class="auth-btn" value="Sign In">
+    </form>
+    <div id="auth-err" class="auth-err"></div>
   </div>
+</div>
+
+<!-- CONVERSATIONS SCREEN -->
+<div id="convos-screen" class="screen">
+  <div class="header">
+    Messages
+    <span class="header-left"  onclick="doLogout()" style="font-size:13px;">Sign Out</span>
+    <span class="header-right" onclick="goUsers()">+ New</span>
+  </div>
+  <div class="scroll-body" id="convos-body"><div class="loading">Loading&#8230;</div></div>
+</div>
+
+<!-- USERS SCREEN -->
+<div id="users-screen" class="screen">
+  <div class="header">
+    New Message
+    <span class="header-left" onclick="goConvos()">&#8249; Back</span>
+  </div>
+  <div class="scroll-body" id="users-body"><div class="loading">Loading&#8230;</div></div>
+</div>
+
+<!-- THREAD SCREEN -->
+<div id="thread-screen" class="screen">
+  <div class="header">
+    <span id="thread-title">Chat</span>
+    <span class="header-left" onclick="goConvos()">&#8249; Back</span>
+  </div>
+  <div class="scroll-body" id="thread-body"></div>
+  <div class="input-bar">
+    <div class="input-field-cell">
+      <input type="text" id="msg-input" class="msg-input" placeholder="Message&#8230;" autocorrect="off">
+    </div>
+    <div class="input-send-cell">
+      <button id="send-btn" class="send-btn" onclick="sendMsg()">Send</button>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+var API = 'http://chat.chronarchive.com';
+
+// iOS 3 compat: eval fallback for JSON, in-memory fallback for localStorage
+var parseJSON = (window.JSON && JSON.parse)
+  ? function(s){ return JSON.parse(s); }
+  : function(s){ return eval('(' + s + ')'); };
+var _mem = {};
+var store = {
+  get: function(k){ try{ return localStorage.getItem(k); }catch(e){ return _mem[k]||null; } },
+  set: function(k,v){ try{ localStorage.setItem(k,v); }catch(e){ _mem[k]=v; } },
+  del: function(k){ try{ localStorage.removeItem(k); }catch(e){ delete _mem[k]; } }
+};
+
+var S = { token:null, userId:null, username:null, threadUid:null, lastMsgId:0, pollXhr:null, polling:false };
+
+function req(method, path, body, cb, timeout) {
+  var x;
+  try { x = new XMLHttpRequest(); } catch(e) {
+    try { x = new ActiveXObject('Microsoft.XMLHTTP'); } catch(e2) { return null; }
+  }
+  x.open(method, API + path, true);
+  x.setRequestHeader('Content-Type', 'application/json');
+  if (S.token) x.setRequestHeader('X-CG-Token', S.token);
+  if (timeout) x.timeout = timeout;
+  x.onreadystatechange = function(){
+    if (x.readyState !== 4) return;
+    if (x.status === 0) { if (cb) cb(null, 'Network error'); return; }
+    var d; try { d = parseJSON(x.responseText); } catch(e) { d = {ok:false,error:'Bad response'}; }
+    if (cb) cb(d, x.status >= 400 ? (d.error||'Error') : null);
+  };
+  x.send(body ? JSON.stringify(body) : null);
+  return x;
+}
+
+var SCREENS = ['auth-screen','convos-screen','users-screen','thread-screen'];
+function show(id) {
+  for (var i=0; i<SCREENS.length; i++) {
+    var el = document.getElementById(SCREENS[i]);
+    if (el) el.className = 'screen'+(SCREENS[i]===id?' active':'');
+  }
+}
+function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtTime(ts) { var d=new Date(ts*1000),h=d.getHours(),m=d.getMinutes(),ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+(m<10?'0':'')+m+' '+ap; }
+
+// AUTH
+var authMode = 'login';
+function setMode(mode) {
+  authMode = mode;
+  document.getElementById('tab-login').className    = 'auth-tab'+(mode==='login'    ?' on':'');
+  document.getElementById('tab-register').className = 'auth-tab'+(mode==='register' ?' on':'');
+  document.getElementById('f-confirm-row').style.display = mode==='register'?'block':'none';
+  document.getElementById('auth-btn').value = mode==='login'?'Sign In':'Create Account';
+  document.getElementById('auth-err').style.display = 'none';
+}
+function showErr(m) { var e=document.getElementById('auth-err'); e.innerHTML=escH(m); e.style.display='block'; }
+function doAuth() {
+  var u=document.getElementById('f-user').value.replace(/^\s+|\s+$/g,'');
+  var p=document.getElementById('f-pass').value;
+  document.getElementById('auth-err').style.display='none';
+  if (!u||!p){ showErr('Please fill in all fields.'); return; }
+  if (authMode==='register' && p!==document.getElementById('f-confirm').value){ showErr('Passwords do not match.'); return; }
+  var btn=document.getElementById('auth-btn');
+  btn.disabled=true; btn.value='Please wait\u2026';
+  req('POST','/api/'+(authMode==='login'?'login':'register'),{username:u,password:p},function(d,err){
+    btn.disabled=false; btn.value=authMode==='login'?'Sign In':'Create Account';
+    if (err||!d||!d.ok){ showErr((d&&d.error)||err||'Error'); return; }
+    S.token=d.token; S.userId=d.user_id; S.username=d.username;
+    store.set('cg_t',d.token); store.set('cg_u',String(d.user_id)); store.set('cg_n',d.username);
+    goConvos();
+  });
+}
+function doLogout() {
+  stopPoll(); req('POST','/api/logout',null,function(){});
+  S.token=S.userId=S.username=null;
+  store.del('cg_t'); store.del('cg_u'); store.del('cg_n');
+  show('auth-screen');
+}
+
+// CONVERSATIONS
+function goConvos() {
+  stopPoll(); show('convos-screen');
+  document.getElementById('convos-body').innerHTML='<div class="loading">Loading&#8230;</div>';
+  req('GET','/api/conversations',null,function(d,err){
+    if (err||!d||!d.ok||!d.conversations||!d.conversations.length){
+      document.getElementById('convos-body').innerHTML='<div class="empty"><p>No conversations yet.<br>Tap <strong>+ New</strong> to start one.</p></div>'; return;
+    }
+    var html='';
+    for (var i=0;i<d.conversations.length;i++){
+      var c=d.conversations[i];
+      var init=c.username.charAt(0).toUpperCase();
+      var preview=c.last_text?escH(c.last_text.length>44?c.last_text.substring(0,44)+'\u2026':c.last_text):'';
+      var badge=c.unread>0?'<span class="unread-dot">'+(c.unread>99?'99+':c.unread)+'</span>':'';
+      html+='<div class="convo-row" onclick="openThread('+c.id+',\''+escH(c.username)+'\')">'
+           +'<div class="convo-avatar"><div class="avatar-circle">'+init+'</div></div>'
+           +'<div class="convo-body"><div class="convo-name">'+escH(c.username)+'</div>'
+           +'<div class="convo-preview">'+preview+'</div></div>'
+           +'<div class="convo-meta">'+badge+'</div></div>';
+    }
+    document.getElementById('convos-body').innerHTML=html;
+  });
+}
+
+// USERS
+function goUsers() {
+  show('users-screen');
+  document.getElementById('users-body').innerHTML='<div class="loading">Loading&#8230;</div>';
+  req('GET','/api/users',null,function(d,err){
+    if (err||!d||!d.ok||!d.users||!d.users.length){
+      document.getElementById('users-body').innerHTML='<div class="empty"><p>'+((!d||!d.ok)?'Could not load users.':'No other users yet.')+'</p></div>'; return;
+    }
+    var html='';
+    for (var i=0;i<d.users.length;i++){
+      var u=d.users[i];
+      html+='<div class="user-row" onclick="openThread('+u.id+',\''+escH(u.username)+'\')">'
+           +'<div class="user-avatar"><div class="user-circle">'+u.username.charAt(0).toUpperCase()+'</div></div>'
+           +'<div class="user-name-cell">'+escH(u.username)+'</div></div>';
+    }
+    document.getElementById('users-body').innerHTML=html;
+  });
+}
+
+// THREAD
+function openThread(uid, uname) {
+  stopPoll(); S.threadUid=uid; S.lastMsgId=0;
+  document.getElementById('thread-title').innerHTML=escH(uname);
+  document.getElementById('thread-body').innerHTML='<div class="loading">Loading&#8230;</div>';
+  document.getElementById('msg-input').value='';
+  show('thread-screen');
+  req('GET','/api/messages?with='+uid+'&after_id=0',null,function(d){
+    document.getElementById('thread-body').innerHTML='';
+    if (d&&d.messages&&d.messages.length){ renderMsgs(d.messages); S.lastMsgId=d.messages[d.messages.length-1].id; scrollBot(); }
+    startPoll();
+  });
+}
+function renderMsgs(msgs) {
+  var body=document.getElementById('thread-body');
+  for (var i=0;i<msgs.length;i++){
+    var m=msgs[i],mine=m.from_user_id===S.userId;
+    var div=document.createElement('div');
+    div.className='msg-row '+(mine?'msg-out':'msg-in');
+    div.innerHTML='<div class="msg-bubble">'+escH(m.text)+'</div><div class="msg-time">'+fmtTime(m.created_at)+'</div>';
+    body.appendChild(div);
+  }
+}
+function scrollBot(){ var b=document.getElementById('thread-body'); b.scrollTop=b.scrollHeight+9999; }
+function sendMsg() {
+  var input=document.getElementById('msg-input');
+  var text=input.value.replace(/^\s+|\s+$/g,'');
+  if (!text||!S.threadUid) return;
+  input.value='';
+  document.getElementById('send-btn').disabled=true;
+  req('POST','/api/messages',{to_user_id:S.threadUid,text:text},function(d,err){
+    document.getElementById('send-btn').disabled=false;
+    if (d&&d.ok&&d.message){ renderMsgs([d.message]); S.lastMsgId=d.message.id; scrollBot(); }
+  });
+}
+(function(){
+  var inp=document.getElementById('msg-input');
+  if (inp.addEventListener) inp.addEventListener('keydown',function(e){ if((e.keyCode||e.which)===13){sendMsg();return false;} },false);
+  else if (inp.attachEvent) inp.attachEvent('onkeydown',function(){ if((window.event.keyCode||window.event.which)===13){sendMsg();} });
+})();
+
+// LONG POLL
+function startPoll(){ if(S.polling)return; S.polling=true; doPoll(); }
+function stopPoll(){ S.polling=false; if(S.pollXhr){try{S.pollXhr.abort();}catch(e){} S.pollXhr=null;} }
+function doPoll(){
+  if(!S.polling||!S.threadUid)return;
+  S.pollXhr=req('GET','/api/messages?with='+S.threadUid+'&after_id='+S.lastMsgId,null,function(d,err){
+    if(!S.polling)return;
+    if(d&&d.messages&&d.messages.length){ renderMsgs(d.messages); S.lastMsgId=d.messages[d.messages.length-1].id; scrollBot(); }
+    if(err){ setTimeout(function(){if(S.polling)doPoll();},4000); } else { doPoll(); }
+  },30000);
+}
+
+// BOOT
+(function(){
+  var t=store.get('cg_t'),u=store.get('cg_u'),n=store.get('cg_n');
+  if(t&&u&&n){
+    S.token=t; S.userId=parseInt(u,10); S.username=n;
+    req('GET','/api/me',null,function(d,err){
+      if(d&&d.ok){ goConvos(); }
+      else{ store.del('cg_t');store.del('cg_u');store.del('cg_n');show('auth-screen'); }
+    });
+  } else { show('auth-screen'); }
+})();
+</script>
 </body>
 </html>

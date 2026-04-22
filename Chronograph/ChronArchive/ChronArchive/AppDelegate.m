@@ -1,6 +1,7 @@
 #import "AppDelegate.h"
 #import "ViewController.h"
 #import <AVFoundation/AVFoundation.h>
+#import <objc/message.h>
 
 @implementation AppDelegate
 @synthesize window = _window;
@@ -19,11 +20,11 @@
 
     /* Tab definitions — avoid @[] literal and subscript syntax for clang 3.1 compat */
     NSArray *tabDefs = [NSArray arrayWithObjects:
-        [NSArray arrayWithObjects:@"pages/home.html",   @"Home",   @"ChronographHomeBtn",   nil],
-        [NSArray arrayWithObjects:@"pages/search.html", @"Search", @"ChronographSearchBtn", nil],
-        [NSArray arrayWithObjects:@"pages/files.html",  @"Files",  @"ChronographFilesBtn",  nil],
-        [NSArray arrayWithObjects:@"pages/chat.html",   @"Chat",   @"ChronographChatBtn",   nil],
-        [NSArray arrayWithObjects:@"pages/tools.html",  @"Tools",  @"ChronographToolsBtn",  nil],
+        [NSArray arrayWithObjects:@"pages/home.html",   @"Home",   @"HomeBtn",   nil],
+        [NSArray arrayWithObjects:@"pages/search.html", @"Search", @"SearchBtn", nil],
+        [NSArray arrayWithObjects:@"pages/files.html",  @"Files",  @"FilesBtn",  nil],
+        [NSArray arrayWithObjects:@"pages/chat.html",   @"Chat",   @"ChatBTN",   nil],
+        [NSArray arrayWithObjects:@"pages/tools.html",  @"Tools",  @"ToolsBtn",  nil],
         nil];
 
     NSMutableArray *navControllers = [NSMutableArray array];
@@ -52,8 +53,16 @@
             CGSize tabPt = CGSizeMake(30, 30);
             UIGraphicsBeginImageContext(tabPt);
             [rawIcon drawInRect:CGRectMake(0, 0, tabPt.width, tabPt.height)];
-            iconImg = UIGraphicsGetImageFromCurrentImageContext();
+            UIImage *scaled = UIGraphicsGetImageFromCurrentImageContext();
             UIGraphicsEndImageContext();
+            /* iOS 7+: use AlwaysOriginal (value 1) so UIKit renders the image
+               as-is rather than as a translucent monochrome template icon.
+               Use objc_msgSend to bypass clang 3.1 SDK type-checking. */
+            SEL rwSel = @selector(imageWithRenderingMode:);
+            if ([scaled respondsToSelector:rwSel])
+                iconImg = ((id(*)(id,SEL,NSInteger))objc_msgSend)(scaled, rwSel, 1);
+            else
+                iconImg = scaled;
         }
         nav.tabBarItem = [[UITabBarItem alloc] initWithTitle:label image:iconImg tag:0];
 

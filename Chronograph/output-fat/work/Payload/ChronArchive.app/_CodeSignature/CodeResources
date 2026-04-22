@@ -120,30 +120,6 @@
 		<data>
 		+ZKKh+WmDwMxDF3lSutJuOtheBE=
 		</data>
-		<key>www/assets/ChronographBackBtn.png</key>
-		<data>
-		E2WZZuHe/kui4rHxFBYdPgflDU4=
-		</data>
-		<key>www/assets/ChronographChatBtn.png</key>
-		<data>
-		UgAeWUBh7q+DbVIH8ltkRm45zyI=
-		</data>
-		<key>www/assets/ChronographFilesBtn.png</key>
-		<data>
-		jGBgPgBq3FYlhJhexroJvHGrLaI=
-		</data>
-		<key>www/assets/ChronographHomeBtn.png</key>
-		<data>
-		xw3flwWO+ASOHyK7jYWgG7XH0lU=
-		</data>
-		<key>www/assets/ChronographSearchBtn.png</key>
-		<data>
-		Z912SLNPuucm6ZrBDc20km9w1aE=
-		</data>
-		<key>www/assets/ChronographToolsBtn.png</key>
-		<data>
-		32UuKmMRkhZLBWorp7kfsGV0m6M=
-		</data>
 		<key>www/assets/Colorful2010Logo.png</key>
 		<data>
 		fgNYuK5YOAVif+gRgl3ih4qe5A4=
@@ -498,11 +474,11 @@
 		</data>
 		<key>www/pages/chat.html</key>
 		<data>
-		BrciKoyk4JgpdkwheMy1g7P/KAA=
+		nm3xzWITFyB7EsgzE6/oe2R1cwM=
 		</data>
 		<key>www/pages/files.html</key>
 		<data>
-		s3hlyyXsmPCaVh0EV90hHUznv2s=
+		oI/OTXwdDuXt0c/qoPe/AXqsyIw=
 		</data>
 		<key>www/pages/home.html</key>
 		<data>
@@ -514,7 +490,7 @@
 		</data>
 		<key>www/pages/tools.html</key>
 		<data>
-		9/36oqSjKmkkNax2UhmMkOm57YM=
+		WKKNemUij7dNwIUhyFW5AubsM18=
 		</data>
 		<key>www/services.html</key>
 		<data>
@@ -830,72 +806,6 @@
 			<key>hash2</key>
 			<data>
 			6/DWXWoAuvmKyAdDQMOhg8VJ4CUgdw95sKT4UVxoVGA=
-			</data>
-		</dict>
-		<key>www/assets/ChronographBackBtn.png</key>
-		<dict>
-			<key>hash</key>
-			<data>
-			E2WZZuHe/kui4rHxFBYdPgflDU4=
-			</data>
-			<key>hash2</key>
-			<data>
-			Kr1QwlGiwIkI6BNr3zBSBjPgk0vmgVGLt+BjMOJZm8s=
-			</data>
-		</dict>
-		<key>www/assets/ChronographChatBtn.png</key>
-		<dict>
-			<key>hash</key>
-			<data>
-			UgAeWUBh7q+DbVIH8ltkRm45zyI=
-			</data>
-			<key>hash2</key>
-			<data>
-			hXVS1RsfZ11VBifjcpfFb/dMATPKVjKQRtfaXMF1gls=
-			</data>
-		</dict>
-		<key>www/assets/ChronographFilesBtn.png</key>
-		<dict>
-			<key>hash</key>
-			<data>
-			jGBgPgBq3FYlhJhexroJvHGrLaI=
-			</data>
-			<key>hash2</key>
-			<data>
-			aZv3pbGf0yN/DAyIvV9jXgrmGMMbAgBFtxp/H6BhRQI=
-			</data>
-		</dict>
-		<key>www/assets/ChronographHomeBtn.png</key>
-		<dict>
-			<key>hash</key>
-			<data>
-			xw3flwWO+ASOHyK7jYWgG7XH0lU=
-			</data>
-			<key>hash2</key>
-			<data>
-			n3sKNgdCGKF3ujC2AZ5JrEHWZbnlwHgu5g/GAU3jr/4=
-			</data>
-		</dict>
-		<key>www/assets/ChronographSearchBtn.png</key>
-		<dict>
-			<key>hash</key>
-			<data>
-			Z912SLNPuucm6ZrBDc20km9w1aE=
-			</data>
-			<key>hash2</key>
-			<data>
-			Cqy+Efm/R05Yn5n3qdQhkjhvyGznCEhpsJEXqpjZnMY=
-			</data>
-		</dict>
-		<key>www/assets/ChronographToolsBtn.png</key>
-		<dict>
-			<key>hash</key>
-			<data>
-			32UuKmMRkhZLBWorp7kfsGV0m6M=
-			</data>
-			<key>hash2</key>
-			<data>
-			lqpaXgDxxoB3bTgngok3pKQGX4LuMQ0pWrWmeNUkW6w=
 			</data>
 		</dict>
 		<key>www/assets/Colorful2010Logo.png</key>
@@ -1870,22 +1780,22 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			BrciKoyk4JgpdkwheMy1g7P/KAA=
+			nm3xzWITFyB7EsgzE6/oe2R1cwM=
 			</data>
 			<key>hash2</key>
 			<data>
-			1Gu2yrpJdl8D2X9vL/f4wPdSXN/SIuJEH3C7ngGwW4I=
+			QKkDzCHT09D16o5Hb2Vm5QxOrkpFSeRXrUobSnMgSIc=
 			</data>
 		</dict>
 		<key>www/pages/files.html</key>
 		<dict>
 			<key>hash</key>
 			<data>
-			s3hlyyXsmPCaVh0EV90hHUznv2s=
+			oI/OTXwdDuXt0c/qoPe/AXqsyIw=
 			</data>
 			<key>hash2</key>
 			<data>
-			RNCdWm/qwGCE8f68sFVv3c4lUdJ2CooAiKPJ5S/Xmzo=
+			CkAz1MaOtXYssaAeq1GXBiJYYkCS/NnBHF2pvfMrk9c=
 			</data>
 		</dict>
 		<key>www/pages/home.html</key>
@@ -1914,11 +1824,11 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			9/36oqSjKmkkNax2UhmMkOm57YM=
+			WKKNemUij7dNwIUhyFW5AubsM18=
 			</data>
 			<key>hash2</key>
 			<data>
-			3vbS3/6CKBLyQAYnFYgSdu5nwyWI5DFEQtDjGnu6jH0=
+			tUHHdKQI0r6NU/xxdNLks3WM1PAWI3KdT1tc7trdbHw=
 			</data>
 		</dict>
 		<key>www/services.html</key>
