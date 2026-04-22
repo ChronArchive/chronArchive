@@ -90,6 +90,19 @@ def init_db():
             created_at INTEGER DEFAULT (strftime('%s','now')),
             UNIQUE(user_id, endpoint)
         );
+        CREATE TABLE IF NOT EXISTS posts (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id     INTEGER NOT NULL,
+            type        TEXT NOT NULL DEFAULT 'image',
+            title       TEXT NOT NULL DEFAULT '',
+            description TEXT DEFAULT '',
+            tags        TEXT DEFAULT '',
+            media_data  TEXT NOT NULL DEFAULT '',
+            deleted     INTEGER DEFAULT 0,
+            created_at  INTEGER DEFAULT (strftime('%s','now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_posts_user ON posts(user_id, created_at);
+        CREATE INDEX IF NOT EXISTS idx_posts_time ON posts(created_at DESC);
     ''')
     conn.commit()
     conn.close()
@@ -298,8 +311,8 @@ def change_password():
     old_pass = data.get('old_password') or ''
     new_pass = data.get('new_password') or ''
 
-    if len(new_pass) < 4:
-        return jsonify({'ok': False, 'error': 'Password must be at least 4 characters'}), 400
+    if len(new_pass) < 8:
+        return jsonify({'ok': False, 'error': 'Password must be at least 8 characters'}), 400
 
     conn = get_db()
     row  = conn.execute('SELECT password_hash FROM users WHERE id=?', (uid,)).fetchone()
@@ -1175,6 +1188,127 @@ def send_message():
     msg = dict(conn.execute('SELECT * FROM messages WHERE id=?', (cur.lastrowid,)).fetchone())
     conn.close()
     return jsonify({'ok': True, 'message': msg}), 201
+
+# ── Posts ───────────────────────────────────────────────────────────────────────
+
+@app.route('/api/posts', methods=['GET'])
+def list_posts():
+    q      = (request.args.get('q') or '').strip()
+    type_  = (request.args.get('type') or '').strip()
+    page   = max(0, int(request.args.get('page', 0) or 0))
+    limit  = 20
+    offset = page * limit
+
+    conn = get_db()
+    sql    = '''SELECT p.id, p.user_id, u.username, u.avatar_b64,
+                       p.type, p.title, p.description, p.tags, p.media_data, p.created_at
+                FROM posts p JOIN users u ON u.id = p.user_id
+                WHERE p.deleted = 0'''
+    params = []
+    if q:
+        sql += ' AND (p.title LIKE ? OR p.description LIKE ? OR p.tags LIKE ?)'
+        params += ['%' + q + '%', '%' + q + '%', '%' + q + '%']
+    if type_ in ('image', 'video'):
+        sql += ' AND p.type = ?'
+        params.append(type_)
+    sql += ' ORDER BY p.created_at DESC LIMIT ? OFFSET ?'
+    params += [limit, offset]
+    rows = conn.execute(sql, params).fetchall()
+    conn.close()
+
+    posts = []
+    for r in rows:
+        posts.append({
+            'id':          r['id'],
+            'user_id':     r['user_id'],
+            'username':    r['username'],
+            'avatar_b64':  r['avatar_b64'] or '',
+            'type':        r['type'],
+            'title':       r['title'],
+            'description': r['description'] or '',
+            'tags':        r['tags'] or '',
+            'media_data':  r['media_data'],
+            'created_at':  r['created_at'],
+        })
+    return jsonify({'ok': True, 'posts': posts, 'page': page})
+
+
+@app.route('/api/posts', methods=['POST'])
+def create_post():
+    uid, err = require_auth(request)
+    if err: return err
+
+    data        = request.get_json(force=True, silent=True) or {}
+    type_       = (data.get('type') or 'image').strip()
+    title       = (data.get('title') or '').strip()
+    description = (data.get('description') or '').strip()
+    tags        = (data.get('tags') or '').strip()
+    media_data  = data.get('media_data') or ''
+
+    if not title:
+        return jsonify({'ok': False, 'error': 'Title is required'}), 400
+    if type_ not in ('image', 'video'):
+        return jsonify({'ok': False, 'error': 'Type must be image or video'}), 400
+    if not media_data:
+        return jsonify({'ok': False, 'error': 'Media data is required'}), 400
+    if type_ == 'image' and len(media_data) > 1_500_000:
+        return jsonify({'ok': False, 'error': 'Image too large (max ~1 MB after compression)'}), 413
+
+    # 10 posts per day limit (UTC midnight)
+    now            = int(time.time())
+    today_midnight = now - (now % 86400)
+    conn = get_db()
+    day_count = conn.execute(
+        'SELECT COUNT(*) FROM posts WHERE user_id=? AND created_at>=? AND deleted=0',
+        (uid, today_midnight)
+    ).fetchone()[0]
+    if day_count >= 10:
+        conn.close()
+        return jsonify({'ok': False, 'error': 'Daily post limit (10) reached'}), 429
+
+    cur = conn.execute(
+        'INSERT INTO posts (user_id, type, title, description, tags, media_data) VALUES (?,?,?,?,?,?)',
+        (uid, type_, title, description, tags, media_data)
+    )
+    conn.commit()
+    post_id = cur.lastrowid
+    conn.close()
+    return jsonify({'ok': True, 'post_id': post_id}), 201
+
+
+@app.route('/api/posts/<int:post_id>', methods=['DELETE'])
+def delete_post(post_id):
+    uid, err = require_auth(request)
+    if err: return err
+
+    conn = get_db()
+    row  = conn.execute('SELECT user_id FROM posts WHERE id=? AND deleted=0', (post_id,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'ok': False, 'error': 'Not found'}), 404
+
+    is_admin = bool(conn.execute('SELECT is_admin FROM users WHERE id=?', (uid,)).fetchone()['is_admin'])
+    if row['user_id'] != uid and not is_admin:
+        conn.close()
+        return jsonify({'ok': False, 'error': 'Forbidden'}), 403
+
+    conn.execute('UPDATE posts SET deleted=1 WHERE id=?', (post_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
+
+# ── Admin: delete post ─────────────────────────────────────────────────────────
+
+@app.route('/api/admin/posts/<int:post_id>', methods=['DELETE'])
+def admin_delete_post(post_id):
+    uid, err = require_admin(request)
+    if err: return err
+    conn = get_db()
+    conn.execute('UPDATE posts SET deleted=1 WHERE id=?', (post_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
 
 
 if __name__ == '__main__':
