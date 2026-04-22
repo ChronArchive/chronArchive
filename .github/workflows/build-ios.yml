@@ -1,0 +1,71 @@
+name: Build iOS IPA (iPhone 4 / iOS 7)
+
+on:
+  workflow_dispatch:       # run manually from the Actions tab
+  push:
+    paths:
+      - 'xcode/**'
+      - '.github/workflows/build-ios.yml'
+      - '**.html'
+      - 'assets/**'
+      - 'blog/**'
+
+jobs:
+  build:
+    runs-on: macos-13
+    timeout-minutes: 30
+
+    steps:
+      # ── 1. Checkout ─────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Select Xcode 13.4.1 (last version with armv7 support) ────────────
+      - name: Select Xcode 13.4.1
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '13.4.1'
+
+      # ── 3. Sync web files into www/ bundle ──────────────────────────────────
+      - name: Sync web files into www/
+        run: |
+          WWW=xcode/ChronArchive/ChronArchive/www
+          rm -rf "$WWW" && mkdir -p "$WWW"
+          for item in index.html blog.html now.html services.html 404.html feed.xml \
+                      assets blog benchmarks networktests tools "05" "95"; do
+            [ -e "$item" ] && cp -r "$item" "$WWW/" && echo "  + $item"
+          done
+
+      # ── 4. Build (unsigned, armv7 + armv7s) ─────────────────────────────────
+      - name: Build Release
+        working-directory: xcode/ChronArchive
+        run: |
+          xcodebuild build \
+            -project ChronArchive.xcodeproj \
+            -target ChronArchive \
+            -configuration Release \
+            -sdk iphoneos \
+            ARCHS="armv7 armv7s" \
+            ONLY_ACTIVE_ARCH=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -derivedDataPath build/
+
+      # ── 5. Package into IPA ──────────────────────────────────────────────────
+      - name: Package IPA
+        run: |
+          APP=$(find xcode/ChronArchive/build/Build/Products/Release-iphoneos \
+                -maxdepth 1 -name "ChronArchive.app" | head -1)
+          mkdir -p output/Payload
+          cp -r "$APP" output/Payload/
+          rm -rf "output/Payload/ChronArchive.app/_CodeSignature"
+          cd output && zip -r ChronArchive.ipa Payload/
+
+      # ── 6. Upload as downloadable artifact ──────────────────────────────────
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChronArchive-iOS7
+          path: output/ChronArchive.ipa
+          retention-days: 30

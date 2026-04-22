@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>We now have a Patreon! | CHRONARCHIVE</title>
+  <link rel="icon" type="image/png" href="../../../assets/CA-favicon-192x192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../../assets/now.css">
+  <style>
+    .post-outer { width: 100%; max-width: 680px; margin: 0 auto; padding: 80px 24px 220px; }
+    .post-back { display: inline-block; font-family: 'Space Grotesk', sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.10em; color: var(--text-2); margin-bottom: 48px; transition: color 0.12s; }
+    .post-back:hover { color: var(--text); }
+    .post-date-line { font-family: 'Space Grotesk', sans-serif; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.22em; color: var(--text-2); display: block; margin-bottom: 16px; }
+    .post-title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(2rem, 5vw, 3.5rem); letter-spacing: -0.04em; line-height: 1.05; color: var(--text); margin-bottom: 40px; }
+    .post-hero-img { width: 100%; display: block; margin-bottom: 48px; border: 1px solid var(--border-card); }
+    .post-body { font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.8; color: var(--text); }
+    .post-body p { margin-bottom: 1.4em; }
+    .post-body p:last-child { margin-bottom: 0; }
+  </style>
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="../../../assets/socialpreviewnow.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="../../../assets/socialpreviewnow.png">
+</head>
+<body>
+
+  <header id="navbar">
+    <a href="../../../now.html" id="navbar-logo">CHRONARCHIVE</a>
+    <div id="navbar-clock" aria-live="polite"></div>
+    <nav id="navbar-links">
+      <a href="../../../now.html" class="nav-link">Search</a>
+      <a href="../../../now.html#files" class="nav-link">Files</a>
+      <a href="../../../now.html#blog" class="nav-link active">Blog</a>
+      <a href="../../../now.html#services" class="nav-link">Services</a>
+    </nav>
+    <button id="nav-hamburger" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <script>
+    (function () {
+      var el = document.getElementById('navbar-clock');
+      var Y2K38 = new Date(2147483647 * 1000);
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
+      function phxNow() {
+        var now = new Date();
+        var utc = now.getTime() + now.getTimezoneOffset() * 60000;
+        return new Date(utc - 7 * 3600000);
+      }
+      function formatClock(phx) {
+        return (phx.getMonth()+1) + '/' + phx.getDate() + '/' + String(phx.getFullYear()).slice(-2) + '@' + phx.getHours() + ':' + pad(phx.getMinutes());
+      }
+      function formatCountdown(ms) {
+        if (ms <= 0) return 'OVERFLOW';
+        var s = Math.floor(ms / 1000);
+        var yr = Math.floor(s / 31557600); s -= yr * 31557600;
+        var dy = Math.floor(s / 86400);    s -= dy * 86400;
+        var hr = Math.floor(s / 3600);     s -= hr * 3600;
+        var mn = Math.floor(s / 60);       s -= mn * 60;
+        return yr + 'y ' + dy + 'd ' + pad(hr) + ':' + pad(mn) + ':' + pad(s) + ' until Y2K38';
+      }
+      function tick() {
+        var phx = phxNow();
+        el.innerHTML = '<span id="clock-time">' + formatClock(phx) + '</span><span id="clock-sep"> &nbsp;&middot;&nbsp; </span><a id="clock-y2k38" href="https://www.clock32.com" target="_blank" rel="noopener">' + formatCountdown(Y2K38.getTime() - Date.now()) + '</a>';
+      }
+      tick(); setInterval(tick, 1000);
+    })();
+    (function() {
+      var btn = document.getElementById('nav-hamburger');
+      var links = document.getElementById('navbar-links');
+      if (!btn || !links) return;
+      btn.addEventListener('click', function() {
+        var open = links.classList.toggle('open');
+        btn.classList.toggle('open', open);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      links.addEventListener('click', function(e) {
+        if (e.target.classList.contains('nav-link')) {
+          links.classList.remove('open'); btn.classList.remove('open');
+          btn.setAttribute('aria-expanded', 'false');
+        }
+      });
+    })();
+  </script>
+
+  <main>
+    <div class="post-outer">
+
+      <a href="../../../now.html#blog" class="post-back">&larr; Back to Blog</a>
+
+      <span class="post-date-line">April 12, 2026</span>
+      <h1 class="post-title">We now have a Patreon!</h1>
+
+      <img src="../../../assets/blogphotos/patreonWide.jpg" alt="We now have a Patreon!" class="post-hero-img">
+
+      <div class="post-body">
+        <p>ChronArchive was designed to be a platform for enabling everyone to use their old computers, phones, and other devices to their fullest potential.</p>
+
+        <p>The design is platform agnostic, wether you use an M4 MacBook Pro, a Dell XPS, or a TRS-80, if it can use the basic frameworks of the internet, we hope to support it. As this is a small passion project it doesn't have the resources to test on every platform, so if your device doesn't work, let us know and we will try to support it!</p>
+
+        <p>Servers are expensive, unlike the software used to run them, most of which free. Internet, hardware, and security services scale very quickly with usage. If you want to see this project grow, or you just want to support the cause, donations are always appreciated! Soon there will be some kind of special thanks to those who donate, but for now all I can promise is our infinite respect and appreciation!</p>
+      </div>
+
+    </div>
+  </main>
+
+  <div id="chronodulator-wrap">
+    <div id="chrono-timeline">
+      <span id="chrono-title">Chronodulator</span>
+      <div id="chrono-track" style="--chrono-fill: 104%;">
+
+        <a href="95.html" class="era-node">
+          <span class="node-dot"></span>
+          <span class="node-label">'95</span>
+        </a>
+
+        <a href="05.html" class="era-node">
+          <span class="node-dot"></span>
+          <span class="node-label">'05</span>
+        </a>
+
+        <a href="10.html" class="era-node">
+          <span class="node-dot"></span>
+          <span class="node-label">'10</span>
+        </a>
+
+        <span class="era-node era-active">
+          <span class="node-dot"></span>
+          <span class="node-label">Now</span>
+        </span>
+
+      </div>
+    </div>
+    <div id="ticker">
+      <div class="ticker-left">
+        <span class="ticker-dot"></span>
+        <span>Like the new look? Stay tuned. More to come!&nbsp;&nbsp;&bull;&nbsp;&nbsp;Service availability may vary! This is v0.2.3.</span>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
