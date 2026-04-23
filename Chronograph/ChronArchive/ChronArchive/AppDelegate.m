@@ -71,8 +71,9 @@
 
     UITabBarController *tabs = [[UITabBarController alloc] init];
     tabs.viewControllers = navControllers;
-    /* barStyle not exposed on UITabBar in iOS 5 SDK; tintColor covers styling */
-    tabs.tabBar.tintColor = [UIColor colorWithRed:0.35 green:0.78 blue:0.98 alpha:1.0];
+    /* UITabBar.tintColor is iOS 5+ — guard so the call doesn't crash iOS 3/4 */
+    if ([tabs.tabBar respondsToSelector:@selector(setTintColor:)])
+        tabs.tabBar.tintColor = [UIColor colorWithRed:0.35 green:0.78 blue:0.98 alpha:1.0];
 
 
     self.window.rootViewController = tabs;

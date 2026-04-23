@@ -34,19 +34,10 @@ export DEVELOPER_DIR
 XCODE_VER=$("$XCODEBUILD" -version 2>/dev/null | head -1 || echo "Xcode 12.5.1")
 echo "Using: $XCODE_VER  ($XCODEBUILD)"
 
-# ── Step 1: Sync Chronograph embed files into www/ ───────────────────────────
+# ── Step 1: Build ─────────────────────────────────────────────────────────────────────────────
 echo ""
-echo "[1/3] Syncing Chronograph app files..."
-EMBED_DIR="$SCRIPT_DIR/chronograph-embed"
-rm -rf "$WWW_DIR"
-mkdir -p "$WWW_DIR"
-cp -r "$EMBED_DIR/." "$WWW_DIR/"
-echo "  Copied from: $EMBED_DIR"
-echo "  Done."
-
-# ── Step 2: Build ─────────────────────────────────────────────────────────────
-echo ""
-echo "[2/3] Building Release for iphoneos (armv7 + armv7s)..."
+echo "[1/2] Building Release for iphoneos (armv7 + armv7s + arm64)..."
+# www/ is the canonical source — edit files there directly (no embed sync needed)
 cd "$PROJECT_DIR"
 rm -rf build/
 mkdir -p build/
@@ -57,6 +48,7 @@ mkdir -p build/
     -configuration Release \
     -sdk iphoneos \
     ARCHS="armv7 armv7s arm64" \
+    IPHONEOS_DEPLOYMENT_TARGET=4.0 \
     ONLY_ACTIVE_ARCH=NO \
     CODE_SIGN_IDENTITY="" \
     CODE_SIGNING_REQUIRED=NO \
@@ -77,7 +69,7 @@ echo "  Build succeeded."
 
 # ── Step 3: Package IPA ──────────────────────────────────────────────────────
 echo ""
-echo "[3/3] Packaging IPA..."
+echo "[2/2] Packaging IPA..."
 
 APP_PATH=$(find build/Release-iphoneos \
     -maxdepth 1 -name "ChronArchive.app" 2>/dev/null | head -1)

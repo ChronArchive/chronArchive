@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Chronograph Admin Panel
-Binds to Tailscale interface only — http://100.109.159.40:8001
+Binds to Tailscale interface only — http://100.95.1.7:8001
 NOT exposed through Cloudflare or the public internet.
 """
 import os, sqlite3, time, html as _html, json, secrets as _secrets
@@ -13,7 +13,7 @@ DB_PATH          = os.environ.get('CG_DB',  '/opt/chronograph-chat/chat.db')
 FILTER_WORDS_FILE = '/opt/chronograph-chat/filter_words.json'
 PASS_FILE        = '/opt/chronograph-chat/admin_pass.txt'
 SECRET_FILE      = '/opt/chronograph-chat/admin_secret.txt'
-BIND_HOST        = '100.109.159.40'
+BIND_HOST        = '100.95.1.7'
 BIND_PORT        = 8001
 
 # ── Startup: load or create persistent secret key + admin password ─────────────
@@ -802,7 +802,7 @@ def settings():
         <table style="background:none;border:none">
           <tr><td style="color:#555;padding:4px 0;border:none">DB Path</td><td class="mono" style="color:#999;border:none;font-size:11px">{h(DB_PATH)}</td></tr>
           <tr><td style="color:#555;padding:4px 0;border:none">DB Size</td><td style="color:#ddd;border:none">{fmt_bytes(db_size)}</td></tr>
-          <tr><td style="color:#555;padding:4px 0;border:none">Panel URL</td><td class="mono" style="color:#4a9eff;border:none">http://100.109.159.40:8001</td></tr>
+          <tr><td style="color:#555;padding:4px 0;border:none">Panel URL</td><td class="mono" style="color:#4a9eff;border:none">http://100.95.1.7:8001</td></tr>
           <tr><td style="color:#555;padding:4px 0;border:none">Pass File</td><td class="mono" style="color:#999;border:none;font-size:11px">{h(PASS_FILE)}</td></tr>
           <tr><td style="color:#555;padding:4px 0;border:none">Filter File</td><td class="mono" style="color:#999;border:none;font-size:11px">{h(FILTER_WORDS_FILE)}</td></tr>
         </table>

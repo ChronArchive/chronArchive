@@ -59,6 +59,24 @@
     [self.navigationController setNavigationBarHidden:isRoot animated:animated];
 }
 
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    /* Free the WebView when this tab is not on screen to reclaim memory.
+       viewDidLoad re-creates it and reloads from initialURL next time the tab is shown. */
+    if (self.isViewLoaded && self.view.window == nil) {
+        if (self.webView) {
+            /* Remember where the user was so we can restore on next selection */
+            NSURL *cur = self.webView.request.URL;
+            if (cur) self.initialURL = cur;
+            self.webView.delegate = nil;
+            [self.webView stopLoading];
+            [self.webView removeFromSuperview];
+            self.webView = nil;
+        }
+        self.view = nil; /* causes viewDidLoad to be called again when tab is re-selected */
+    }
+}
+
 - (void)dealloc {
     self.webView.delegate = nil;
 }

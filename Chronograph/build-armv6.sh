@@ -12,7 +12,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SRCDIR="$SCRIPT_DIR/ChronArchive/ChronArchive"
-EMBED_DIR="$SCRIPT_DIR/chronograph-embed"
+EMBED_DIR="$SRCDIR/www"  # canonical source: edit www/pages/ directly
 OUTPUT_DIR="$SCRIPT_DIR/output-armv6"
 
 XCODE4="${XCODE4:-$HOME/Downloads/Xcode4.app}"
@@ -118,9 +118,9 @@ cat > "$APP_DIR/Info.plist" << 'PLIST'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.6</string>
+    <string>0.7</string>
     <key>CFBundleVersion</key>
-    <string>6</string>
+    <string>7</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>MinimumOSVersion</key>
@@ -139,6 +139,18 @@ cat > "$APP_DIR/Info.plist" << 'PLIST'
     <true/>
     <key>UIViewControllerBasedStatusBarAppearance</key>
     <false/>
+    <key>CFBundleIconFile</key>
+    <string>Icon-60.png</string>
+    <key>CFBundleIconFiles</key>
+    <array>
+        <string>Icon-29</string>
+        <string>Icon-29@2x</string>
+        <string>Icon-40</string>
+        <string>Icon-40@2x</string>
+        <string>Icon-60</string>
+        <string>Icon-60@2x</string>
+        <string>Icon-60@3x</string>
+    </array>
 </dict>
 </plist>
 PLIST

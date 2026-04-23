@@ -185,11 +185,11 @@
     .vid-nav-btn:disabled { opacity: 0.3; }
     .vid-counter { color: #aaa; font-size: 11px; text-align: center; padding: 6px 0; }
     /* ── Chat (same as chat.html panel but no outer wrapper) ── */
-    #cgr-chat-screen { position: relative; min-height: 580px; }
+    #cgr-chat-screen { position: relative; min-height: 400px; overflow: hidden; }
     #cgr-chat-inner  { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
     .cgr-chat-screen-inner { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #f7f7f7; display: none; }
     .cgr-chat-screen-inner.active { display: block; }
-    .c-sb { position: absolute; top: 40px; left: 0; right: 0; bottom: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .c-sb { position: absolute; top: 40px; left: 0; right: 0; bottom: 0; overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; }
     .av { width: 40px; height: 40px; border-radius: 20px; background: #0055cc; text-align: center; line-height: 40px; font-size: 17px; font-weight: bold; color: #fff; overflow: hidden; }
     .av img { width: 40px; height: 40px; border-radius: 20px; display: block; }
     .convo-row { display: table; width: 100%; padding: 11px 14px; border-bottom: 1px solid #eee; cursor: pointer; }
@@ -207,8 +207,8 @@
     .ua { display: table-cell; width: 42px; vertical-align: middle; }
     .user-row { display: table; width: 100%; padding: 11px 14px; border-bottom: 1px solid #eee; cursor: pointer; }
     .user-row:hover { background: #f4f8ff; }
-    .msg-row { padding: 3px 12px; }
-    .msg-bubble { display: inline-block; max-width: 72%; padding: 8px 12px; border-radius: 16px; font-size: 14px; line-height: 1.45; word-wrap: break-word; }
+    .msg-row { padding: 3px 12px; max-width: 100%; -webkit-box-sizing: border-box; box-sizing: border-box; overflow: hidden; }
+    .msg-bubble { display: inline-block; max-width: 72%; padding: 8px 12px; border-radius: 16px; font-size: 14px; line-height: 1.45; word-wrap: break-word; word-break: break-word; overflow-wrap: break-word; }
     .msg-out { text-align: right; }
     .msg-out .msg-bubble { background: #0055cc; color: #fff; border-bottom-right-radius: 4px; }
     .msg-in  { text-align: left; }
