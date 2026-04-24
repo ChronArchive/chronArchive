@@ -477,8 +477,14 @@ function updateFriendBtn(){
 }
 function updateBlockBtn(){var btn=document.getElementById('up-block-btn');if(btn)btn.innerHTML=S.upBlocked?'Unblock':'Block';}
 function toggleFriend(){
-  if(S.upFriendStatus==='accepted'||S.upFriendStatus==='pending'){
+  if(S.upFriendStatus==='accepted'){
     req('DELETE','/api/friends/'+S.upUserId,null,function(d){S.upFriendStatus=null;updateFriendBtn();});
+  } else if(S.upFriendStatus==='pending'&&S.upDirection==='outgoing'){
+    req('DELETE','/api/friends/'+S.upUserId,null,function(d){S.upFriendStatus=null;updateFriendBtn();});
+  } else if(S.upFriendStatus==='pending'&&S.upDirection==='incoming'){
+    req('POST','/api/friends/'+S.upUserId,null,function(d,err){
+      if(!err&&d&&d.ok){S.upFriendStatus='accepted';S.upDirection=null;updateFriendBtn();}
+    });
   } else {
     req('POST','/api/friends/'+S.upUserId,null,function(d,err){
       if(!err&&d&&d.ok){S.upFriendStatus=d.status;S.upDirection='outgoing';updateFriendBtn();}

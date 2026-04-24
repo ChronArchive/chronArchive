@@ -88,6 +88,12 @@ echo "  Version → 0.7 (build 7)"
 # ── Step 4: Sign and package ──────────────────────────────────────────────────
 echo ""
 echo "[4/4] Signing and packaging..."
+
+# Always inject the latest www/ so web file edits don't require a full Xcode rebuild
+echo "  Injecting latest www/..."
+rm -rf "$FAT_APP/www"
+cp -r "$SCRIPT_DIR/ChronArchive/ChronArchive/www" "$FAT_APP/www"
+
 xattr -cr "$FAT_APP"
 codesign -f -s - "$FAT_APP"
 

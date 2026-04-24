@@ -14,7 +14,11 @@
       border: 1px solid #c0c0c0; border-radius: 6px;
       -webkit-box-shadow: 0 2px 8px rgba(0,0,0,0.12); box-shadow: 0 2px 8px rgba(0,0,0,0.12);
       overflow: hidden; min-height: 580px; margin-bottom: 28px;
+      max-width: 100%; -webkit-box-sizing: border-box; box-sizing: border-box;
     }
+    #cgram-panel * { -webkit-box-sizing: border-box; box-sizing: border-box; max-width: 100%; }
+    #cgram-panel img, #cgram-panel video { max-width: 100%; height: auto; }
+    #cgram-panel input, #cgram-panel textarea { max-width: 100%; }
     /* ── Tab bar ── */
     .cgr-tab-bar {
       position: relative; display: table; width: 100%;
@@ -1286,7 +1290,7 @@ function cgrOpenUserProfile(uid,uname,backScreen){
 function cgrUpGoBack(){cgrGoChatScreen(CGR.chatFromScreen||'c-users');}
 function cgrUpdateFriendBtn(){var btn=document.getElementById('c-up-friend-btn');if(!btn)return;if(CGR.upFriendStatus==='accepted')btn.innerHTML='Remove Friend';else if(CGR.upFriendStatus==='pending'&&CGR.upDirection==='outgoing')btn.innerHTML='Cancel Request';else if(CGR.upFriendStatus==='pending'&&CGR.upDirection==='incoming')btn.innerHTML='Accept Friend Request';else btn.innerHTML='Add Friend';}
 function cgrUpdateBlockBtn(){var btn=document.getElementById('c-up-block-btn');if(btn)btn.innerHTML=CGR.upBlocked?'Unblock':'Block';}
-function cgrToggleFriend(){if(CGR.upFriendStatus==='accepted'||CGR.upFriendStatus==='pending'){cgrReq('DELETE','/api/friends/'+CGR.upUserId,null,function(){CGR.upFriendStatus=null;cgrUpdateFriendBtn();});}else{cgrReq('POST','/api/friends/'+CGR.upUserId,null,function(d,err){if(!err&&d&&d.ok){CGR.upFriendStatus=d.status;CGR.upDirection='outgoing';cgrUpdateFriendBtn();}});}}
+function cgrToggleFriend(){if(CGR.upFriendStatus==='accepted'){cgrReq('DELETE','/api/friends/'+CGR.upUserId,null,function(){CGR.upFriendStatus=null;cgrUpdateFriendBtn();});}else if(CGR.upFriendStatus==='pending'&&CGR.upDirection==='outgoing'){cgrReq('DELETE','/api/friends/'+CGR.upUserId,null,function(){CGR.upFriendStatus=null;cgrUpdateFriendBtn();});}else if(CGR.upFriendStatus==='pending'&&CGR.upDirection==='incoming'){cgrReq('POST','/api/friends/'+CGR.upUserId,null,function(d,err){if(!err&&d&&d.ok){CGR.upFriendStatus='accepted';CGR.upDirection=null;cgrUpdateFriendBtn();}});}else{cgrReq('POST','/api/friends/'+CGR.upUserId,null,function(d,err){if(!err&&d&&d.ok){CGR.upFriendStatus=d.status;CGR.upDirection='outgoing';cgrUpdateFriendBtn();}});}}
 function cgrToggleBlock(){if(CGR.upBlocked){cgrReq('DELETE','/api/blocks/'+CGR.upUserId,null,function(){CGR.upBlocked=false;cgrUpdateBlockBtn();});}else{cgrReq('POST','/api/blocks/'+CGR.upUserId,null,function(){CGR.upBlocked=true;CGR.upFriendStatus=null;cgrUpdateFriendBtn();cgrUpdateBlockBtn();});}}
 function cgrOpenThreadFromProfile(){cgrOpenThread(CGR.upUserId,document.getElementById('c-up-username').innerHTML);}
 

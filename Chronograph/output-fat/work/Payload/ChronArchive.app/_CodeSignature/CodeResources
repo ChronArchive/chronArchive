@@ -76,6 +76,10 @@
 		<data>
 		A1ivw0GHYZnR1N0pjG5E2WXtRIk=
 		</data>
+		<key>www/.DS_Store</key>
+		<data>
+		2PH59K/4kmnm3DCTOwt55ChIO98=
+		</data>
 		<key>www/404.html</key>
 		<data>
 		aANG7oybw7Emo7lbWk0A7P5Jn/M=
@@ -83,6 +87,10 @@
 		<key>www/CNAME</key>
 		<data>
 		xTKJx+9zILSE6Gy642bZS55NF8w=
+		</data>
+		<key>www/assets/.DS_Store</key>
+		<data>
+		9XRYpOn9HY9i3glCzx5EPPzZA9Q=
 		</data>
 		<key>www/assets/10.css</key>
 		<data>
@@ -191,6 +199,10 @@
 		<key>www/blog.html</key>
 		<data>
 		PekEPdNxpGLib37Qm1XSjNZG8w0=
+		</data>
+		<key>www/blog/.DS_Store</key>
+		<data>
+		g9osE/mikruZbBcJ/8BDTU0jH5E=
 		</data>
 		<key>www/blog/posts.json</key>
 		<data>
@@ -474,7 +486,7 @@
 		</data>
 		<key>www/pages/chat.html</key>
 		<data>
-		tw9dZdF8r3WLkQrsFL1EGmzhHpo=
+		c6EuLFzPdQa6UHEWRW7lCEeQRo4=
 		</data>
 		<key>www/pages/files.html</key>
 		<data>
@@ -482,7 +494,7 @@
 		</data>
 		<key>www/pages/home.html</key>
 		<data>
-		cANAHXznJhMSGuvjBj/ylzPQoS0=
+		13P6OWiLfDy1+GWo5CdbZNJ+VRo=
 		</data>
 		<key>www/pages/search.html</key>
 		<data>
@@ -495,6 +507,10 @@
 		<key>www/services.html</key>
 		<data>
 		ApPL2OWIq63n8cnTu+QxUkxNds4=
+		</data>
+		<key>www/tools/.DS_Store</key>
+		<data>
+		8+7C3rE/KlMMRuD5Azba+/X7e1c=
 		</data>
 		<key>www/tools/display-info/index.html</key>
 		<data>
@@ -1780,11 +1796,11 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			tw9dZdF8r3WLkQrsFL1EGmzhHpo=
+			c6EuLFzPdQa6UHEWRW7lCEeQRo4=
 			</data>
 			<key>hash2</key>
 			<data>
-			XLbxKvnyWTc1A8flI9Ha+rpVXjmOSt+bjT9mRzkwKtI=
+			dEcikj78cDkYy+D5Nl6pwrkMh4p1aDm+kRDqY9OvQKE=
 			</data>
 		</dict>
 		<key>www/pages/files.html</key>
@@ -1802,11 +1818,11 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			cANAHXznJhMSGuvjBj/ylzPQoS0=
+			13P6OWiLfDy1+GWo5CdbZNJ+VRo=
 			</data>
 			<key>hash2</key>
 			<data>
-			jzqfwDdfCXz1U9oqR15fnjNxp8Q38Bo6MQYjsGGCwz8=
+			yldQTOLdz4Ju5vAdPfiQ5QuY9NOpnZdzkTqaQiywPrs=
 			</data>
 		</dict>
 		<key>www/pages/search.html</key>
