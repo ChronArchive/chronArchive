@@ -32,3 +32,12 @@ admin_pass.txt
 # Old app folder
 chronograph-old/
 
+# Build outputs (compiled IPAs and extracted app bundles — never committed)
+ChronoGraph RC1/output/
+ChronoGraph RC1/output-arm64/
+ChronoGraph RC1/output-armv6/
+ChronoGraph RC1/output-fat/
+
+# Stale old tree
+Chronograph/
+

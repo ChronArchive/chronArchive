@@ -22,24 +22,24 @@ body { margin: 0; background: #f5f5f7; font-family: -apple-system, BlinkMacSyste
 /* ── ChronoGraph header bar ── */
 #cg-header { background: #0055cc; color: #fff; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; padding: 0 20px; height: 48px; -webkit-box-shadow: 0 2px 6px rgba(0,0,51,.18); box-shadow: 0 2px 6px rgba(0,0,51,.18); }
 #cg-header a { color: #fff; text-decoration: none; }
-#cg-header-back { font-size: 13px; opacity: .85; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; gap: 4px; }
+#cg-header-back { font-size: 13px; opacity: .85; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; }
 #cg-header-back:hover { opacity: 1; }
 #cg-header-title { font-size: 18px; font-weight: 700; letter-spacing: -.3px; -webkit-box-flex: 1; flex: 1; text-align: center; }
 #cg-header-right { min-width: 80px; text-align: right; }
 
 /* ── Layout ── */
 #cg-root { max-width: 1100px; margin: 0 auto; padding: 20px 12px 48px; }
-#cg-cols { display: -webkit-box; display: -webkit-flex; display: flex; gap: 20px; -webkit-box-align: start; -webkit-align-items: flex-start; align-items: flex-start; }
+#cg-cols { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: start; -webkit-align-items: flex-start; align-items: flex-start; }
 #cg-main { -webkit-box-flex: 1; -webkit-flex: 1 1 0%; flex: 1 1 0%; min-width: 0; max-width: 640px; }
 #cg-sidebar { width: 260px; -webkit-flex-shrink: 0; flex-shrink: 0; }
-@media (max-width: 900px) { #cg-cols { -webkit-flex-direction: column; flex-direction: column; } #cg-sidebar { display: none; } #cg-main { max-width: 100%; } }
+@media (max-width: 900px) { #cg-cols { -webkit-flex-direction: column; flex-direction: column; } #cg-cols > * + * { margin-left: 0; margin-top: 20px; } #cg-sidebar { display: none; } #cg-main { max-width: 100%; } }
 
 /* ── Card ── */
 /* ── Card ── */
 .cg-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
-.cg-card-head { padding: 14px 16px 0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; gap: 10px; }
+.cg-card-head { padding: 14px 16px 0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; }
 .cg-card-body { padding: 12px 16px; }
-.cg-card-foot { padding: 4px 10px; border-top: 1px solid #f5f5f7; display: -webkit-box; display: -webkit-flex; display: flex; gap: 4px; }
+.cg-card-foot { padding: 4px 10px; border-top: 1px solid #f5f5f7; display: -webkit-box; display: -webkit-flex; display: flex; }
 
 /* ── Avatar ── */
 .cg-av { width: 40px; height: 40px; border-radius: 50%; background: #0055cc; color: #fff; font-size: 17px; font-weight: 700; text-align: center; line-height: 40px; overflow: hidden; -webkit-flex-shrink: 0; flex-shrink: 0; cursor: pointer; }
@@ -74,11 +74,11 @@ body { margin: 0; background: #f5f5f7; font-family: -apple-system, BlinkMacSyste
 #cg-search-results { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; margin-top: 4px; overflow: hidden; display: none; }
 #cg-search-results.open { display: block; }
 .cg-search-sect-title { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .5px; padding: 8px 14px 4px; }
-.cg-search-row { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; gap: 10px; padding: 8px 14px; cursor: pointer; }
+.cg-search-row { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; padding: 8px 14px; cursor: pointer; }
 .cg-search-row:hover { background: #f5f5f7; }
 
 /* ── Action bar buttons (like/comment/share) ── */
-.cg-act-btn { -webkit-box-flex: 1; flex: 1; padding: 6px; border: none; background: none; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: 600; color: #555; font-family: inherit; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center; gap: 5px; }
+.cg-act-btn { -webkit-box-flex: 1; flex: 1; padding: 6px; border: none; background: none; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: 600; color: #555; font-family: inherit; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center; }
 .cg-act-btn:hover { background: #f5f5f7; }
 .cg-act-btn.liked { color: #0055cc; }
 .cg-act-btn.liked svg { fill: #0055cc; stroke: #0055cc; }
@@ -88,20 +88,20 @@ body { margin: 0; background: #f5f5f7; font-family: -apple-system, BlinkMacSyste
 .cg-post-video { width: 100%; max-height: 480px; display: block; background: #000; }
 
 /* ── Comments ── */
-.cg-comment { display: -webkit-box; display: -webkit-flex; display: flex; gap: 8px; margin-bottom: 10px; }
+.cg-comment { display: -webkit-box; display: -webkit-flex; display: flex; margin-bottom: 10px; }
 .cg-comment-bubble { background: #f5f5f7; border-radius: 12px; padding: 7px 12px; font-size: 13px; line-height: 1.4; }
 .cg-comment-name { font-weight: 700; color: #1a1a1a; font-size: 12px; margin-bottom: 2px; cursor: pointer; }
 .cg-comment-text { color: #1a1a1a; word-break: break-word; }
 
 /* ── Post compose ── */
-#cg-compose-card .cg-card-body { display: -webkit-box; display: -webkit-flex; display: flex; gap: 10px; -webkit-box-align: flex-start; -webkit-align-items: flex-start; align-items: flex-start; }
+#cg-compose-card .cg-card-body { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: flex-start; -webkit-align-items: flex-start; align-items: flex-start; }
 #cg-compose-trigger { -webkit-box-flex: 1; flex: 1; padding: 10px 14px; background: #f5f5f7; border: none; border-radius: 20px; color: #555; text-align: left; cursor: pointer; font-size: 14px; font-family: inherit; }
 #cg-compose-trigger:hover { background: #e8e8ea; }
 
 /* ── Sidebar ── */
 .cg-sidebar-sect { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; }
 .cg-sidebar-title { font-size: 13px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
-.cg-who-row { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; gap: 10px; padding: 6px 0; }
+.cg-who-row { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; padding: 6px 0; }
 .cg-who-name { -webkit-box-flex: 1; flex: 1; font-weight: 600; font-size: 13px; cursor: pointer; color: #1a1a1a; }
 .cg-who-name:hover { text-decoration: underline; }
 
@@ -113,7 +113,7 @@ body { margin: 0; background: #f5f5f7; font-family: -apple-system, BlinkMacSyste
 .cg-modal-title { font-size: 17px; font-weight: 700; -webkit-box-flex: 1; flex: 1; }
 .cg-modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #555; padding: 0 4px; line-height: 1; }
 .cg-modal-body { padding: 20px; }
-.cg-modal-foot { padding: 12px 20px; border-top: 1px solid #e0e0e0; text-align: right; display: -webkit-box; display: -webkit-flex; display: flex; gap: 8px; -webkit-box-pack: end; -webkit-justify-content: flex-end; justify-content: flex-end; }
+.cg-modal-foot { padding: 12px 20px; border-top: 1px solid #e0e0e0; text-align: right; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-pack: end; -webkit-justify-content: flex-end; justify-content: flex-end; }
 .cg-modal.wide { max-width: 720px; }
 
 /* ── Post detail modal ── */
@@ -124,7 +124,7 @@ body { margin: 0; background: #f5f5f7; font-family: -apple-system, BlinkMacSyste
 .cg-post-detail-side { width: 300px; -webkit-flex-shrink: 0; flex-shrink: 0; border-left: 1px solid #e0e0e0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; }
 @media (max-width: 640px) { .cg-post-detail-grid { -webkit-flex-direction: column; flex-direction: column; } .cg-post-detail-side { width: 100%; border-left: none; border-top: 1px solid #e0e0e0; } }
 .cg-post-detail-comments { -webkit-box-flex: 1; flex: 1; overflow-y: auto; padding: 12px; max-height: 320px; }
-.cg-post-detail-compose { padding: 10px 12px; border-top: 1px solid #e0e0e0; display: -webkit-box; display: -webkit-flex; display: flex; gap: 8px; }
+.cg-post-detail-compose { padding: 10px 12px; border-top: 1px solid #e0e0e0; display: -webkit-box; display: -webkit-flex; display: flex; }
 .cg-post-detail-compose input { -webkit-box-flex: 1; flex: 1; }
 
 /* ── Profile modal ── */
@@ -133,41 +133,41 @@ body { margin: 0; background: #f5f5f7; font-family: -apple-system, BlinkMacSyste
 .cg-profile-av-wrap { margin-top: -40px; margin-bottom: 10px; }
 .cg-profile-name { font-size: 20px; font-weight: 700; }
 .cg-profile-bio { color: #555; font-size: 13px; margin: 6px 0 14px; }
-.cg-profile-stats { display: -webkit-box; display: -webkit-flex; display: flex; gap: 20px; margin-bottom: 14px; }
+.cg-profile-stats { display: -webkit-box; display: -webkit-flex; display: flex; margin-bottom: 14px; }
 .cg-profile-stat { text-align: center; }
 .cg-profile-stat .val { font-size: 17px; font-weight: 700; }
 .cg-profile-stat .lbl { font-size: 11px; color: #555; }
-.cg-profile-actions { display: -webkit-box; display: -webkit-flex; display: flex; gap: 8px; -webkit-flex-wrap: wrap; flex-wrap: wrap; }
+.cg-profile-actions { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; }
 .cg-profile-posts { padding: 0 20px 20px; }
-.cg-profile-posts-grid { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; gap: 3px; margin-top: 10px; }
-.cg-profile-thumb { width: calc(33.33% - 2px); padding-bottom: calc(33.33% - 2px); background: #f5f5f7; position: relative; overflow: hidden; cursor: pointer; border-radius: 2px; }
+.cg-profile-posts-grid { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; margin-top: 10px; }
+.cg-profile-thumb { width: calc(33.33% - 3px); padding-bottom: calc(33.33% - 3px); background: #f5f5f7; position: relative; overflow: hidden; cursor: pointer; border-radius: 2px; margin-right: 3px; margin-bottom: 3px; }
 .cg-profile-thumb img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
 
 /* ── Inline Messages (replaces floating DM panel) ── */
-#cg-msg-panel { display: -webkit-box; display: -webkit-flex; display: flex; gap: 0; min-height: 480px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; background: #fff; }
+#cg-msg-panel { display: -webkit-box; display: -webkit-flex; display: flex; min-height: 480px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; background: #fff; }
 #cg-msg-list-pane { width: 220px; -webkit-flex-shrink: 0; flex-shrink: 0; border-right: 1px solid #e0e0e0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; }
-#cg-msg-list-head { padding: 12px 14px; border-bottom: 1px solid #e0e0e0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; gap: 8px; }
+#cg-msg-list-head { padding: 12px 14px; border-bottom: 1px solid #e0e0e0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; }
 #cg-msg-list-head span { font-weight: 700; font-size: 15px; -webkit-box-flex: 1; flex: 1; }
 #cg-msg-convos { -webkit-box-flex: 1; flex: 1; overflow-y: auto; }
-.cg-dm-convo-row { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f5f5f7; }
+.cg-dm-convo-row { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f5f5f7; }
 .cg-dm-convo-row:hover, .cg-dm-convo-row.active { background: #f0f4ff; }
 .cg-dm-convo-name { font-weight: 600; font-size: 13px; color: #1a1a1a; }
 .cg-dm-convo-preview { font-size: 12px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cg-dm-convo-time { font-size: 11px; color: #aaa; white-space: nowrap; }
 #cg-msg-thread-pane { -webkit-box-flex: 1; flex: 1; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; min-width: 0; }
-#cg-msg-thread-head { padding: 12px 14px; border-bottom: 1px solid #e0e0e0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; gap: 8px; min-height: 52px; }
+#cg-msg-thread-head { padding: 12px 14px; border-bottom: 1px solid #e0e0e0; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; min-height: 52px; }
 #cg-msg-thread-empty { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center; -webkit-box-flex: 1; flex: 1; color: #aaa; font-size: 14px; }
-.cg-dm-msgs { -webkit-box-flex: 1; flex: 1; overflow-y: auto; padding: 12px 14px; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; gap: 6px; }
+.cg-dm-msgs { -webkit-box-flex: 1; flex: 1; overflow-y: auto; padding: 12px 14px; display: -webkit-box; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; }
 .cg-dm-bubble { max-width: 78%; padding: 7px 12px; border-radius: 14px; font-size: 13px; line-height: 1.4; word-break: break-word; }
 .cg-dm-bubble.mine { background: #0055cc; color: #fff; -webkit-align-self: flex-end; align-self: flex-end; border-bottom-right-radius: 4px; }
 .cg-dm-bubble.theirs { background: #f0f4ff; color: #1a1a1a; -webkit-align-self: flex-start; align-self: flex-start; border-bottom-left-radius: 4px; }
 .cg-dm-read-tick { font-size: 10px; color: #0055cc; text-align: right; margin-top: -2px; }
-.cg-dm-compose { padding: 8px 12px; border-top: 1px solid #e0e0e0; display: -webkit-box; display: -webkit-flex; display: flex; gap: 6px; }
+.cg-dm-compose { padding: 8px 12px; border-top: 1px solid #e0e0e0; display: -webkit-box; display: -webkit-flex; display: flex; }
 .cg-dm-compose input { -webkit-box-flex: 1; flex: 1; }
 @media (max-width: 600px) { #cg-msg-list-pane { width: 100%; border-right: none; } #cg-msg-panel { -webkit-flex-direction: column; flex-direction: column; } }
 
 /* ── Friends tab ── */
-.cg-friend-row { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #f5f5f7; }
+.cg-friend-row { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; padding: 10px 16px; border-bottom: 1px solid #f5f5f7; }
 .cg-friend-row:last-child { border-bottom: none; }
 .cg-friend-name { -webkit-box-flex: 1; flex: 1; font-weight: 600; font-size: 14px; cursor: pointer; }
 .cg-friend-meta { font-size: 12px; color: #888; }
@@ -189,13 +189,35 @@ body { margin: 0; background: #f5f5f7; font-family: -apple-system, BlinkMacSyste
 .cg-tabs { display: -webkit-box; display: -webkit-flex; display: flex; border-bottom: 1px solid #e0e0e0; margin-bottom: 14px; }
 .cg-tab { padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer; color: #555; border-bottom: 2px solid transparent; }
 .cg-tab.active { color: #0055cc; border-bottom-color: #0055cc; }
-.cg-share-row { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; gap: 8px; background: #f5f5f7; border-radius: 6px; padding: 8px 12px; margin-top: 8px; }
+.cg-share-row { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-align: center; -webkit-align-items: center; align-items: center; background: #f5f5f7; border-radius: 6px; padding: 8px 12px; margin-top: 8px; }
 .cg-share-url { -webkit-box-flex: 1; flex: 1; font-size: 12px; color: #555; word-break: break-all; }
 
 /* ── Visibility: logged-in/out ── */
 .cg-logged-in-only { display: none; }
 .logged-in .cg-logged-in-only { display: block; }
 .logged-in .cg-logged-out-only { display: none; }
+
+/* ── Flexbox gap polyfill: flexbox gap unsupported before iOS 14.5 / Chrome 84 ── */
+#cg-header-back > * + * { margin-left: 4px; }
+#cg-cols > * + * { margin-left: 20px; }
+.cg-card-head > * + * { margin-left: 10px; }
+.cg-card-foot > * + * { margin-left: 4px; }
+.cg-search-row > * + * { margin-left: 10px; }
+.cg-act-btn > * + * { margin-left: 5px; }
+.cg-comment > * + * { margin-left: 8px; }
+#cg-compose-card .cg-card-body > * + * { margin-left: 10px; }
+.cg-who-row > * + * { margin-left: 10px; }
+.cg-modal-foot > * + * { margin-left: 8px; }
+.cg-post-detail-compose > * + * { margin-left: 8px; }
+.cg-profile-stats > * + * { margin-left: 20px; }
+.cg-profile-actions > * + * { margin-left: 8px; }
+#cg-msg-list-head > * + * { margin-left: 8px; }
+#cg-msg-thread-head > * + * { margin-left: 8px; }
+.cg-dm-convo-row > * + * { margin-left: 10px; }
+.cg-dm-msgs > * + * { margin-top: 6px; }
+.cg-dm-compose > * + * { margin-left: 6px; }
+.cg-friend-row > * + * { margin-left: 10px; }
+.cg-share-row > * + * { margin-left: 8px; }
   </style>
 </head>
 <body>
@@ -336,8 +358,8 @@ body { margin: 0; background: #f5f5f7; font-family: -apple-system, BlinkMacSyste
         <img id="ep-av-prev" style="width:60px;height:60px;border-radius:50%;object-fit:cover;display:none;margin-top:8px">
       </div>
       <div class="cg-field">
-        <label class="cg-input-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
-          <input id="ep-private" type="checkbox" style="width:16px;height:16px;cursor:pointer">
+        <label class="cg-input-label" style="display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;cursor:pointer">
+          <input id="ep-private" type="checkbox" style="width:16px;height:16px;cursor:pointer;margin-right:8px">
           Private account
         </label>
         <div style="font-size:12px;color:#888;margin-top:4px">Private: only friends see posts; share your friend code to add people. Public: anyone can follow you via a link.</div>
@@ -425,8 +447,8 @@ body { margin: 0; background: #f5f5f7; font-family: -apple-system, BlinkMacSyste
 
       <!-- Logged-in: profile card -->
       <div id="cg-sidebar-me" class="cg-sidebar-sect cg-logged-in-only">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div id="cg-sidebar-av" class="cg-av" onclick="openMyProfile()"></div>
+        <div style="display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center">
+          <div id="cg-sidebar-av" class="cg-av" onclick="openMyProfile()" style="margin-right:12px"></div>
           <div>
             <div id="cg-sidebar-name" style="font-weight:700;cursor:pointer" onclick="openMyProfile()"></div>
             <div style="font-size:12px;color:#555;margin-top:2px">
@@ -500,15 +522,15 @@ body { margin: 0; background: #f5f5f7; font-family: -apple-system, BlinkMacSyste
             <div id="cg-add-friend-section">
               <div id="cg-add-friend-by-code" style="display:none">
                 <div style="font-size:13px;color:#555;margin-bottom:8px">Enter a friend code to add a private account:</div>
-                <div style="display:flex;gap:8px">
-                  <input id="cg-friend-code-input" class="cg-input" type="text" placeholder="Friend code (e.g. ABC-123)" style="letter-spacing:2px;text-transform:uppercase">
+                <div style="display:-webkit-box;display:-webkit-flex;display:flex">
+                  <input id="cg-friend-code-input" class="cg-input" type="text" placeholder="Friend code (e.g. ABC-123)" style="letter-spacing:2px;text-transform:uppercase;margin-right:8px">
                   <button class="cg-btn cg-btn-primary" onclick="addByFriendCode()">Add</button>
                 </div>
                 <div id="cg-friend-code-err" class="cg-err" style="display:none"></div>
               </div>
               <div id="cg-add-friend-by-search">
                 <div style="font-size:13px;color:#555;margin-bottom:8px">Search for public accounts:</div>
-                <div style="display:flex;gap:8px">
+                <div style="display:-webkit-box;display:-webkit-flex;display:flex">
                   <input id="cg-friend-search-input" class="cg-input" type="text" placeholder="Search by username…" oninput="searchFriendUsers(this.value)">
                 </div>
                 <div id="cg-friend-user-results" style="margin-top:8px"></div>
@@ -626,15 +648,21 @@ function clearErr(id) {
 }
 
 /* ═══════════════════════ HTTP ═══════════════════════ */
+var _parseJSON = (window.JSON && JSON.parse)
+  ? function(s) { return JSON.parse(s); }
+  : function(s) { return eval('(' + s + ')'); };
 function req(method, path, body, cb) {
-  var x = new XMLHttpRequest();
+  var x;
+  try { x = new XMLHttpRequest(); } catch(e) {
+    try { x = new ActiveXObject('Microsoft.XMLHTTP'); } catch(e2) { return; }
+  }
   x.open(method, API + path, true);
   x.setRequestHeader('Content-Type', 'application/json');
   if (cgState.token) x.setRequestHeader('X-CG-Token', cgState.token);
   x.onreadystatechange = function() {
     if (x.readyState !== 4) return;
     var d;
-    try { d = JSON.parse(x.responseText); } catch(e) { d = {ok:false,error:'Bad response'}; }
+    try { d = _parseJSON(x.responseText); } catch(e) { d = {ok:false,error:'Bad response'}; }
     cb(d, x.status >= 400 ? (d.error || 'Error') : null);
   };
   x.send(body ? JSON.stringify(body) : null);
@@ -659,7 +687,7 @@ function doAuth() {
   if (authMode === 'register') {
     var confirm = document.getElementById('cg-auth-confirm').value;
     if (pass !== confirm) { showErr('cg-auth-err', 'Passwords do not match.'); return; }
-    if (pass.length < 6) { showErr('cg-auth-err', 'Password must be at least 6 characters.'); return; }
+    if (pass.length < 8) { showErr('cg-auth-err', 'Password must be at least 8 characters.'); return; }
   }
   req('POST', '/api/' + authMode, {username: user, password: pass}, function(d, err) {
     if (err || !d.ok) { showErr('cg-auth-err', d.error || 'Authentication failed.'); return; }
@@ -680,6 +708,14 @@ function applyLogin(d) {
   cgState.isPrivate = !!d.is_private;
   try { localStorage.setItem('cg_token', d.token); } catch(e) {}
   updateLoggedInUI();
+  // Fetch full profile to get is_private and friend_code (not in login/register response)
+  req('GET', '/api/me', null, function(me) {
+    if (me && me.ok) {
+      cgState.isPrivate = !!me.is_private;
+      if (me.friend_code) cgState.friendCode = me.friend_code;
+      updateLoggedInUI();
+    }
+  });
 }
 function updateLoggedInUI() {
   var loggedIn = !!cgState.token;
@@ -786,7 +822,7 @@ function loadFriendsTab() {
     var reqHtml = '';
     for (var j = 0; j < pending.length; j++) {
       var f = pending[j];
-      var isIncoming = f.to_user_id === cgState.userId;
+      var isIncoming = f.direction === 'incoming';
       reqHtml += '<div class="cg-friend-row">' +
         '<div class="cg-av-sm" onclick="openProfileById(' + f.id + ')">' + avatarHtml(f.avatar_b64, f.username, 28) + '</div>' +
         '<div style="flex:1;min-width:0"><div class="cg-friend-name" onclick="openProfileById(' + f.id + ')">' + esc(f.username) + '</div>' +
@@ -835,7 +871,7 @@ function addByFriendCode() {
   clearErr('cg-friend-code-err');
   var code = (document.getElementById('cg-friend-code-input').value || '').trim().toUpperCase();
   if (!code) { showErr('cg-friend-code-err', 'Enter a friend code.'); return; }
-  req('POST', '/api/friends/by_code', {friend_code: code}, function(d, err) {
+  req('POST', '/api/friends/by-code', {code: code}, function(d, err) {
     if (err || !d.ok) { showErr('cg-friend-code-err', (d && d.error) || 'Invalid code.'); return; }
     document.getElementById('cg-friend-code-input').value = '';
     toast('Friend request sent!');
@@ -898,7 +934,7 @@ function renderPost(p) {
     }
   }
   var isMine = cgState.userId && p.user_id === cgState.userId;
-  var deleteBtn = isMine ? '<button class="cg-btn cg-btn-sm cg-btn-danger" onclick="deletePost(' + p.id + ')">Delete</button>' : '';
+  var deleteBtn = isMine ? '<button class="cg-btn cg-btn-sm cg-btn-danger" style="margin-right:6px" onclick="deletePost(' + p.id + ')">Delete</button>' : '';
   var reportBtn = (cgState.userId && !isMine) ? '<button class="cg-btn cg-btn-sm cg-btn-ghost" onclick="openReport(\'post\',' + p.id + ')" style="font-size:11px">Report</button>' : '';
   var dateStr = fmtDate(p.created_at) + ' at ' + fmtTime(p.created_at);
   return '<div class="cg-card" id="cg-post-' + p.id + '">' +
@@ -908,7 +944,7 @@ function renderPost(p) {
         '<div class="cg-username" onclick="openProfileById(' + p.user_id + ')">' + esc(p.username) + '</div>' +
         '<div class="cg-meta">' + esc(dateStr) + '</div>' +
       '</div>' +
-      '<div style="display:flex;gap:6px">' + deleteBtn + reportBtn + '</div>' +
+      '<div>' + deleteBtn + reportBtn + '</div>' +
     '</div>' +
     '<div class="cg-card-body" style="padding-top:8px">' +
       '<div style="font-size:15px;font-weight:600;margin-bottom:4px;cursor:pointer;text-align:left" onclick="openPost(' + p.id + ')">' + esc(p.title) + '</div>' +
@@ -1090,6 +1126,7 @@ function setComposeType(t) {
 function onComposeImg() {
   var f = document.getElementById('cp-file').files[0];
   if (!f) return;
+  if (typeof FileReader === 'undefined') { showErr('cg-compose-err', 'Image upload not supported on this browser.'); return; }
   if (f.size > 2 * 1024 * 1024) { showErr('cg-compose-err', 'Image must be under 2 MB.'); return; }
   var reader = new FileReader();
   reader.onload = function(e) {
@@ -1151,26 +1188,33 @@ function openProfileById(uid) {
       document.getElementById('cg-profile-modal-inner').innerHTML = '<div class="cg-empty">User not found.</div>';
       return;
     }
-    var u = d;
-    var isSelf = cgState.userId && u.user_id === cgState.userId;
-    // Get friend status if logged in
+    var u = d.user || d;
+    var isSelf = cgState.userId && u.id === cgState.userId;
+    // Get friend status and block status if logged in
     if (cgState.token && !isSelf) {
       req('GET', '/api/friends', null, function(fd) {
         var friendStatus = null, direction = null;
         var friends = (fd && fd.friends) || [];
         for (var i = 0; i < friends.length; i++) {
-          if (friends[i].id === u.user_id) { friendStatus = friends[i].status; direction = friends[i].direction; break; }
+          if (friends[i].id === u.id) { friendStatus = friends[i].status; direction = friends[i].direction; break; }
         }
-        renderProfileModal(u, isSelf, friendStatus, direction);
+        req('GET', '/api/blocks', null, function(bd) {
+          var isBlocked = false;
+          var blocks = (bd && bd.blocks) || [];
+          for (var j = 0; j < blocks.length; j++) {
+            if (blocks[j].id === u.id) { isBlocked = true; break; }
+          }
+          renderProfileModal(u, isSelf, friendStatus, direction, isBlocked);
+        });
       });
     } else {
-      renderProfileModal(u, isSelf, null, null);
+      renderProfileModal(u, isSelf, null, null, false);
     }
   });
 }
 
-function renderProfileModal(u, isSelf, friendStatus, direction) {
-  var uid = u.user_id;
+function renderProfileModal(u, isSelf, friendStatus, direction, isBlocked) {
+  var uid = u.id;
   var friendBtnLabel = 'Add Friend';
   if (friendStatus === 'accepted') friendBtnLabel = 'Remove Friend';
   else if (friendStatus === 'pending' && direction === 'outgoing') friendBtnLabel = 'Cancel Request';
@@ -1181,8 +1225,10 @@ function renderProfileModal(u, isSelf, friendStatus, direction) {
     actions = '<button class="cg-btn cg-btn-secondary" onclick="closeModal(\'cg-profile-modal\');openModal(\'cg-edit-profile-modal\');loadEditProfile()">Edit Profile</button>' +
               '<button class="cg-btn cg-btn-ghost" onclick="closeModal(\'cg-profile-modal\');openModal(\'cg-changepw-modal\')">Change Password</button>';
   } else if (cgState.token) {
+    var blockLabel = isBlocked ? 'Unblock' : 'Block';
     actions = '<button class="cg-btn cg-btn-primary" id="prof-friend-btn" onclick="toggleFriendFromProfile(' + uid + ')">' + esc(friendBtnLabel) + '</button>' +
               '<button class="cg-btn cg-btn-secondary" onclick="openDmWith(' + uid + ',\'' + esc(u.username) + '\')">Message</button>' +
+              '<button class="cg-btn cg-btn-ghost cg-btn-sm" id="prof-block-btn" onclick="toggleBlockFromProfile(' + uid + ',' + (isBlocked ? 'true' : 'false') + ')">' + blockLabel + '</button>' +
               '<button class="cg-btn cg-btn-danger cg-btn-sm" onclick="openReport(\'user\',' + uid + ')">Report</button>';
   }
 
@@ -1242,6 +1288,18 @@ function toggleFriendFromProfile(uid) {
   }
 }
 
+function toggleBlockFromProfile(uid, isCurrentlyBlocked) {
+  var btn = document.getElementById('prof-block-btn');
+  var method = isCurrentlyBlocked ? 'DELETE' : 'POST';
+  req(method, '/api/blocks/' + uid, null, function(d) {
+    if (d && d.ok && btn) {
+      var nowBlocked = !isCurrentlyBlocked;
+      btn.textContent = nowBlocked ? 'Unblock' : 'Block';
+      btn.setAttribute('onclick', 'toggleBlockFromProfile(' + uid + ',' + nowBlocked + ')');
+    }
+  });
+}
+
 /* ═══════════════════════ EDIT PROFILE ═══════════════════════ */
 function loadEditProfile() {
   var bio = document.getElementById('ep-bio');
@@ -1259,6 +1317,7 @@ function loadEditProfile() {
 function onEditAvPick() {
   var f = document.getElementById('ep-av-file').files[0];
   if (!f) return;
+  if (typeof FileReader === 'undefined') return;
   if (f.size > 1024 * 1024) { showErr('cg-edit-err', 'Avatar must be under 1 MB.'); return; }
   var reader = new FileReader();
   reader.onload = function(e) {
@@ -1292,7 +1351,7 @@ function doChangePw() {
   var conf  = document.getElementById('cpw-confirm').value;
   if (!oldPw || !newPw) { showErr('cg-cpw-err', 'Fill in all fields.'); return; }
   if (newPw !== conf) { showErr('cg-cpw-err', 'Passwords do not match.'); return; }
-  if (newPw.length < 6) { showErr('cg-cpw-err', 'New password must be at least 6 characters.'); return; }
+  if (newPw.length < 8) { showErr('cg-cpw-err', 'New password must be at least 8 characters.'); return; }
   req('POST', '/api/me/password', {old_password: oldPw, new_password: newPw}, function(d, err) {
     if (err) { showErr('cg-cpw-err', d && d.error ? d.error : 'Failed.'); return; }
     closeModal('cg-changepw-modal');
@@ -1326,8 +1385,9 @@ function openSendDm(postId, postTitle) {
 }
 function sendPostAsDm(toUid, toName, postTitle) {
   var shareUrl = window.location.href.split('#')[0] + '#post-' + cgState.sendDmPostId;
-  var text = '📎 ' + postTitle + ' — ' + shareUrl;
-  req('POST', '/api/messages', {to_user_id: toUid, text: text}, function(d, err) {
+  var text = '\uD83D\uDCCE ' + postTitle + ' \u2014 ' + shareUrl;
+  var cid = 'cg-' + (cgState.userId || 0) + '-' + (new Date().getTime()) + '-' + Math.floor(Math.random() * 10000);
+  req('POST', '/api/messages', {to_user_id: toUid, text: text, client_id: cid}, function(d, err) {
     if (err) { showErr('cg-send-dm-err', d && d.error ? d.error : 'Failed to send.'); return; }
     closeModal('cg-send-dm-modal');
     toast('Sent to ' + toName + '!');
@@ -1404,7 +1464,7 @@ function openMsgWith(uid, username) {
   if (compose) compose.style.display = 'flex';
   loadMsgThread(true);
   if (cgState.dmPollTimer) clearInterval(cgState.dmPollTimer);
-  cgState.dmPollTimer = setInterval(function() { if (cgState.dmThreadUid) loadMsgThread(false); }, 3000);
+  cgState.dmPollTimer = setInterval(function() { if (cgState.dmThreadUid && !(document.hidden)) loadMsgThread(false); }, 3000);
 }
 
 function loadMsgThread(reset) {
@@ -1434,7 +1494,8 @@ function sendMsg() {
   var text = inp ? inp.value.replace(/^\s+|\s+$/g,'') : '';
   if (!text || !cgState.dmThreadUid) return;
   inp.value = '';
-  req('POST', '/api/messages', {to_user_id: cgState.dmThreadUid, text: text}, function(d, err) {
+  var cid = 'cg-' + (cgState.userId || 0) + '-' + (new Date().getTime()) + '-' + Math.floor(Math.random() * 10000);
+  req('POST', '/api/messages', {to_user_id: cgState.dmThreadUid, text: text, client_id: cid}, function(d, err) {
     if (err) { if (inp) inp.value = text; return; }
     loadMsgThread(false);
     // refresh convo list in background

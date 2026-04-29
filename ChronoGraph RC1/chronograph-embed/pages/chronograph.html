@@ -683,6 +683,8 @@ function cgrDoAuth(){
     cgrUpdateNavAv();
     cgrStore.set('cgr_t',d.token);cgrStore.set('cgr_u',String(d.user_id));
     cgrStore.set('cgr_n',d.username);cgrStore.set('cgr_a',CGR.isAdmin?'1':'0');
+    // Fetch full profile to get friend_code (empty on register) and is_private
+    cgrReq('GET','/api/me',null,function(me){if(me&&me.ok){CGR.friendCode=me.friend_code||'';CGR.isPrivate=!!(me.is_private);}});
     cgrSwitchTab(CGR.currentTab);
   });
 }

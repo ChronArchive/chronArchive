@@ -5,6 +5,7 @@
   <title>Tools | Chronograph</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style id="cg-theme-style"></style>
   <style>
     * { margin:0; padding:0; -webkit-box-sizing:border-box; box-sizing:border-box; }
     html,body { width:100%; height:100%; overflow:hidden; background:#f2f2f7;
@@ -25,22 +26,6 @@
       position:absolute; left:50%; top:0; width:120px; margin-left:-60px;
       height:44px; line-height:44px; text-align:center; }
     #hdr-right { display:-webkit-flex; display:flex; -webkit-align-items:center; align-items:center; }
-    /* profile pill */
-    #prof-pill { height:30px; padding:0 10px 0 4px;
-      -webkit-border-radius:15px; border-radius:15px;
-      background:-webkit-linear-gradient(top,#1a7ce8 0%,#0055cc 100%);
-      background:linear-gradient(to bottom,#1a7ce8 0%,#0055cc 100%);
-      border:1px solid #003ca0;
-      -webkit-box-shadow:0 1px 2px rgba(0,0,80,0.25); box-shadow:0 1px 2px rgba(0,0,80,0.25);
-      color:#fff; cursor:pointer; -webkit-tap-highlight-color:transparent;
-      display:-webkit-flex; display:flex; -webkit-align-items:center; align-items:center;
-      text-decoration:none; }
-    #pp-av { width:22px; height:22px; -webkit-border-radius:11px; border-radius:11px;
-      background:rgba(255,255,255,0.25); overflow:hidden; margin-right:5px;
-      text-align:center; line-height:22px; font-size:11px; font-weight:bold;
-      -webkit-flex-shrink:0; flex-shrink:0; }
-    #pp-av img { width:22px; height:22px; display:block; -webkit-border-radius:11px; border-radius:11px; }
-    #pp-label { font-size:12px; font-weight:bold; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     /* ── Scroll ── */
     #scroll { position:fixed; top:44px; left:0; right:0; bottom:0;
       overflow-y:scroll; -webkit-overflow-scrolling:touch; background:#f2f2f7; }
@@ -96,14 +81,18 @@
     };
     function applyTheme(name){
       var t=THEMES[name]||THEMES.light;
-      var s=document.getElementById('theme-style');
-      s.innerHTML='html,body,#scroll{background:'+t.bg+'!important}'
+      var injectCSS=
+        'html,body,#scroll,#hdr{background:'+t.bg+'!important}'
         +'.settings-group,.settings-select-row{background:'+t.group+'!important;border-color:'+t.border+'!important}'
         +'.settings-row{border-color:'+t.border+'!important}'
-        +'.row-title,.select-label{color:'+t.text+'!important}'
+        +'.row-title,.select-label,#hdr-title{color:'+t.text+'!important}'
         +'.row-subtitle,.settings-footer,#theme-select{color:'+t.sub+'!important}'
         +'.settings-header{color:'+t.header+'!important}'
         +'#theme-select{background:'+t.bg+'!important;border-color:'+t.border+'!important}';
+      var s=document.getElementById('cg-theme-style');
+      if(s)s.innerHTML=injectCSS;
+      var s2=document.getElementById('theme-style');
+      if(s2)s2.innerHTML=injectCSS;
       try{localStorage.setItem('cg-theme',name);}catch(e){}
     }
     (function(){
@@ -118,12 +107,7 @@
 <div id="hdr">
   <span style="min-width:44px"></span>
   <span id="hdr-title">Tools</span>
-  <div id="hdr-right">
-    <a id="prof-pill" href="home.html" title="Profile">
-      <span id="pp-av">&#9786;</span>
-      <span id="pp-label">Profile</span>
-    </a>
-  </div>
+  <div id="hdr-right" style="min-width:44px"></div>
 </div>
 
 <div id="scroll">
@@ -287,21 +271,6 @@
   var saved='light';try{saved=localStorage.getItem('cg-theme')||'light';}catch(e){}
   var sel=document.getElementById('theme-select');
   if(sel)sel.value=saved;
-})();
-/* Profile pill from localStorage */
-(function(){
-  var store={g:function(k){try{return localStorage.getItem(k);}catch(e){return null;}}};
-  var uname=store.g('hm_n')||store.g('cg_n');
-  var av=store.g('hm_av')||store.g('cg_av')||'';
-  if(uname){
-    var avEl=document.getElementById('pp-av');
-    var lbEl=document.getElementById('pp-label');
-    if(avEl&&lbEl){
-      if(av){avEl.innerHTML='<img src="'+av+'" alt="">';}
-      else{avEl.textContent=(uname||'?').charAt(0).toUpperCase();}
-      lbEl.textContent=uname;
-    }
-  }
 })();
 </script>
 </body>

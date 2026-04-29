@@ -4,7 +4,7 @@ Chronograph Admin Panel
 Binds to Tailscale interface only — http://100.95.1.7:8001
 NOT exposed through Cloudflare or the public internet.
 """
-import os, sqlite3, time, html as _html, json, secrets as _secrets
+import os, sqlite3, time, html as _html, json, secrets as _secrets, subprocess
 from functools import wraps
 from flask import Flask, request, redirect, session, Response
 
@@ -145,6 +145,7 @@ input[type=submit]:hover,.submit-btn:hover{background:#162a55}
   <a href="/messages" __ACT_MSGS__>Messages</a>
   <a href="/reports" __ACT_REPORTS__>Reports __REPORT_BADGE__</a>
   <a href="/filter" __ACT_FILTER__>Filter</a>
+  <a href="/logs" __ACT_LOGS__>Logs</a>
   <span class="spacer"></span>
   <a href="/settings" __ACT_SETTINGS__>Settings</a>
   <a href="/logout">Logout</a>
@@ -178,7 +179,7 @@ input[type=submit]:hover{background:#162a55}
 </div></body></html>'''
 
 def page(body, title='', active=''):
-    acts = {k: '' for k in ['dash','users','posts','msgs','filter','settings','reports']}
+    acts = {k: '' for k in ['dash','users','posts','msgs','filter','settings','reports','logs']}
     if active in acts:
         acts[active] = 'class="active"'
     flash = session.pop('flash', None)
@@ -202,6 +203,7 @@ def page(body, title='', active=''):
         .replace('__ACT_POSTS__',     acts['posts'])
         .replace('__ACT_MSGS__',      acts['msgs'])
         .replace('__ACT_FILTER__',    acts['filter'])
+        .replace('__ACT_LOGS__',      acts['logs'])
         .replace('__ACT_SETTINGS__',  acts['settings'])
         .replace('__ACT_REPORTS__',   acts['reports'])
         .replace('__REPORT_BADGE__',  report_badge)
@@ -864,6 +866,56 @@ def _table_exists(name):
         return bool(r)
     except Exception:
         return False
+
+# ── Logs ────────────────────────────────────────────────────────────────────────────
+@app.route('/logs')
+@login_required
+def logs_page():
+    VALID_SVCS = {
+        'copyparty':         'CopyParty',
+        'chronograph-chat':  'Chat API',
+        'chronograph-admin': 'Admin Panel',
+    }
+    svc = request.args.get('svc', 'copyparty')
+    if svc not in VALID_SVCS:
+        svc = 'copyparty'
+    n = request.args.get('n', 100, type=int)
+    n = max(10, min(n, 500))
+
+    try:
+        result = subprocess.run(
+            ['journalctl', '-u', svc + '.service', f'-n{n}',
+             '--no-pager', '--output=short-iso'],
+            capture_output=True, text=True, timeout=10
+        )
+        raw = result.stdout or result.stderr or '(no log output)'
+    except Exception as e:
+        raw = f'Error reading logs: {e}'
+
+    log_html = h(raw)
+
+    tabs = ''
+    for s, label in VALID_SVCS.items():
+        active_style = 'color:#fff;border-bottom:2px solid #4a9eff;' if s == svc else 'color:#666;'
+        tabs += (f'<a href="/logs?svc={s}&n={n}" '
+                 f'style="padding:8px 16px;font-size:13px;text-decoration:none;{active_style}">{label}</a>')
+
+    body = f'''
+    <h1>Service Logs</h1>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+      <div style="display:flex;gap:0;border-bottom:1px solid #222">{tabs}</div>
+      <div style="display:flex;gap:6px;align-items:center;padding-bottom:4px">
+        <span style="font-size:12px;color:#555">Lines:</span>
+        {" ".join(f'''<a href="/logs?svc={svc}&n={ln}" class="btn {'btn-blue' if n==ln else 'btn-gray'}" style="font-size:11px">{ln}</a>''' for ln in [50, 100, 200, 500])}
+        <a href="/logs?svc={svc}&n={n}" class="btn btn-green" style="font-size:11px">↻ Refresh</a>
+      </div>
+    </div>
+    <div class="section" style="padding:0;overflow:hidden;margin-top:0">
+      <pre style="background:#060606;color:#bbb;font-family:\'SF Mono\',SFMono-Regular,Consolas,monospace;
+                  font-size:11px;line-height:1.55;padding:14px 16px;overflow-x:auto;margin:0;
+                  white-space:pre-wrap;word-break:break-all;max-height:80vh;overflow-y:auto">{log_html}</pre>
+    </div>'''
+    return page(body, title='Logs', active='logs')
 
 # ── Settings ───────────────────────────────────────────────────────────────────
 @app.route('/settings', methods=['GET', 'POST'])

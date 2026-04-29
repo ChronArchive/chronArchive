@@ -4,7 +4,7 @@ on:
   workflow_dispatch:       # run manually from the Actions tab
   push:
     paths:
-      - 'xcode/**'
+      - 'ChronoGraph RC1/**'
       - '.github/workflows/build-ios.yml'
       - '**.html'
       - 'assets/**'
@@ -29,7 +29,7 @@ jobs:
       # ── 3. Sync web files into www/ bundle ──────────────────────────────────
       - name: Sync web files into www/
         run: |
-          WWW=xcode/ChronArchive/ChronArchive/www
+          WWW="ChronoGraph RC1/ChronArchive/ChronArchive/www"
           rm -rf "$WWW" && mkdir -p "$WWW"
           for item in index.html blog.html now.html services.html 404.html feed.xml \
                       assets blog benchmarks networktests tools "05" "95"; do
@@ -38,7 +38,7 @@ jobs:
 
       # ── 4. Build (unsigned, armv7 + armv7s) ─────────────────────────────────
       - name: Build Release
-        working-directory: xcode/ChronArchive
+        working-directory: "ChronoGraph RC1/ChronArchive"
         run: |
           xcodebuild build \
             -project ChronArchive.xcodeproj \
@@ -55,7 +55,7 @@ jobs:
       # ── 5. Package into IPA ──────────────────────────────────────────────────
       - name: Package IPA
         run: |
-          APP=$(find xcode/ChronArchive/build/Build/Products/Release-iphoneos \
+          APP=$(find "ChronoGraph RC1/ChronArchive/build/Build/Products/Release-iphoneos" \
                 -maxdepth 1 -name "ChronArchive.app" | head -1)
           mkdir -p output/Payload
           cp -r "$APP" output/Payload/

@@ -5,6 +5,7 @@
   <title>Chronograph</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style id="cg-theme-style"></style>
   <style>
     * { margin:0; padding:0; -webkit-box-sizing:border-box; box-sizing:border-box; }
     html,body { width:100%; height:100%; overflow:hidden; background:#f2f2f7;
@@ -12,7 +13,7 @@
       -webkit-text-size-adjust:none; color:#1a1a1a; }
     #shell { width:100%; height:100%;
       display:-webkit-box; -webkit-box-orient:vertical;
-      display:-webkit-flex; display:flex;
+      display:-webkit-box; display:-webkit-flex; display:flex;
       -webkit-flex-direction:column; flex-direction:column; overflow:hidden; }
 
     /* ── Navigation Bar ── */
@@ -23,31 +24,24 @@
       border-bottom:1px solid #b8b8b8;
       -webkit-box-shadow:0 1px 3px rgba(0,0,0,0.15); box-shadow:0 1px 3px rgba(0,0,0,0.15);
       display:-webkit-box; display:-webkit-flex; display:flex;
-      -webkit-align-items:center; align-items:center;
+      -webkit-box-align:center; -webkit-align-items:center; align-items:center;
       -webkit-justify-content:space-between; justify-content:space-between;
       padding:0 10px; }
     #hdr-logo { height:24px; display:block; }
-    #hdr-right { display:-webkit-flex; display:flex;
-      -webkit-align-items:center; align-items:center; }
+    #hdr-right { display:-webkit-box; display:-webkit-flex; display:flex;
+      -webkit-box-align:center; -webkit-align-items:center; align-items:center; }
     /* Compose button */
-    #compose-btn { width:34px; height:34px; border:none; background:none;
-      color:#0055cc; font-size:28px; font-weight:300; line-height:34px; padding:0 4px 2px 0;
+    #compose-btn { width:36px; height:36px; border:none; background:none;
+      color:#0055cc; font-size:30px; font-weight:300; line-height:36px; padding:0;
       cursor:pointer; -webkit-tap-highlight-color:transparent; }
-    /* Profile pill */
-    #prof-pill { height:30px; padding:0 10px 0 4px;
-      -webkit-border-radius:15px; border-radius:15px;
-      background:-webkit-linear-gradient(top,#1a7ce8 0%,#0055cc 100%);
-      background:linear-gradient(to bottom,#1a7ce8 0%,#0055cc 100%);
-      border:1px solid #003ca0;
-      -webkit-box-shadow:0 1px 2px rgba(0,0,80,0.25); box-shadow:0 1px 2px rgba(0,0,80,0.25);
-      color:#fff; cursor:pointer; -webkit-tap-highlight-color:transparent;
-      display:-webkit-box; display:-webkit-flex; display:flex;
-      -webkit-align-items:center; align-items:center; }
-    #pp-av { width:22px; height:22px; -webkit-border-radius:11px; border-radius:11px;
-      background:rgba(255,255,255,0.25); overflow:hidden; margin-right:5px;
-      text-align:center; line-height:22px; font-size:11px; font-weight:bold; -webkit-flex-shrink:0; flex-shrink:0; }
-    #pp-av img { width:22px; height:22px; display:block; -webkit-border-radius:11px; border-radius:11px; }
-    #pp-label { font-size:12px; font-weight:bold; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    /* Feed tabs */
+    #feed-tabs { height:36px; -webkit-flex-shrink:0; flex-shrink:0;
+      background:#f8f8f8; border-bottom:1px solid #d8d8d8;
+      display:-webkit-box; display:-webkit-flex; display:flex; }
+    .ftab { -webkit-flex:1; flex:1; background:none; border:none; border-bottom:2px solid transparent;
+      font-size:13px; font-weight:bold; color:#888; cursor:pointer;
+      font-family:inherit; -webkit-tap-highlight-color:transparent; }
+    .ftab.on { color:#0055cc; border-bottom-color:#0055cc; }
 
     /* ── Feed ── */
     #feed-wrap { -webkit-box-flex:1; -webkit-flex:1 1 auto; flex:1 1 auto;
@@ -55,7 +49,7 @@
 
     /* Post card */
     .post-card { background:#fff; border-bottom:1px solid #e1e1e1; }
-    .post-hd { display:-webkit-flex; display:flex; -webkit-align-items:flex-start; align-items:flex-start; padding:10px 12px 4px; }
+    .post-hd { display:-webkit-box; display:-webkit-flex; display:flex; -webkit-box-align:start; -webkit-align-items:flex-start; align-items:flex-start; padding:10px 12px 4px; }
     .post-av { width:38px; height:38px; -webkit-border-radius:19px; border-radius:19px;
       background:#0055cc; -webkit-flex-shrink:0; flex-shrink:0;
       text-align:center; line-height:38px; font-size:17px; font-weight:bold; color:#fff;
@@ -73,9 +67,9 @@
     .post-media img   { width:100%; max-height:300px; object-fit:cover; display:block; }
     .post-media video { width:100%; max-height:260px; display:block; background:#000; }
     /* Actions */
-    .post-actions { display:-webkit-flex; display:flex; border-top:1px solid #f0f0f0; }
+    .post-actions { display:-webkit-box; display:-webkit-flex; display:flex; border-top:1px solid #f0f0f0; }
     .act-btn { -webkit-flex:1; flex:1;
-      display:-webkit-flex; display:flex; -webkit-align-items:center; align-items:center;
+      display:-webkit-box; display:-webkit-flex; display:flex; -webkit-box-align:center; -webkit-align-items:center; align-items:center;
       -webkit-justify-content:center; justify-content:center;
       padding:8px 4px; background:none; border:none; border-right:1px solid #f0f0f0;
       color:#888; font-size:12px; cursor:pointer; -webkit-tap-highlight-color:transparent;
@@ -86,14 +80,14 @@
     /* Comments */
     .cmts { background:#fafafa; border-top:1px solid #f0f0f0; padding:8px 12px; display:none; }
     .cmts.open { display:block; }
-    .cmt-row { display:-webkit-flex; display:flex; gap:7px; margin-bottom:8px; }
+    .cmt-row { display:-webkit-box; display:-webkit-flex; display:flex; gap:7px; margin-bottom:8px; }
     .cmt-av { width:24px; height:24px; -webkit-border-radius:12px; border-radius:12px;
       background:#888; -webkit-flex-shrink:0; flex-shrink:0;
       text-align:center; line-height:24px; font-size:11px; font-weight:bold; color:#fff; overflow:hidden; }
     .cmt-av img { width:24px; height:24px; display:block; -webkit-border-radius:12px; border-radius:12px; }
     .cmt-bubble { background:#f0f0f0; -webkit-border-radius:12px; border-radius:12px; padding:6px 10px; font-size:12px; line-height:1.4; }
     .cmt-name { font-weight:bold; color:#1a1a1a; font-size:11px; }
-    .cmt-inp-row { display:-webkit-flex; display:flex; gap:6px; margin-top:4px; -webkit-align-items:center; align-items:center; }
+    .cmt-inp-row { display:-webkit-box; display:-webkit-flex; display:flex; gap:6px; margin-top:4px; -webkit-box-align:center; -webkit-align-items:center; align-items:center; }
     .cmt-inp { -webkit-flex:1; flex:1; padding:7px 10px; background:#f0f0f0; border:1px solid #ddd;
       -webkit-border-radius:16px; border-radius:16px; font-size:13px; color:#1a1a1a;
       outline:none; -webkit-appearance:none; font-family:inherit; }
@@ -114,7 +108,7 @@
     .modal-box { background:#fff; margin:40px 16px 60px;
       -webkit-border-radius:12px; border-radius:12px; overflow:hidden; }
     .modal-hdr { padding:14px 16px; border-bottom:1px solid #e8e8e8;
-      display:-webkit-flex; display:flex; -webkit-align-items:center; align-items:center; }
+      display:-webkit-box; display:-webkit-flex; display:flex; -webkit-box-align:center; -webkit-align-items:center; align-items:center; }
     .modal-title { font-size:17px; font-weight:bold; -webkit-flex:1; flex:1; text-align:center; color:#1a1a1a; }
     .modal-lt, .modal-rt { font-size:15px; color:#0055cc; background:none; border:none;
       cursor:pointer; padding:0; font-family:inherit; -webkit-tap-highlight-color:transparent;
@@ -146,7 +140,7 @@
     .auth-tab  { display:table-cell; text-align:center; padding:10px 0; color:#888; cursor:pointer; font-size:14px; }
     .auth-tab.on { color:#0055cc; border-bottom:2px solid #0055cc; }
     /* Compose type toolbar */
-    .ctoolbar { display:-webkit-flex; display:flex; gap:8px; margin-bottom:10px; }
+    .ctoolbar { display:-webkit-box; display:-webkit-flex; display:flex; gap:8px; margin-bottom:10px; }
     .ctool { background:#f2f2f2; border:1px solid #ddd; -webkit-border-radius:6px; border-radius:6px;
       padding:6px 10px; font-size:13px; color:#0055cc; cursor:pointer;
       -webkit-tap-highlight-color:transparent; font-family:inherit; }
@@ -172,11 +166,13 @@
     <img id="hdr-logo" src="../assets/ChronoGraphLogo.png" alt="Chronograph">
     <div id="hdr-right">
       <button id="compose-btn" onclick="openCompose()" title="New Post">+</button>
-      <button id="prof-pill" onclick="openProfile()" title="Profile">
-        <span id="pp-av">&#9786;</span>
-        <span id="pp-label">Sign In</span>
-      </button>
     </div>
+  </div>
+
+  <!-- Feed Tabs -->
+  <div id="feed-tabs">
+    <button class="ftab on" id="ft-all"     onclick="setFeedTab('all')">Posts</button>
+    <button class="ftab"    id="ft-friends" onclick="setFeedTab('friends')">Friends</button>
   </div>
 
   <!-- Feed -->
@@ -302,7 +298,7 @@ var S = {
   token:null, uid:null, uname:null, av:'',
   page:0, allLoaded:false,
   ctype:'photo', cpImg:null, avData:null,
-  authMode:'login'
+  authMode:'login', feedMode:'all'
 };
 S.token = store.g('hm_t');
 S.uid   = parseInt(store.g('hm_u')||'0',10)||null;
@@ -359,29 +355,33 @@ function relTime(ts){
   return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.getMonth()]+' '+dt.getDate();
 }
 
-/* ─── Profile Pill ─── */
-function updatePill(){
-  var av=document.getElementById('pp-av');
-  var lb=document.getElementById('pp-label');
-  if(S.token&&S.uname){
-    av.innerHTML=mkAv(S.av,S.uname,22);
-    lb.textContent=S.uname;
-  } else {
-    av.innerHTML='&#9786;';
-    lb.textContent='Sign In';
-  }
+/* ─── Feed Tabs ─── */
+function setFeedTab(mode){
+  S.feedMode=mode;
+  document.getElementById('ft-all').className='ftab'+(mode==='all'?' on':'');
+  document.getElementById('ft-friends').className='ftab'+(mode==='friends'?' on':'');
+  loadFeed(true);
 }
 
 /* ─── Feed ─── */
 function loadFeed(reset){
   if(reset){S.page=0;S.allLoaded=false;document.getElementById('posts-feed').innerHTML='<div class="feed-load">Loading&#8230;</div>';}
   if(S.allLoaded)return;
-  req('GET','/api/posts?page='+S.page,null,function(d,err){
+  var friendsParam=S.feedMode==='friends'&&S.token?'&friends=1':'';
+  if(S.feedMode==='friends'&&!S.token){
+    document.getElementById('posts-feed').innerHTML='<div class="feed-empty">Sign in to see friends\' posts.</div>';
+    return;
+  }
+  req('GET','/api/posts?page='+S.page+friendsParam,null,function(d,err){
     var feed=document.getElementById('posts-feed');
     if(err||!d.ok){feed.innerHTML='<div class="feed-empty">Could not load posts.</div>';return;}
     var posts=d.posts||[];
     if(reset) feed.innerHTML='';
-    if(!posts.length&&reset){feed.innerHTML='<div class="feed-empty">No posts yet. Be the first!</div>';return;}
+    if(!posts.length&&reset){
+      var emptyMsg=S.feedMode==='friends'?'No friends\' posts yet.':'No posts yet. Be the first!';
+      feed.innerHTML='<div class="feed-empty">'+emptyMsg+'</div>';
+      return;
+    }
     var html='';
     for(var i=0;i<posts.length;i++) html+=renderPost(posts[i]);
     feed.innerHTML+=html;
@@ -421,7 +421,7 @@ function renderPost(p){
       +'<div class="post-av" onclick="openProfOf('+p.user_id+')">'+mkAv(p.avatar_b64,p.username,38)+'</div>'
       +'<div class="post-meta">'
         +'<span class="post-uname" onclick="openProfOf('+p.user_id+')">'+esc(p.username)+'</span>'
-        +'&nbsp;<span class="post-time">'+relTime(p.created_at)+'</span>'
+        +'&nbsp;<span class="post-time">'+relTime(p.created_at)+(p.device_tag?' &middot; via '+esc(p.device_tag):'')+'</span>'
       +'</div>'
     +'</div>'
     +'<div class="post-body">'
@@ -521,7 +521,12 @@ function addCmt(pid){
       +'<div class="cmt-bubble"><div class="cmt-name">'+esc(S.uname)+'</div><div>'+esc(c.text)+'</div></div>'
     +'</div>';
     if(ir&&ir.insertAdjacentHTML){ir.insertAdjacentHTML('beforebegin',html);}
-    else{cs.innerHTML+=html;}
+    else{
+      var tmp=document.createElement('div');
+      tmp.innerHTML=html;
+      var node=tmp.firstChild;
+      if(node)cs.insertBefore(node,ir||null);
+    }
     var cnt=document.getElementById('cc-'+pid);
     if(cnt)cnt.textContent=parseInt(cnt.textContent||'0',10)+1;
   });
@@ -530,9 +535,13 @@ function addCmt(pid){
 /* ─── Share ─── */
 function sharePost(pid){
   var url='https://chronarchive.com/chronograph.html#post-'+pid;
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(url).then(function(){alert('Link copied!');});
-  } else {
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(function(){alert('Link copied!');});
+    } else {
+      window.prompt('Copy link:',url);
+    }
+  }catch(e){
     window.prompt('Copy link:',url);
   }
 }
@@ -654,8 +663,10 @@ function submitPost(){
     if(url.indexOf('javascript:')===0||url.indexOf('data:')===0){showErr('cp-err','Invalid URL.');return;}
     media=url; type='video';
   }
+  var deviceTag='';
+  try{deviceTag=localStorage.getItem('cg-active-device')||'';}catch(e){}
   var btn=document.getElementById('cp-post-btn'); btn.disabled=true;
-  req('POST','/api/posts',{type:type,title:title||desc,description:desc,tags:tags,media_data:media},function(d,err){
+  req('POST','/api/posts',{type:type,title:title||desc,description:desc,tags:tags,media_data:media,device_tag:deviceTag},function(d,err){
     btn.disabled=false;
     if(err||!d.ok){showErr('cp-err',d.error||'Failed to post.');return;}
     closeModal('compose-modal');
@@ -717,15 +728,37 @@ function saveProfile(){
   });
 }
 
+/* profile pill removed — account page handles it */
+function updatePill(){}
+
+/* ─── Theme ─── */
+(function(){
+  var THEMES={
+    light:{bg:'#f2f2f7',grp:'#fff',text:'#1a1a1a',sub:'#8e8e93',brd:'#c8c8cb'},
+    dark: {bg:'#1a1a1a',grp:'#2c2c2e',text:'#e8e8e8',sub:'#666', brd:'#3a3a3c'},
+    oled: {bg:'#000',   grp:'#111',   text:'#fff',   sub:'#555', brd:'#2a2a2a'}
+  };
+  var t=THEMES[store.g('cg-theme')||'light']||THEMES.light;
+  var s=document.getElementById('cg-theme-style');
+  if(s)s.innerHTML=
+    'html,body,#shell,#feed-wrap{background:'+t.bg+'!important}'
+    +'.post-card{background:'+t.grp+'!important;border-color:'+t.brd+'!important}'
+    +'.post-title{color:'+t.text+'!important}'
+    +'.post-desc{color:'+(t===THEMES.light?'#555':t.sub)+'!important}'
+    +'#feed-tabs{background:'+t.grp+'!important;border-color:'+t.brd+'!important}'
+    +'.ftab{color:'+t.sub+'!important}';
+})();
+
 /* ─── Init ─── */
 window.onload=function(){
+  /* Sync auth tokens — account.html saves to cg_t, home.html uses hm_t, keep both in sync */
+  if(!S.token){var alt=store.g('cg_t');if(alt){S.token=alt;S.uid=parseInt(store.g('cg_u')||'0',10)||null;S.uname=store.g('cg_n');S.av=store.g('cg_av')||'';}}
   if(S.token){
     req('GET','/api/me',null,function(d,err){
       if(err||!d.ok){S.token=null;store.d('hm_t');S.uid=null;S.uname=null;}
-      else{S.uid=d.user_id;S.uname=d.username;S.av=d.avatar_b64||'';store.s('hm_n',d.username);store.s('hm_av',S.av);}
-      updatePill();
+      else{S.uid=d.id||d.user_id;S.uname=d.username;S.av=d.avatar_b64||'';store.s('hm_n',d.username);store.s('hm_av',S.av);}
     });
-  } else {updatePill();}
+  }
   loadFeed(true);
 };
 </script>

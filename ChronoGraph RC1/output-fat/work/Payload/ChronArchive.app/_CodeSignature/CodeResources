@@ -78,7 +78,7 @@
 		</data>
 		<key>www/.DS_Store</key>
 		<data>
-		2PH59K/4kmnm3DCTOwt55ChIO98=
+		r8VmMIJoFZI9k7pyA+vSqpxdaEA=
 		</data>
 		<key>www/404.html</key>
 		<data>
@@ -466,7 +466,7 @@
 		</data>
 		<key>www/index.html</key>
 		<data>
-		Xk2uzGv8TT2EqCZtFpJI5/V1cd4=
+		rcqnGd7DKVbkW4E26BJtb2GKUTw=
 		</data>
 		<key>www/networktests/bandwidth.html</key>
 		<data>
@@ -484,21 +484,25 @@
 		<data>
 		NWoZK3kTsExUV00Ywo1G5jlUKKs=
 		</data>
+		<key>www/pages/account.html</key>
+		<data>
+		6QPgre8c+Zc1Xak+kbL2yqhxox0=
+		</data>
 		<key>www/pages/chat.html</key>
 		<data>
-		7HBurnvLoyXG/SRxKwx+ngc0Xvk=
+		0dQrDXf5T7VzDLClhw4Sr9hzssc=
 		</data>
 		<key>www/pages/home.html</key>
 		<data>
-		m/GJdX223qZ6xg3KZCDCuNJJqA0=
+		gWV1AApI+/C3qGvHnKf8j19k3JU=
 		</data>
 		<key>www/pages/search.html</key>
 		<data>
-		OiTSbvzJ8oAdrGKlhzZsquwjhB4=
+		zk5npJLL+ePUHla2KiIGQcsIpck=
 		</data>
 		<key>www/pages/tools.html</key>
 		<data>
-		cF1uIrq+Gxm4vQoBlJDf8fNFjlg=
+		2NeQL8ic5N9hPEXx5cpoSIoFVl4=
 		</data>
 		<key>www/services.html</key>
 		<data>
@@ -1737,11 +1741,11 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			Xk2uzGv8TT2EqCZtFpJI5/V1cd4=
+			rcqnGd7DKVbkW4E26BJtb2GKUTw=
 			</data>
 			<key>hash2</key>
 			<data>
-			aY86VdGrjW9+VXfmnQTGjDQ0Lxj28mFE+Qxj+SkCVW8=
+			UZAqDepO7nuYG1khF6kpnZLdOt6CW3F5Fa6qJnQfOIA=
 			</data>
 		</dict>
 		<key>www/networktests/bandwidth.html</key>
@@ -1788,48 +1792,59 @@
 			a4ayc/80/OGda4BO/1o/V0etpOqiLx1JwB5S3beHW0s=
 			</data>
 		</dict>
+		<key>www/pages/account.html</key>
+		<dict>
+			<key>hash</key>
+			<data>
+			6QPgre8c+Zc1Xak+kbL2yqhxox0=
+			</data>
+			<key>hash2</key>
+			<data>
+			SwXWhBj5ubjPFK38X4E0vsbMRWZpAu+bf+SrghWtxyM=
+			</data>
+		</dict>
 		<key>www/pages/chat.html</key>
 		<dict>
 			<key>hash</key>
 			<data>
-			7HBurnvLoyXG/SRxKwx+ngc0Xvk=
+			0dQrDXf5T7VzDLClhw4Sr9hzssc=
 			</data>
 			<key>hash2</key>
 			<data>
-			PkBNH3mrZXT0UfmXgiGhkSwlO6DNREP4LSrCzLl0TbM=
+			OW3VXG5aLyiFdAmSlC8AShqEDtKmfnS/qPRZBa3V2tE=
 			</data>
 		</dict>
 		<key>www/pages/home.html</key>
 		<dict>
 			<key>hash</key>
 			<data>
-			m/GJdX223qZ6xg3KZCDCuNJJqA0=
+			gWV1AApI+/C3qGvHnKf8j19k3JU=
 			</data>
 			<key>hash2</key>
 			<data>
-			tai1yXOwcRnRYgYhsuosrTnu1nRqbforogoS030778M=
+			C8H3XIsWPIFuMSon71QxYFWLNZXn1F8AHuBXx+Y1OhE=
 			</data>
 		</dict>
 		<key>www/pages/search.html</key>
 		<dict>
 			<key>hash</key>
 			<data>
-			OiTSbvzJ8oAdrGKlhzZsquwjhB4=
+			zk5npJLL+ePUHla2KiIGQcsIpck=
 			</data>
 			<key>hash2</key>
 			<data>
-			OXqNU5+63ITCoVvuTEOxNdbkQkT0/U3C4w2WUPHSSUI=
+			SMyk9gG0LWlvO8T31vvKPPOdxlgomlk+FkuJ/nX0yKk=
 			</data>
 		</dict>
 		<key>www/pages/tools.html</key>
 		<dict>
 			<key>hash</key>
 			<data>
-			cF1uIrq+Gxm4vQoBlJDf8fNFjlg=
+			2NeQL8ic5N9hPEXx5cpoSIoFVl4=
 			</data>
 			<key>hash2</key>
 			<data>
-			arI//dWOMN3Wnky2i2Pll/aAU4Z+QZSx03Oj/u4jn0w=
+			r443mM9dqtmf0+KLz5FukAjImiRtL4w+3g7eEY055vo=
 			</data>
 		</dict>
 		<key>www/services.html</key>

@@ -15,7 +15,6 @@ app = Flask(__name__)
 DB_PATH      = os.environ.get('CHAT_DB',      '/opt/chronograph-chat/chat.db')
 UPLOADS_DIR  = os.environ.get('UPLOADS_DIR',  '/opt/chronograph-chat/uploads')
 SITE_BASE    = os.environ.get('SITE_BASE',    'https://chat.chronarchive.com')
-DB_LOCK      = threading.Lock()
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 # Cap request body to 3 MB to prevent memory exhaustion
@@ -41,12 +40,17 @@ def _check_rate(ip):
         _RATE_BUCKETS[ip] = bucket
         return True
 
+# Trusted upstream proxies that may set X-Forwarded-For (nginx on localhost + Tailscale node)
+_TRUSTED_PROXIES = {'127.0.0.1', '::1', '100.95.1.7'}
+
 def _get_ip():
-    """Return real client IP, honouring X-Forwarded-For from trusted proxies."""
-    xff = request.headers.get('X-Forwarded-For', '')
-    if xff:
-        return xff.split(',')[0].strip()
-    return request.remote_addr or '0.0.0.0'
+    """Return real client IP, honouring X-Forwarded-For only from trusted proxies."""
+    remote = request.remote_addr or '0.0.0.0'
+    if remote in _TRUSTED_PROXIES:
+        xff = request.headers.get('X-Forwarded-For', '')
+        if xff:
+            return xff.split(',')[0].strip()
+    return remote
 
 # Pillow is optional — falls back to storing base64 inline if unavailable.
 try:
@@ -224,7 +228,80 @@ def init_db():
             except sqlite3.IntegrityError:
                 pass
     conn.commit()
+    # Create ChronoGraph system bot user if not yet present
+    if not conn.execute("SELECT id FROM users WHERE username='ChronoGraph' COLLATE NOCASE").fetchone():
+        bot_pw = secrets.token_hex(32)  # random unguessable password — never used to log in
+        conn.execute(
+            "INSERT INTO users (username, password_hash, bio) VALUES (?,?,?)",
+            ('ChronoGraph', hash_password(bot_pw),
+             'Official ChronoGraph account. A Social Media Time Machine by ChronArchive.')
+        )
+        conn.commit()
     conn.close()
+
+# ── ChronoGraph bot helpers ────────────────────────────────────────────────────
+
+_BOT_USER_ID = None
+
+def _get_bot_id():
+    """Return the user id of the ChronoGraph system bot (cached)."""
+    global _BOT_USER_ID
+    if _BOT_USER_ID is None:
+        conn = get_db()
+        row  = conn.execute("SELECT id FROM users WHERE username='ChronoGraph' COLLATE NOCASE").fetchone()
+        conn.close()
+        if row:
+            _BOT_USER_ID = row['id']
+    return _BOT_USER_ID
+
+BOT_WELCOME  = (
+    "Welcome to ChronoGraph, A Social Media Time Machine by ChronArchive! "
+    "Feel free to explore and connect with others."
+)
+BOT_AUTOREPLY = (
+    "Hi there! I am a very basic server bot so I can't reply yet, "
+    "but we are working on it! Stay tuned."
+)
+
+def _send_bot_welcome_async(to_uid):
+    """Send the welcome DM from ChronoGraph bot if we haven't already."""
+    def _do():
+        bot_id = _get_bot_id()
+        if not bot_id or to_uid == bot_id:
+            return
+        conn = get_db()
+        try:
+            already = conn.execute(
+                'SELECT 1 FROM messages WHERE from_user_id=? AND to_user_id=? AND deleted=0',
+                (bot_id, to_uid)
+            ).fetchone()
+            if not already:
+                conn.execute(
+                    'INSERT INTO messages (from_user_id, to_user_id, text) VALUES (?,?,?)',
+                    (bot_id, to_uid, BOT_WELCOME)
+                )
+                conn.commit()
+        finally:
+            conn.close()
+    threading.Thread(target=_do, daemon=True).start()
+
+def _send_bot_autoreply_async(to_uid):
+    """Send the canned auto-reply from ChronoGraph bot after a short delay."""
+    def _do():
+        bot_id = _get_bot_id()
+        if not bot_id or to_uid == bot_id:
+            return
+        time.sleep(0.8)
+        conn = get_db()
+        try:
+            conn.execute(
+                'INSERT INTO messages (from_user_id, to_user_id, text) VALUES (?,?,?)',
+                (bot_id, to_uid, BOT_AUTOREPLY)
+            )
+            conn.commit()
+        finally:
+            conn.close()
+    threading.Thread(target=_do, daemon=True).start()
 
 # ── Auth helpers ───────────────────────────────────────────────────────────────
 
@@ -369,6 +446,7 @@ def register():
                     'username': username, 'is_admin': bool(row['is_admin']),
                     'avatar_b64': '', 'friend_code': ''})
     resp.set_cookie('cg_session', token, max_age=30*24*3600, httponly=True, path='/')
+    _send_bot_welcome_async(uid)
     return resp, 201
 
 
@@ -413,6 +491,7 @@ def login():
                     'avatar_b64': row['avatar_b64'] or '',
                     'friend_code': row['friend_code'] or ''})
     resp.set_cookie('cg_session', token, max_age=30*24*3600, httponly=True, path='/')
+    _send_bot_welcome_async(row['id'])
     return resp
 
 
@@ -531,7 +610,7 @@ def get_user(target_id):
         'bio': row['bio'] or '', 'avatar_b64': row['avatar_b64'] or '',
         'created_at': row['created_at'],
         'is_private': bool(row['is_private']),
-        'friend_code': row['friend_code'] or '' if row['is_private'] else ''
+        'friend_code': row['friend_code'] or ''
     }})
 
 # ── Friends ────────────────────────────────────────────────────────────────────
@@ -707,8 +786,7 @@ def conversations():
                m.text        AS last_text,
                m.created_at  AS last_at,
                m.from_user_id,
-               (SELECT COUNT(*) FROM messages
-                WHERE to_user_id=:uid AND from_user_id=u.id AND read_at IS NULL AND deleted=0) AS unread
+               COALESCE(unr.unread, 0) AS unread
         FROM users u
         JOIN messages m ON m.id = (
             SELECT id FROM messages
@@ -717,6 +795,12 @@ def conversations():
               AND deleted=0
             ORDER BY created_at DESC LIMIT 1
         )
+        LEFT JOIN (
+            SELECT from_user_id, COUNT(*) AS unread
+            FROM messages
+            WHERE to_user_id=:uid AND read_at IS NULL AND deleted=0
+            GROUP BY from_user_id
+        ) unr ON unr.from_user_id = u.id
         WHERE u.id != :uid AND u.is_banned=0
           AND NOT EXISTS (SELECT 1 FROM blocks WHERE blocker_id=:uid AND blocked_id=u.id)
         ORDER BY last_at DESC
@@ -835,6 +919,10 @@ def send_message():
 
     # Fire-and-forget Web Push to recipient
     _push_notify_async(to_id, uid, text)
+
+    # If the user messaged the ChronoGraph bot, send the canned auto-reply
+    if to_id == _get_bot_id():
+        _send_bot_autoreply_async(uid)
 
     return jsonify({'ok': True, 'message': msg}), 201
 
@@ -986,7 +1074,7 @@ def admin_update_user(target_id):
         conn.execute('UPDATE users SET is_admin=? WHERE id=?', (1 if data['is_admin'] else 0, target_id))
     if 'reset_password' in data:
         new_pw = data['reset_password']
-        if len(new_pw) >= 4:
+        if len(new_pw) >= 8:
             conn.execute('UPDATE users SET password_hash=? WHERE id=?', (hash_password(new_pw), target_id))
     conn.commit()
     conn.close()
@@ -1106,9 +1194,11 @@ def list_posts():
     sql    = '''SELECT p.id, p.user_id, u.username, u.avatar_b64,
                        p.type, p.title, p.description, p.tags, p.media_data, p.media_url,
                        p.device_tag, p.created_at,
-                       (SELECT COUNT(*) FROM post_likes   l WHERE l.post_id=p.id) AS likes_count,
-                       (SELECT COUNT(*) FROM post_comments c WHERE c.post_id=p.id AND c.deleted=0) AS comments_count
+                       COUNT(DISTINCT pl.user_id) AS likes_count,
+                       COUNT(DISTINCT pc.id)      AS comments_count
                 FROM posts p JOIN users u ON u.id = p.user_id
+                LEFT JOIN post_likes    pl ON pl.post_id = p.id
+                LEFT JOIN post_comments pc ON pc.post_id = p.id AND pc.deleted = 0
                 WHERE p.deleted = 0'''
     params = []
     if friends_only and uid:
@@ -1123,7 +1213,7 @@ def list_posts():
     if type_ in ('image', 'video'):
         sql += ' AND p.type = ?'
         params.append(type_)
-    sql += ' ORDER BY p.created_at DESC LIMIT ? OFFSET ?'
+    sql += ' GROUP BY p.id ORDER BY p.created_at DESC LIMIT ? OFFSET ?'
     params += [limit, offset]
     rows = conn.execute(sql, params).fetchall()
 
@@ -1487,7 +1577,9 @@ def admin_respond_report(report_id):
     return jsonify({'ok': True})
 
 
+# Run init_db on module load so gunicorn workers also initialise the schema and bot user
+init_db()
+
 if __name__ == '__main__':
-    init_db()
     print('ChronoGraph Chat API starting on :5000')
     app.run(host='0.0.0.0', port=5000, threaded=True)

@@ -14,7 +14,7 @@ ExecStart=/opt/chronograph-chat/venv/bin/gunicorn \
     app:app
 Restart=always
 RestartSec=5
-Environment=CHAT_DB=/mnt/data/ChronoGraph-DB/chat.db
+Environment=CHAT_DB=/media/redmond/LargeHD/ChronoGraph-DB/chat.db
 Environment=UPLOADS_DIR=/opt/chronograph-chat/uploads
 Environment=SITE_BASE=https://chat.chronarchive.com
 

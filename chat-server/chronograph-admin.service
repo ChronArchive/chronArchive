@@ -5,10 +5,11 @@ Wants=chronograph-chat.service
 
 [Service]
 WorkingDirectory=/opt/chronograph-chat
+User=redmond
 ExecStart=/opt/chronograph-chat/venv/bin/python3 /opt/chronograph-chat/admin_panel.py
 Restart=on-failure
 RestartSec=5
-Environment=CG_DB=/opt/chronograph-chat/chat.db
+Environment=CG_DB=/media/redmond/LargeHD/ChronoGraph-DB/chat.db
 
 [Install]
 WantedBy=default.target
