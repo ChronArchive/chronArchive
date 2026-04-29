@@ -7,13 +7,24 @@ Features: accounts, messaging, read receipts, friends/blocks, profiles,
           message dedup, admin console, Web Push notifications, message filter.
 """
 
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify, make_response, send_from_directory
 import sqlite3, hashlib, hmac, secrets, time, os, threading, re, base64, json, string
 
 app = Flask(__name__)
 
-DB_PATH  = os.environ.get('CHAT_DB', '/opt/chronograph-chat/chat.db')
-DB_LOCK  = threading.Lock()
+DB_PATH      = os.environ.get('CHAT_DB',      '/opt/chronograph-chat/chat.db')
+UPLOADS_DIR  = os.environ.get('UPLOADS_DIR',  '/opt/chronograph-chat/uploads')
+SITE_BASE    = os.environ.get('SITE_BASE',    'https://chat.chronarchive.com')
+DB_LOCK      = threading.Lock()
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+
+# Pillow is optional — falls back to storing base64 inline if unavailable.
+try:
+    from PIL import Image
+    import io as _io
+    _HAS_PILLOW = True
+except ImportError:
+    _HAS_PILLOW = False
 
 # ── Bad-word filter ───────────────────────────────────────────────────────────
 FILTER_WORDS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'filter_words.json')
@@ -140,6 +151,18 @@ def init_db():
         );
         CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status, created_at DESC);
     ''')
+    # Safe migration: add media_url column for file-based image storage
+    try:
+        conn.execute('ALTER TABLE posts ADD COLUMN media_url TEXT DEFAULT ""')
+        conn.commit()
+    except Exception:
+        pass
+    # Safe migration: add is_private column if absent
+    try:
+        conn.execute('ALTER TABLE users ADD COLUMN is_private INTEGER DEFAULT 0')
+        conn.commit()
+    except Exception:
+        pass
     # Safe migration: add friend_code column if absent (no UNIQUE in ALTER TABLE — SQLite restriction)
     try:
         conn.execute('ALTER TABLE users ADD COLUMN friend_code TEXT')
@@ -239,6 +262,14 @@ def after(resp):
 def index():
     from flask import redirect
     return redirect('https://chronarchive.com/chat.html', code=302)
+
+@app.route('/uploads/<path:filename>')
+def serve_upload(filename):
+    """Serve compressed post images from disk."""
+    # Only allow safe filenames (hex + .jpg/.png)
+    if not re.match(r'^[0-9a-f]{32}\.(jpg|png)$', filename):
+        return jsonify({'ok': False, 'error': 'Not found'}), 404
+    return send_from_directory(UPLOADS_DIR, filename)
 
 @app.route('/api/ping')
 def ping():
@@ -343,13 +374,14 @@ def me():
     if err: return err
     conn = get_db()
     row  = conn.execute(
-        'SELECT id, username, bio, avatar_b64, is_admin, friend_code FROM users WHERE id=?', (uid,)
+        'SELECT id, username, bio, avatar_b64, is_admin, friend_code, is_private FROM users WHERE id=?', (uid,)
     ).fetchone()
     conn.close()
     return jsonify({'ok': True, 'id': row['id'], 'username': row['username'],
                     'bio': row['bio'] or '', 'avatar_b64': row['avatar_b64'] or '',
                     'is_admin': bool(row['is_admin']),
-                    'friend_code': row['friend_code'] or ''})
+                    'friend_code': row['friend_code'] or '',
+                    'is_private': bool(row['is_private'])})
 
 
 @app.route('/api/me', methods=['PUT'])
@@ -360,6 +392,7 @@ def update_me():
 
     bio        = (data.get('bio') or '')[:160]
     avatar_b64 = (data.get('avatar_b64') or '')
+    is_private = 1 if data.get('is_private') else 0
 
     # Validate base64 image (must be data URI or empty)
     if avatar_b64 and not re.match(r'^data:image/(jpeg|png|gif|webp);base64,[A-Za-z0-9+/=]+$', avatar_b64):
@@ -369,7 +402,7 @@ def update_me():
         return jsonify({'ok': False, 'error': 'Avatar too large (max ~200 KB)'}), 400
 
     conn = get_db()
-    conn.execute('UPDATE users SET bio=?, avatar_b64=? WHERE id=?', (bio, avatar_b64, uid))
+    conn.execute('UPDATE users SET bio=?, avatar_b64=?, is_private=? WHERE id=?', (bio, avatar_b64, is_private, uid))
     conn.commit()
     conn.close()
     return jsonify({'ok': True})
@@ -426,7 +459,7 @@ def get_user(target_id):
     if err: return err
     conn = get_db()
     row  = conn.execute(
-        'SELECT id, username, bio, avatar_b64, created_at FROM users WHERE id=? AND is_banned=0',
+        'SELECT id, username, bio, avatar_b64, created_at, is_private, friend_code FROM users WHERE id=? AND is_banned=0',
         (target_id,)
     ).fetchone()
     conn.close()
@@ -435,7 +468,9 @@ def get_user(target_id):
     return jsonify({'ok': True, 'user': {
         'id': row['id'], 'username': row['username'],
         'bio': row['bio'] or '', 'avatar_b64': row['avatar_b64'] or '',
-        'created_at': row['created_at']
+        'created_at': row['created_at'],
+        'is_private': bool(row['is_private']),
+        'friend_code': row['friend_code'] or '' if row['is_private'] else ''
     }})
 
 # ── Friends ────────────────────────────────────────────────────────────────────
@@ -988,7 +1023,7 @@ def list_posts():
 
     conn = get_db()
     sql    = '''SELECT p.id, p.user_id, u.username, u.avatar_b64,
-                       p.type, p.title, p.description, p.tags, p.media_data, p.created_at,
+                       p.type, p.title, p.description, p.tags, p.media_data, p.media_url, p.created_at,
                        (SELECT COUNT(*) FROM post_likes   l WHERE l.post_id=p.id) AS likes_count,
                        (SELECT COUNT(*) FROM post_comments c WHERE c.post_id=p.id AND c.deleted=0) AS comments_count
                 FROM posts p JOIN users u ON u.id = p.user_id
@@ -1019,6 +1054,11 @@ def list_posts():
 
     posts = []
     for r in rows:
+        # Prefer file URL; fall back to legacy inline base64 if no URL stored yet
+        media_url  = r['media_url'] if r['media_url'] else ''
+        media_data = ''
+        if not media_url and r['media_data']:
+            media_data = r['media_data']
         posts.append({
             'id':             r['id'],
             'user_id':        r['user_id'],
@@ -1028,7 +1068,8 @@ def list_posts():
             'title':          r['title'],
             'description':    r['description'] or '',
             'tags':           r['tags'] or '',
-            'media_data':     r['media_data'],
+            'media_url':      media_url,
+            'media_data':     media_data,
             'created_at':     r['created_at'],
             'likes_count':    r['likes_count'],
             'comments_count': r['comments_count'],
@@ -1055,8 +1096,8 @@ def create_post():
         return jsonify({'ok': False, 'error': 'Type must be image or video'}), 400
     if not media_data:
         return jsonify({'ok': False, 'error': 'Media data is required'}), 400
-    if type_ == 'image' and len(media_data) > 1_500_000:
-        return jsonify({'ok': False, 'error': 'Image too large (max ~1 MB after compression)'}), 413
+    if type_ == 'image' and len(media_data) > 2_000_000:
+        return jsonify({'ok': False, 'error': 'Image too large (max ~1.5 MB base64)'}), 413
 
     # 10 posts per day limit (UTC midnight)
     now            = int(time.time())
@@ -1070,9 +1111,47 @@ def create_post():
         conn.close()
         return jsonify({'ok': False, 'error': 'Daily post limit (10) reached'}), 429
 
+    # ── Server-side image processing ──────────────────────────────────────────
+    saved_url  = ''
+    saved_b64  = ''
+    if type_ == 'image' and media_data:
+        # Strip data-URI prefix to get raw base64
+        if ',' in media_data:
+            raw_b64 = media_data.split(',', 1)[1]
+        else:
+            raw_b64 = media_data
+        try:
+            img_bytes = base64.b64decode(raw_b64)
+            if _HAS_PILLOW:
+                img = Image.open(_io.BytesIO(img_bytes)).convert('RGB')
+                # Resize if wider than 1200px, preserving aspect ratio
+                max_dim = 1200
+                if img.width > max_dim:
+                    ratio = max_dim / img.width
+                    img = img.resize((max_dim, int(img.height * ratio)), Image.LANCZOS)
+                # Save as JPEG at 82% quality
+                fname = secrets.token_hex(16) + '.jpg'
+                fpath = os.path.join(UPLOADS_DIR, fname)
+                out   = _io.BytesIO()
+                img.save(out, format='JPEG', quality=82, optimize=True)
+                with open(fpath, 'wb') as f:
+                    f.write(out.getvalue())
+                saved_url  = SITE_BASE + '/uploads/' + fname
+                saved_b64  = ''   # not stored inline
+            else:
+                # Pillow not installed — keep base64 inline
+                saved_b64 = media_data
+        except Exception:
+            # Malformed image — reject
+            conn.close()
+            return jsonify({'ok': False, 'error': 'Invalid image data'}), 400
+    elif type_ == 'video':
+        # Video posts store the URL string as media_data (no file upload)
+        saved_b64 = media_data
+
     cur = conn.execute(
-        'INSERT INTO posts (user_id, type, title, description, tags, media_data) VALUES (?,?,?,?,?,?)',
-        (uid, type_, title, description, tags, media_data)
+        'INSERT INTO posts (user_id, type, title, description, tags, media_data, media_url) VALUES (?,?,?,?,?,?,?)',
+        (uid, type_, title, description, tags, saved_b64, saved_url)
     )
     conn.commit()
     post_id = cur.lastrowid

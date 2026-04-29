@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <title>CHRONARCHIVE Blog</title>
+    <link>https://chronarchive.com/blog.html</link>
+    <description>News and updates from the CHRONARCHIVE team.</description>
+    <language>en-us</language>
+    <atom:link href="https://chronarchive.com/feed.xml" rel="self" type="application/rss+xml"/>
+    <lastBuildDate>Wed, 16 Apr 2026 00:00:00 +0000</lastBuildDate>
+    <ttl>1440</ttl>
+
+    <item>
+      <title>v0.2.2 Changelog</title>
+      <link>https://chronarchive.com/blog/posts/2026-04-16-v022-changelog/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2026-04-16-v022-changelog/10.html</guid>
+      <description>Bugfixes and Improvements</description>
+      <pubDate>Wed, 16 Apr 2026 00:00:00 +0000</pubDate>
+      <media:thumbnail url="https://chronarchive.com/assets/blogphotos/Update0-2-1thumbnail.gif"/>
+    </item>
+
+    <item>
+      <title>v0.2.1 Changelog</title>
+      <link>https://chronarchive.com/blog/posts/2026-04-16-v021-changelog/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2026-04-16-v021-changelog/10.html</guid>
+      <description>New Version Numbers!</description>
+      <pubDate>Wed, 16 Apr 2026 00:00:00 +0000</pubDate>
+      <media:thumbnail url="https://chronarchive.com/assets/blogphotos/Update0-2-1thumbnail.gif"/>
+    </item>
+
+    <item>
+      <title>Beta 14 is Live!</title>
+      <link>https://chronarchive.com/blog/posts/2026-04-15-beta-14/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2026-04-15-beta-14/10.html</guid>
+      <description>New update! Changelog inside!</description>
+      <pubDate>Tue, 15 Apr 2026 00:00:00 +0000</pubDate>
+    </item>
+
+    <item>
+      <title>We now have a Patreon!</title>
+      <link>https://chronarchive.com/blog/posts/2026-04-12-patreon/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2026-04-12-patreon/10.html</guid>
+      <description>Completely optional and nothing is paywalled here.</description>
+      <pubDate>Sat, 12 Apr 2026 00:00:00 +0000</pubDate>
+      <media:thumbnail url="https://chronarchive.com/assets/blogphotos/Patreonthumbnail.jpg"/>
+    </item>
+
+    <item>
+      <title>Beta 13 is Live!</title>
+      <link>https://chronarchive.com/blog/posts/2026-04-12-beta-13/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2026-04-12-beta-13/10.html</guid>
+      <description>New update! Changelog inside!</description>
+      <pubDate>Sat, 12 Apr 2026 00:00:00 +0000</pubDate>
+      <media:thumbnail url="https://chronarchive.com/assets/blogphotos/beta13.png"/>
+    </item>
+
+    <item>
+      <title>Beta 12 is Live!</title>
+      <link>https://chronarchive.com/blog/posts/2026-04-11-beta-12/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2026-04-11-beta-12/10.html</guid>
+      <description>New update! Changelog inside!</description>
+      <pubDate>Fri, 11 Apr 2026 00:00:00 +0000</pubDate>
+    </item>
+
+    <item>
+      <title>Beta 11 is Live!</title>
+      <link>https://chronarchive.com/blog/posts/2026-04-11-beta-11/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2026-04-11-beta-11/10.html</guid>
+      <description>New update! Changelog inside!</description>
+      <pubDate>Fri, 11 Apr 2026 00:00:00 +0000</pubDate>
+    </item>
+
+    <item>
+      <title>Hello World.</title>
+      <link>https://chronarchive.com/blog/posts/2026-04-11-hello-world/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2026-04-11-hello-world/10.html</guid>
+      <description>New update! Changelog inside!</description>
+      <pubDate>Fri, 11 Apr 2026 00:00:00 +0000</pubDate>
+    </item>
+
+    <item>
+      <title>Beta 10 is Live!</title>
+      <link>https://chronarchive.com/blog/posts/2026-04-09-beta-10/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2026-04-09-beta-10/10.html</guid>
+      <description>New update! Changelog inside!</description>
+      <pubDate>Thu, 09 Apr 2026 00:00:00 +0000</pubDate>
+    </item>
+
+    <item>
+      <title>Beta 9 is Live!</title>
+      <link>https://chronarchive.com/blog/posts/2025-05-20-beta-9/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2025-05-20-beta-9/10.html</guid>
+      <description>New update! Changelog inside!</description>
+      <pubDate>Tue, 20 May 2025 00:00:00 +0000</pubDate>
+    </item>
+
+    <item>
+      <title>Beta 8 is Live!</title>
+      <link>https://chronarchive.com/blog/posts/2025-05-16-beta-8/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2025-05-16-beta-8/10.html</guid>
+      <description>New update! Changelog inside!</description>
+      <pubDate>Fri, 16 May 2025 00:00:00 +0000</pubDate>
+    </item>
+
+    <item>
+      <title>Beta 7 is Live!</title>
+      <link>https://chronarchive.com/blog/posts/2025-05-12-beta-7/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2025-05-12-beta-7/10.html</guid>
+      <description>New update! Changelog inside!</description>
+      <pubDate>Mon, 12 May 2025 00:00:00 +0000</pubDate>
+    </item>
+
+    <item>
+      <title>Beta 6 is Live!</title>
+      <link>https://chronarchive.com/blog/posts/2025-05-05-beta-6/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2025-05-05-beta-6/10.html</guid>
+      <description>New update! Changelog inside!</description>
+      <pubDate>Mon, 05 May 2025 00:00:00 +0000</pubDate>
+    </item>
+
+    <item>
+      <title>Beta 5 is Live!</title>
+      <link>https://chronarchive.com/blog/posts/2025-05-04-beta-5/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2025-05-04-beta-5/10.html</guid>
+      <description>New update! Changelog inside!</description>
+      <pubDate>Sun, 04 May 2025 00:00:00 +0000</pubDate>
+    </item>
+
+    <item>
+      <title>Beta 4 is Live!</title>
+      <link>https://chronarchive.com/blog/posts/2025-05-03-beta-4/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2025-05-03-beta-4/10.html</guid>
+      <description>New update! Changelog inside!</description>
+      <pubDate>Sat, 03 May 2025 00:00:00 +0000</pubDate>
+    </item>
+
+    <item>
+      <title>Beta 3 is Live!</title>
+      <link>https://chronarchive.com/blog/posts/2025-05-02-beta-3/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2025-05-02-beta-3/10.html</guid>
+      <description>New update! Changelog inside!</description>
+      <pubDate>Fri, 02 May 2025 00:00:00 +0000</pubDate>
+    </item>
+
+    <item>
+      <title>Beta 2 is Live!</title>
+      <link>https://chronarchive.com/blog/posts/2025-04-22-beta-2/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2025-04-22-beta-2/10.html</guid>
+      <description>New update! Changelog inside!</description>
+      <pubDate>Tue, 22 Apr 2025 00:00:00 +0000</pubDate>
+    </item>
+
+    <item>
+      <title>Beta 1 is Live!</title>
+      <link>https://chronarchive.com/blog/posts/2025-04-19-beta-1/10.html</link>
+      <guid isPermaLink="true">https://chronarchive.com/blog/posts/2025-04-19-beta-1/10.html</guid>
+      <description>New update! Changelog inside!</description>
+      <pubDate>Sat, 19 Apr 2025 00:00:00 +0000</pubDate>
+    </item>
+
+  </channel>
+</rss>

@@ -1,0 +1,163 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <title>ChronoGraph</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" type="image/png" href="assets/CA-favicon-192x192.png">
+  <style>
+    * { margin: 0; padding: 0; -webkit-box-sizing: border-box; box-sizing: border-box; }
+
+    /* Fixed positioning — more reliable than flexbox on iOS 7 UIWebView */
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #111; }
+
+    #app-header {
+      display: none; /* JS sets to block when back btn needed */
+      position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+      height: 44px;
+      background: -webkit-linear-gradient(top, #2a2a2a 0%, #1a1a1a 100%);
+      background: linear-gradient(to bottom, #2a2a2a 0%, #1a1a1a 100%);
+      border-bottom: 1px solid #000;
+    }
+    #back-btn {
+      display: -webkit-box; display: -webkit-flex; display: flex;
+      -webkit-box-align: center; -webkit-align-items: center; align-items: center;
+      height: 44px; padding: 0 14px;
+      color: #5ac8fa; text-decoration: none; cursor: pointer;
+    }
+    .cyd-back-img { height: 32px; display: block; }
+    .cyd-nav-img  { height: 48px; display: block; }
+
+    /* iframe: JS sets explicit width/height — old Safari ignores right/bottom on fixed iframes */
+    #content-frame {
+      position: fixed;
+      top: 0; left: 0;
+      border: none; background: #c8c8c8;
+      overflow: scroll;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
+      height: 55px;
+      background: -webkit-linear-gradient(top, #1e1e1e 0%, #111 100%);
+      background: linear-gradient(to bottom, #1e1e1e 0%, #111 100%);
+      border-top: 1px solid #000;
+      display: -webkit-box; -webkit-box-orient: horizontal;
+      display: -webkit-flex; display: flex;
+    }
+    .nav-tab {
+      -webkit-box-flex: 1; -webkit-flex: 1; flex: 1;
+      display: -webkit-box; display: -webkit-flex; display: flex;
+      -webkit-box-align: center; -webkit-align-items: center; align-items: center;
+      -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      border-right: 1px solid #2a2a2a;
+    }
+    .nav-tab:last-child { border-right: none; }
+    .nav-tab.active { background: #1a4a7a; }
+  </style>
+</head>
+<body>
+  <div id="app-header">
+    <a id="back-btn" href="javascript:void(0)"><img class="cyd-back-img" src="assets/ChronographBackBtn.png" alt="Back"></a>
+  </div>
+
+  <iframe id="content-frame" src="pages/search.html" scrolling="yes" frameborder="0"></iframe>
+
+  <div id="bottom-nav">
+    <div class="nav-tab"        id="tab-home"  ><img class="cyd-nav-img" src="assets/ChronographHomeBtn.png"   alt="Home"></div>
+    <div class="nav-tab active" id="tab-search"><img class="cyd-nav-img" src="assets/ChronographSearchBtn.png" alt="Search"></div>
+    <div class="nav-tab"        id="tab-files" ><img class="cyd-nav-img" src="assets/ChronographFilesBtn.png"  alt="Files"></div>
+    <div class="nav-tab"        id="tab-chat"  ><img class="cyd-nav-img" src="assets/ChronographChatBtn.png"   alt="Chat"></div>
+    <div class="nav-tab"        id="tab-tools" ><img class="cyd-nav-img" src="assets/ChronographToolsBtn.png"  alt="Tools"></div>
+  </div>
+
+  <script type="text/javascript">
+    var MAIN_PAGES = {
+      'home':   'pages/home.html',
+      'search': 'pages/search.html',
+      'files':  'pages/files.html',
+      'chat':   'pages/chat.html',
+      'tools':  'pages/tools.html'
+    };
+    var NAV_H    = 55;
+    var HEADER_H = 44;
+
+    /* Declare DOM refs first so sizeFrame() can use them immediately */
+    var frame      = document.getElementById('content-frame');
+    var backBtn    = document.getElementById('back-btn');
+    var header     = document.getElementById('app-header');
+    var currentTab   = 'search';
+    var navTriggered = true; /* true = next onload is from loadPage(), not a link click */
+
+    function sizeFrame() {
+      var w = window.innerWidth  || document.documentElement.clientWidth  || 320;
+      var h = window.innerHeight || document.documentElement.clientHeight || 480;
+      var headerShown = (header.style.display !== 'none' && header.style.display !== '');
+      var topOffset = headerShown ? HEADER_H : 0;
+      frame.style.width  = w + 'px';
+      frame.style.height = (h - NAV_H - topOffset) + 'px';
+      frame.style.top    = topOffset + 'px';
+    }
+    window.onresize = sizeFrame;
+    sizeFrame();
+
+    function loadPage(tab) {
+      currentTab   = tab;
+      navTriggered = true;
+      frame.src    = MAIN_PAGES[tab];
+      setActiveTab(tab);
+    }
+
+    function setActiveTab(active) {
+      var tabs = ['home','search','files','chat','tools'];
+      for (var i = 0; i < tabs.length; i++) {
+        var el = document.getElementById('tab-' + tabs[i]);
+        if (el) el.className = 'nav-tab' + (tabs[i] === active ? ' active' : '');
+      }
+    }
+
+    frame.onload = function () {
+      if (navTriggered) {
+        /* Local tab page — no cross-origin contentDocument access needed */
+        navTriggered = false;
+        header.style.display = 'none';
+        sizeFrame();
+      } else {
+        /* User-followed link — may be cross-origin, do NOT touch contentDocument */
+        header.style.display = 'block';
+        sizeFrame();
+      }
+    };
+
+    backBtn.onclick = function () {
+      /* Always reload the current tab's main page — avoids cross-origin history.back() */
+      loadPage(currentTab);
+    };
+
+    /* Fast-tap: fire on touchend without waiting for 300ms click delay.
+       Ignores touches that moved (i.e. the user was scrolling, not tapping). */
+    function fastTap(el, fn) {
+      var moved = false;
+      el.addEventListener('touchstart', function()  { moved = false; }, false);
+      el.addEventListener('touchmove',  function()  { moved = true;  }, false);
+      el.addEventListener('touchend',   function(e) {
+        if (!moved) { e.preventDefault(); fn(); }
+      }, false);
+    }
+    fastTap(document.getElementById('tab-home'),   function() { loadPage('home');   });
+    fastTap(document.getElementById('tab-search'), function() { loadPage('search'); });
+    fastTap(document.getElementById('tab-files'),  function() { loadPage('files');  });
+    fastTap(document.getElementById('tab-chat'),   function() { loadPage('chat');   });
+    fastTap(document.getElementById('tab-tools'),  function() { loadPage('tools');  });
+
+    /* Prevent navbar and header from scrolling on iOS 7 — only lock the chrome, not the iframe */
+    var bottomNav = document.getElementById('bottom-nav');
+    var appHeader = document.getElementById('app-header');
+    bottomNav.addEventListener('touchmove', function(e) { e.preventDefault(); }, false);
+    appHeader.addEventListener('touchmove',  function(e) { e.preventDefault(); }, false);
+  </script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <title>Display Information | CHRONARCHIVE</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="../../assets/CA-favicon-192x192.png">
+  <link rel="stylesheet" type="text/css" href="../../assets/10.css">
+  <style type="text/css">
+    #tool-run { font-size: 13px; padding: 6px 22px; cursor: pointer; margin-top: 8px; }
+    #tool-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #tool-table { width: 100%; min-width: 220px; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+    #tool-table th { background: #ddeeff; border: 1px solid #bbccdd; padding: 5px 10px; text-align: left; font-weight: bold; }
+    #tool-table td { border: 1px solid #dddddd; padding: 4px 10px; }
+    #tool-table td:first-child { font-weight: bold; color: #336; width: 200px; white-space: nowrap; }
+    #tool-table td:last-child { font-family: monospace; word-break: break-word; }
+    .tool-note { font-size: 11px; color: #888888; margin-top: 10px; }
+  </style>
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="../../assets/socialpreview10.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="../../assets/socialpreview10.png">
+</head>
+<body>
+
+  <div id="navbar">
+    <div id="navbar-inner">
+      <div id="navbar-left">
+        <a href="../../index.html" id="navbar-logo">CHRONARCHIVE</a>
+        <a href="../../index.html" class="navbar-link">Search</a>
+        <a href="https://beta.chronarchive.com" class="navbar-link">Files</a>
+        <a href="../../blog.html" class="navbar-link">Blog</a>
+        <a href="../../services.html" class="navbar-link active">Services</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="wrapper">
+    <div id="logo-area">
+      <a href="../../index.html"><img src="../../assets/CAlog10.png" alt="CHRONARCHIVE"></a>
+      <p id="tagline"><img src="../../assets/ytc10.png" alt="Your Time Capsule"></p>
+    </div>
+
+    <div class="content-panel" style="margin-top: 28px;">
+      <h2>Display Information</h2>
+      <div class="content-panel-body">
+        <p class="blog-post-meta">dumps screen size, viewport, pixel ratio, and browser info for your current window.</p>
+
+        <button id="tool-run" onclick="refreshInfo()">Refresh</button>
+
+        <div id="tool-table-wrap"><table id="tool-table">
+          <tr><th>Property</th><th>Value</th></tr>
+          <tbody id="tool-rows"></tbody>
+        </table></div>
+
+        <p class="tool-note">* values are read from the browser at page load or when you hit Refresh.</p>
+      </div>
+    </div>
+
+    <div id="chronodulator" class="clearfix">
+      <span id="chrono-label">Chronodulator</span>
+      <div id="chrono-buttons">
+        <a href="../../95/services.html" class="era-btn">'95</a>
+        <a href="../../05/services.html" class="era-btn">'05</a>
+        <a href="../../services.html" class="era-btn era-active">'10</a>
+        <a href="../../now.html#services" class="era-btn">Now</a>
+      </div>
+    </div>
+
+    <div id="footer">
+      &copy; 2026 CHRONARCHIVE &nbsp;&middot;&nbsp;
+      <a href="../../services.html#contact">Contact</a> &nbsp;&middot;&nbsp;
+      <a href="../../services.html#dmca">DMCA</a>
+    </div>
+  </div>
+
+<script type="text/javascript">
+function escapeHTML(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function val(v) {
+  if (v === undefined || v === null || v === '') return '<span style="color:#aaa">(not available)</span>';
+  return escapeHTML(String(v));
+}
+
+function refreshInfo() {
+  var nav = window.navigator;
+  var scr = window.screen;
+  var tbody = document.getElementById('tool-rows');
+  tbody.innerHTML = '';
+
+  var rows = [
+    /* Screen */
+    ['Screen: Physical Width', scr.width ? scr.width + ' px' : null],
+    ['Screen: Physical Height', scr.height ? scr.height + ' px' : null],
+    ['Screen: Available Width', scr.availWidth ? scr.availWidth + ' px' : null],
+    ['Screen: Available Height', scr.availHeight ? scr.availHeight + ' px' : null],
+    ['Screen: Color Depth', scr.colorDepth ? scr.colorDepth + ' bit' : null],
+    ['Screen: Pixel Depth', scr.pixelDepth ? scr.pixelDepth + ' bit' : null],
+    /* Viewport */
+    ['Viewport: Inner Width', (window.innerWidth !== undefined) ? window.innerWidth + ' px' : (document.documentElement.clientWidth + ' px (clientWidth)')],
+    ['Viewport: Inner Height', (window.innerHeight !== undefined) ? window.innerHeight + ' px' : (document.documentElement.clientHeight + ' px (clientHeight)')],
+    ['Viewport: Outer Width', (window.outerWidth !== undefined) ? window.outerWidth + ' px' : null],
+    ['Viewport: Outer Height', (window.outerHeight !== undefined) ? window.outerHeight + ' px' : null],
+    /* Pixel ratio */
+    ['Device Pixel Ratio', (window.devicePixelRatio !== undefined) ? window.devicePixelRatio : null],
+    /* Scroll */
+    ['Page Scroll X', (window.scrollX !== undefined) ? window.scrollX + ' px' : (window.pageXOffset !== undefined ? window.pageXOffset + ' px (pageXOffset)' : null)],
+    ['Page Scroll Y', (window.scrollY !== undefined) ? window.scrollY + ' px' : (window.pageYOffset !== undefined ? window.pageYOffset + ' px (pageYOffset)' : null)],
+    /* Navigator */
+    ['Browser: User-Agent', nav.userAgent],
+    ['Browser: Platform', nav.platform],
+    ['Browser: Language', nav.language || (nav.userLanguage || null)],
+    ['Browser: Vendor', nav.vendor || null],
+    ['Browser: App Name', nav.appName],
+    ['Browser: App Version', nav.appVersion],
+    ['Browser: Cookies Enabled', (nav.cookieEnabled !== undefined) ? (nav.cookieEnabled ? 'Yes' : 'No') : null],
+    ['Browser: Java Enabled', (nav.javaEnabled) ? (nav.javaEnabled() ? 'Yes' : 'No') : null],
+    ['Browser: Online', (nav.onLine !== undefined) ? (nav.onLine ? 'Yes' : 'No') : null],
+    ['Browser: Do Not Track', (nav.doNotTrack !== undefined && nav.doNotTrack !== null) ? nav.doNotTrack : null],
+    /* Document */
+    ['Document: Charset', (document.charset || document.characterSet || null)],
+    ['Document: Referrer', document.referrer || '(none)'],
+    ['Document: Title', document.title],
+    ['Window: Location Href', window.location.href],
+    ['Window: Protocol', window.location.protocol]
+  ];
+
+  for (var i = 0; i < rows.length; i++) {
+    var tr = document.createElement('tr');
+    var td1 = document.createElement('td');
+    var td2 = document.createElement('td');
+    td1.innerHTML = rows[i][0];
+    td2.innerHTML = (rows[i][1] !== undefined && rows[i][1] !== null)
+      ? escapeHTML(String(rows[i][1]))
+      : '<span style="color:#aaa">(not available)</span>';
+    tr.appendChild(td1);
+    tr.appendChild(td2);
+    tbody.appendChild(tr);
+  }
+}
+
+/* Auto-run on load */
+if (window.addEventListener) { window.addEventListener('load', refreshInfo, false); }
+else if (window.attachEvent) { window.attachEvent('onload', refreshInfo); }
+else { window.onload = refreshInfo; }
+</script>
+
+</body>
+</html>
