@@ -143,6 +143,7 @@ input[type=submit]:hover,.submit-btn:hover{background:#162a55}
   <a href="/users" __ACT_USERS__>Users</a>
   <a href="/posts" __ACT_POSTS__>Posts</a>
   <a href="/messages" __ACT_MSGS__>Messages</a>
+  <a href="/reports" __ACT_REPORTS__>Reports __REPORT_BADGE__</a>
   <a href="/filter" __ACT_FILTER__>Filter</a>
   <span class="spacer"></span>
   <a href="/settings" __ACT_SETTINGS__>Settings</a>
@@ -177,7 +178,7 @@ input[type=submit]:hover{background:#162a55}
 </div></body></html>'''
 
 def page(body, title='', active=''):
-    acts = {k: '' for k in ['dash','users','posts','msgs','filter','settings']}
+    acts = {k: '' for k in ['dash','users','posts','msgs','filter','settings','reports']}
     if active in acts:
         acts[active] = 'class="active"'
     flash = session.pop('flash', None)
@@ -186,6 +187,12 @@ def page(body, title='', active=''):
         cls = 'err' if flash[0] == '!' else 'ok'
         txt = flash[1:] if flash[0] == '!' else flash
         flash_html = f'<div class="flash {cls}">{h(txt)}</div>'
+    # Show open report count badge in nav
+    try:
+        open_count = get_db().execute("SELECT COUNT(*) FROM reports WHERE status='open'").fetchone()[0]
+    except Exception:
+        open_count = 0
+    report_badge = f'<span style="background:#c84b00;color:#fff;font-size:10px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:4px">{open_count}</span>' if open_count else ''
     return (_BASE
         .replace('__TITLE__',        h(title or active.capitalize() or 'Admin'))
         .replace('__FLASH__',         flash_html)
@@ -196,6 +203,8 @@ def page(body, title='', active=''):
         .replace('__ACT_MSGS__',      acts['msgs'])
         .replace('__ACT_FILTER__',    acts['filter'])
         .replace('__ACT_SETTINGS__',  acts['settings'])
+        .replace('__ACT_REPORTS__',   acts['reports'])
+        .replace('__REPORT_BADGE__',  report_badge)
     )
 
 def flash(msg):
@@ -767,6 +776,94 @@ def filter_page():
       </form>
     </div>'''
     return page(body, title='Filter', active='filter')
+
+# ── Reports ────────────────────────────────────────────────────────────────────
+@app.route('/reports')
+@login_required
+def reports_page():
+    status = request.args.get('status', 'open').strip()
+    if status not in ('open', 'resolved', 'dismissed'):
+        status = 'open'
+    try:
+        rows = qa('''
+            SELECT r.id, r.reporter_id, ru.username AS reporter_username,
+                   r.target_type, r.target_id, r.reason, r.status, r.admin_note,
+                   r.created_at, r.resolved_at
+            FROM reports r JOIN users ru ON ru.id=r.reporter_id
+            WHERE r.status=?
+            ORDER BY r.created_at DESC LIMIT 200
+        ''', status)
+    except Exception:
+        rows = []
+
+    open_count       = q1("SELECT COUNT(*) FROM reports WHERE status='open'")[0] if _table_exists('reports') else 0
+    resolved_count   = q1("SELECT COUNT(*) FROM reports WHERE status='resolved'")[0] if _table_exists('reports') else 0
+    dismissed_count  = q1("SELECT COUNT(*) FROM reports WHERE status='dismissed'")[0] if _table_exists('reports') else 0
+
+    tabs = ''
+    for s, label in [('open','Open'), ('resolved','Resolved'), ('dismissed','Dismissed')]:
+        cnt = {'open': open_count, 'resolved': resolved_count, 'dismissed': dismissed_count}[s]
+        active_style = 'color:#fff;border-bottom:2px solid #4a9eff;' if s == status else 'color:#666;'
+        tabs += f'<a href="/reports?status={s}" style="padding:8px 16px;font-size:13px;text-decoration:none;{active_style}">{label} ({cnt})</a>'
+
+    report_rows = ''
+    for r in rows:
+        target_link = ''
+        if r['target_type'] == 'post':
+            target_link = f'<a href="/posts?q=" style="color:#4a9eff">Post #{r["target_id"]}</a>'
+        elif r['target_type'] == 'user':
+            target_link = f'<a href="/users/{r["target_id"]}" style="color:#4a9eff">User #{r["target_id"]}</a>'
+        elif r['target_type'] == 'comment':
+            target_link = f'Comment #{r["target_id"]}'
+        report_rows += f'''<tr>
+          <td class="mono" style="font-size:11px;color:#555;white-space:nowrap">{fmt_ts(r["created_at"])}</td>
+          <td><a href="/users/{r["reporter_id"]}" style="color:#4a9eff">{h(r["reporter_username"])}</a></td>
+          <td><span class="badge" style="background:#1a2a3d;color:#6ca3f5">{h(r["target_type"])}</span> {target_link}</td>
+          <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis">{h(r["reason"][:200])}</td>
+          <td style="color:#666;font-size:12px">{h(r["admin_note"][:80]) if r["admin_note"] else "—"}</td>
+          <td>
+            <div class="actions">
+              <form method="post" action="/reports/{r["id"]}/respond" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                <input type="text" name="note" placeholder="Admin note (optional)" value="{h(r["admin_note"] or "")}" style="width:180px;font-size:12px;padding:4px 8px">
+                <button name="action" value="resolved" class="btn btn-green" type="submit">Resolve</button>
+                <button name="action" value="dismissed" class="btn btn-gray" type="submit">Dismiss</button>
+                {"" if status != "open" else ""}
+              </form>
+            </div>
+          </td>
+        </tr>'''
+
+    body = f'''
+    <h1>Reports</h1>
+    <div style="display:flex;gap:0;border-bottom:1px solid #222;margin-bottom:20px">{tabs}</div>
+    <table>
+      <tr><th>Time</th><th>Reporter</th><th>Target</th><th>Reason</th><th>Admin Note</th><th>Actions</th></tr>
+      {report_rows or f'<tr><td colspan="6" style="color:#555;text-align:center;padding:24px">No {status} reports</td></tr>'}
+    </table>'''
+    return page(body, title='Reports', active='reports')
+
+@app.route('/reports/<int:rid>/respond', methods=['POST'])
+@login_required
+def respond_report(rid):
+    action = request.form.get('action', 'resolved')
+    note   = request.form.get('note', '').strip()
+    if action not in ('resolved', 'dismissed', 'open'):
+        action = 'resolved'
+    resolved_at = int(time.time()) if action != 'open' else None
+    try:
+        exe('UPDATE reports SET status=?, admin_note=?, resolved_at=? WHERE id=?',
+            action, note, resolved_at, rid)
+        flash(f'Report #{rid} marked as {action}.')
+    except Exception as e:
+        flash(f'!Error: {e}')
+    return redirect('/reports')
+
+def _table_exists(name):
+    try:
+        r = q1("SELECT name FROM sqlite_master WHERE type='table' AND name=?", name)
+        return bool(r)
+    except Exception:
+        return False
 
 # ── Settings ───────────────────────────────────────────────────────────────────
 @app.route('/settings', methods=['GET', 'POST'])

@@ -127,6 +127,18 @@ def init_db():
         );
         CREATE INDEX IF NOT EXISTS idx_likes_post   ON post_likes(post_id);
         CREATE INDEX IF NOT EXISTS idx_comments_post ON post_comments(post_id, created_at);
+        CREATE TABLE IF NOT EXISTS reports (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            reporter_id INTEGER NOT NULL,
+            target_type TEXT NOT NULL,
+            target_id   INTEGER NOT NULL,
+            reason      TEXT NOT NULL,
+            status      TEXT NOT NULL DEFAULT 'open',
+            admin_note  TEXT DEFAULT '',
+            created_at  INTEGER DEFAULT (strftime('%s','now')),
+            resolved_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status, created_at DESC);
     ''')
     # Safe migration: add friend_code column if absent (no UNIQUE in ALTER TABLE — SQLite restriction)
     try:
@@ -1202,6 +1214,99 @@ def admin_delete_post(post_id):
     if err: return err
     conn = get_db()
     conn.execute('UPDATE posts SET deleted=1 WHERE id=?', (post_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
+
+# ── Reports ────────────────────────────────────────────────────────────────────
+
+@app.route('/api/reports', methods=['POST'])
+def submit_report():
+    uid, err = require_auth(request)
+    if err: return err
+    data        = request.get_json(force=True, silent=True) or {}
+    target_type = (data.get('target_type') or '').strip()
+    target_id   = data.get('target_id')
+    reason      = (data.get('reason') or '').strip()
+    if target_type not in ('post', 'user', 'comment'):
+        return jsonify({'ok': False, 'error': 'Invalid target_type'}), 400
+    if not isinstance(target_id, int):
+        return jsonify({'ok': False, 'error': 'target_id must be an integer'}), 400
+    if not reason:
+        return jsonify({'ok': False, 'error': 'Reason is required'}), 400
+    if len(reason) > 1000:
+        return jsonify({'ok': False, 'error': 'Reason too long (max 1000 chars)'}), 400
+    # Rate limit: max 5 reports per hour per user
+    conn = get_db()
+    hour_ago = int(time.time()) - 3600
+    recent = conn.execute(
+        'SELECT COUNT(*) FROM reports WHERE reporter_id=? AND created_at>?',
+        (uid, hour_ago)
+    ).fetchone()[0]
+    if recent >= 5:
+        conn.close()
+        return jsonify({'ok': False, 'error': 'Too many reports. Please wait before submitting more.'}), 429
+    conn.execute(
+        'INSERT INTO reports (reporter_id, target_type, target_id, reason) VALUES (?,?,?,?)',
+        (uid, target_type, target_id, reason)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True}), 201
+
+
+@app.route('/api/admin/reports', methods=['GET'])
+def admin_list_reports():
+    uid, err = require_admin(request)
+    if err: return err
+    status = (request.args.get('status') or 'open').strip()
+    conn = get_db()
+    rows = conn.execute('''
+        SELECT r.id, r.reporter_id, ru.username AS reporter_username,
+               r.target_type, r.target_id, r.reason, r.status, r.admin_note,
+               r.created_at, r.resolved_at
+        FROM reports r JOIN users ru ON ru.id = r.reporter_id
+        WHERE r.status = ?
+        ORDER BY r.created_at DESC LIMIT 100
+    ''', (status,)).fetchall()
+    conn.close()
+    result = []
+    for r in rows:
+        result.append({
+            'id':                 r['id'],
+            'reporter_id':        r['reporter_id'],
+            'reporter_username':  r['reporter_username'],
+            'target_type':        r['target_type'],
+            'target_id':          r['target_id'],
+            'reason':             r['reason'],
+            'status':             r['status'],
+            'admin_note':         r['admin_note'] or '',
+            'created_at':         r['created_at'],
+            'resolved_at':        r['resolved_at'],
+        })
+    return jsonify({'ok': True, 'reports': result})
+
+
+@app.route('/api/admin/reports/<int:report_id>', methods=['POST'])
+def admin_respond_report(report_id):
+    uid, err = require_admin(request)
+    if err: return err
+    data   = request.get_json(force=True, silent=True) or {}
+    note   = (data.get('note') or '').strip()
+    status = (data.get('status') or 'resolved').strip()
+    if status not in ('open', 'resolved', 'dismissed'):
+        return jsonify({'ok': False, 'error': 'Invalid status'}), 400
+    conn = get_db()
+    row = conn.execute('SELECT id FROM reports WHERE id=?', (report_id,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'ok': False, 'error': 'Not found'}), 404
+    resolved_at = int(time.time()) if status != 'open' else None
+    conn.execute(
+        'UPDATE reports SET status=?, admin_note=?, resolved_at=? WHERE id=?',
+        (status, note, resolved_at, report_id)
+    )
     conn.commit()
     conn.close()
     return jsonify({'ok': True})
