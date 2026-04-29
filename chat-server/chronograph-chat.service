@@ -5,10 +5,18 @@ After=network.target
 [Service]
 User=redmond
 WorkingDirectory=/opt/chronograph-chat
-ExecStart=/opt/chronograph-chat/venv/bin/python /opt/chronograph-chat/app.py
+ExecStart=/opt/chronograph-chat/venv/bin/gunicorn \
+    --workers 2 \
+    --threads 4 \
+    --worker-class gthread \
+    --timeout 35 \
+    --bind 127.0.0.1:5000 \
+    app:app
 Restart=always
 RestartSec=5
-Environment=CHAT_DB=/opt/chronograph-chat/chat.db
+Environment=CHAT_DB=/mnt/data/ChronoGraph-DB/chat.db
+Environment=UPLOADS_DIR=/opt/chronograph-chat/uploads
+Environment=SITE_BASE=https://chat.chronarchive.com
 
 [Install]
 WantedBy=multi-user.target

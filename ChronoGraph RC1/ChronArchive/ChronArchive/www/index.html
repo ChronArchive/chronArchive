@@ -67,20 +67,20 @@
   <iframe id="content-frame" src="pages/search.html" scrolling="yes" frameborder="0"></iframe>
 
   <div id="bottom-nav">
-    <div class="nav-tab"        id="tab-home"  ><img class="cyd-nav-img" src="assets/ChronographHomeBtn.png"   alt="Home"></div>
-    <div class="nav-tab active" id="tab-search"><img class="cyd-nav-img" src="assets/ChronographSearchBtn.png" alt="Search"></div>
-    <div class="nav-tab"        id="tab-files" ><img class="cyd-nav-img" src="assets/ChronographFilesBtn.png"  alt="Files"></div>
-    <div class="nav-tab"        id="tab-chat"  ><img class="cyd-nav-img" src="assets/ChronographChatBtn.png"   alt="Chat"></div>
-    <div class="nav-tab"        id="tab-tools" ><img class="cyd-nav-img" src="assets/ChronographToolsBtn.png"  alt="Tools"></div>
+    <div class="nav-tab"        id="tab-home"   ><img class="cyd-nav-img" src="assets/ChronographHomeBtn.png"   alt="Home"></div>
+    <div class="nav-tab active" id="tab-search" ><img class="cyd-nav-img" src="assets/ChronographSearchBtn.png" alt="Search"></div>
+    <div class="nav-tab"        id="tab-account"><img class="cyd-nav-img" src="assets/ChronographFilesBtn.png"  alt="Account"></div>
+    <div class="nav-tab"        id="tab-chat"   ><img class="cyd-nav-img" src="assets/ChronographChatBtn.png"   alt="Chat"></div>
+    <div class="nav-tab"        id="tab-tools"  ><img class="cyd-nav-img" src="assets/ChronographToolsBtn.png"  alt="Tools"></div>
   </div>
 
   <script type="text/javascript">
     var MAIN_PAGES = {
-      'home':   'pages/home.html',
-      'search': 'pages/search.html',
-      'files':  'pages/files.html',
-      'chat':   'pages/chat.html',
-      'tools':  'pages/tools.html'
+      'home':    'pages/home.html',
+      'search':  'pages/search.html',
+      'account': 'pages/account.html',
+      'chat':    'pages/chat.html',
+      'tools':   'pages/tools.html'
     };
     var NAV_H    = 55;
     var HEADER_H = 44;
@@ -112,7 +112,7 @@
     }
 
     function setActiveTab(active) {
-      var tabs = ['home','search','files','chat','tools'];
+      var tabs = ['home','search','account','chat','tools'];
       for (var i = 0; i < tabs.length; i++) {
         var el = document.getElementById('tab-' + tabs[i]);
         if (el) el.className = 'nav-tab' + (tabs[i] === active ? ' active' : '');
@@ -147,11 +147,11 @@
         if (!moved) { e.preventDefault(); fn(); }
       }, false);
     }
-    fastTap(document.getElementById('tab-home'),   function() { loadPage('home');   });
-    fastTap(document.getElementById('tab-search'), function() { loadPage('search'); });
-    fastTap(document.getElementById('tab-files'),  function() { loadPage('files');  });
-    fastTap(document.getElementById('tab-chat'),   function() { loadPage('chat');   });
-    fastTap(document.getElementById('tab-tools'),  function() { loadPage('tools');  });
+    fastTap(document.getElementById('tab-home'),    function() { loadPage('home');    });
+    fastTap(document.getElementById('tab-search'),  function() { loadPage('search');  });
+    fastTap(document.getElementById('tab-account'), function() { loadPage('account'); });
+    fastTap(document.getElementById('tab-chat'),    function() { loadPage('chat');    });
+    fastTap(document.getElementById('tab-tools'),   function() { loadPage('tools');   });
 
     /* Prevent navbar and header from scrolling on iOS 7 — only lock the chrome, not the iframe */
     var bottomNav = document.getElementById('bottom-nav');

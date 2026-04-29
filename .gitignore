@@ -1,2 +1,34 @@
+# macOS
 .DS_Store
+**/.DS_Store
+
+# Internal docs
 DESIGN.md
+
+# Xcode build artifacts
+build/
+DerivedData/
+*.xcuserstate
+*.xccheckout
+
+# Python
+__pycache__/
+admin_panel.py
+app.py
+*.pyc
+*.pyo
+venv/
+.env
+*.egg-info/
+
+# Database / secrets (never committed, belt-and-suspenders)
+*.db
+*.sqlite
+*.pem
+*.key
+admin_secret.txt
+admin_pass.txt
+
+# Old app folder
+chronograph-old/
+

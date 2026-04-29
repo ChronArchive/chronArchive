@@ -8,7 +8,7 @@ Features: accounts, messaging, read receipts, friends/blocks, profiles,
 """
 
 from flask import Flask, request, jsonify, make_response, send_from_directory
-import sqlite3, hashlib, hmac, secrets, time, os, threading, re, base64, json, string
+import sqlite3, hashlib, hmac, secrets, time, os, threading, re, base64, json, string, shutil
 
 app = Flask(__name__)
 
@@ -17,6 +17,36 @@ UPLOADS_DIR  = os.environ.get('UPLOADS_DIR',  '/opt/chronograph-chat/uploads')
 SITE_BASE    = os.environ.get('SITE_BASE',    'https://chat.chronarchive.com')
 DB_LOCK      = threading.Lock()
 os.makedirs(UPLOADS_DIR, exist_ok=True)
+
+# Cap request body to 3 MB to prevent memory exhaustion
+app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024
+
+# ── In-memory rate limiting (login / register brute-force) ────────────────────
+# {ip: [timestamp, ...]}  — keeps only the last 60 seconds of attempts
+_RATE_LOCK    = threading.Lock()
+_RATE_BUCKETS = {}   # ip -> list of unix timestamps
+_RATE_LIMIT   = 10   # max attempts per window
+_RATE_WINDOW  = 60   # seconds
+
+def _check_rate(ip):
+    """Return True if the IP is within limits, False if exceeded."""
+    now = time.time()
+    with _RATE_LOCK:
+        bucket = _RATE_BUCKETS.get(ip, [])
+        bucket = [t for t in bucket if now - t < _RATE_WINDOW]
+        if len(bucket) >= _RATE_LIMIT:
+            _RATE_BUCKETS[ip] = bucket
+            return False
+        bucket.append(now)
+        _RATE_BUCKETS[ip] = bucket
+        return True
+
+def _get_ip():
+    """Return real client IP, honouring X-Forwarded-For from trusted proxies."""
+    xff = request.headers.get('X-Forwarded-For', '')
+    if xff:
+        return xff.split(',')[0].strip()
+    return request.remote_addr or '0.0.0.0'
 
 # Pillow is optional — falls back to storing base64 inline if unavailable.
 try:
@@ -48,12 +78,13 @@ def gen_friend_code():
 def get_db():
     conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
-    conn.execute('PRAGMA journal_mode=WAL')
     conn.execute('PRAGMA foreign_keys=ON')
     return conn
 
 def init_db():
     conn = get_db()
+    # WAL mode persists — set it once here, not on every connection
+    conn.execute('PRAGMA journal_mode=WAL')
     conn.executescript('''
         CREATE TABLE IF NOT EXISTS users (
             id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -163,6 +194,12 @@ def init_db():
         conn.commit()
     except Exception:
         pass
+    # Safe migration: add device_tag to posts
+    try:
+        conn.execute('ALTER TABLE posts ADD COLUMN device_tag TEXT DEFAULT ""')
+        conn.commit()
+    except Exception:
+        pass
     # Safe migration: add friend_code column if absent (no UNIQUE in ALTER TABLE — SQLite restriction)
     try:
         conn.execute('ALTER TABLE users ADD COLUMN friend_code TEXT')
@@ -191,15 +228,25 @@ def init_db():
 
 # ── Auth helpers ───────────────────────────────────────────────────────────────
 
-PBKDF2_SALT = b'chronograph-chat-v1'
-
-def hash_password(password):
-    return hashlib.pbkdf2_hmac(
-        'sha256', password.encode('utf-8'), PBKDF2_SALT, 200_000
-    ).hex()
+def hash_password(password, salt=None):
+    """Hash password with a random per-user salt.
+    Returns 'salt_hex:hash_hex'. If salt is provided (bytes) it is reused.
+    """
+    if salt is None:
+        salt = secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 200_000)
+    return salt.hex() + ':' + digest.hex()
 
 def verify_password(password, stored_hash):
-    return hmac.compare_digest(hash_password(password), stored_hash)
+    """Verify against new 'salt:hash' format or legacy fixed-salt format."""
+    if ':' in stored_hash:
+        salt_hex, _ = stored_hash.split(':', 1)
+        return hmac.compare_digest(hash_password(password, bytes.fromhex(salt_hex)), stored_hash)
+    # Legacy fixed-salt — upgrade path
+    legacy = hashlib.pbkdf2_hmac(
+        'sha256', password.encode('utf-8'), b'chronograph-chat-v1', 200_000
+    ).hex()
+    return hmac.compare_digest(legacy, stored_hash)
 
 def require_auth(req):
     token = req.headers.get('X-CG-Token') or req.cookies.get('cg_session')
@@ -240,7 +287,7 @@ ALLOWED_ORIGINS = {
 
 def add_cors(resp):
     origin = request.headers.get('Origin', '')
-    if origin in ALLOWED_ORIGINS or origin == 'null' or not origin:
+    if origin in ALLOWED_ORIGINS or not origin:
         resp.headers['Access-Control-Allow-Origin']      = origin or '*'
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
     resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
@@ -279,6 +326,8 @@ def ping():
 
 @app.route('/api/register', methods=['POST'])
 def register():
+    if not _check_rate(_get_ip()):
+        return jsonify({'ok': False, 'error': 'Too many attempts. Please wait a moment.'}), 429
     data     = request.get_json(force=True, silent=True) or {}
     username = (data.get('username') or '').strip()
     password = data.get('password') or ''
@@ -325,6 +374,8 @@ def register():
 
 @app.route('/api/login', methods=['POST'])
 def login():
+    if not _check_rate(_get_ip()):
+        return jsonify({'ok': False, 'error': 'Too many attempts. Please wait a moment.'}), 429
     data     = request.get_json(force=True, silent=True) or {}
     username = (data.get('username') or '').strip()
     password = data.get('password') or ''
@@ -340,8 +391,18 @@ def login():
     if row['is_banned']:
         return jsonify({'ok': False, 'error': 'This account has been suspended'}), 403
 
+    # Upgrade legacy fixed-salt hash to per-user salt on successful login
+    if ':' not in row['password_hash']:
+        conn2 = get_db()
+        conn2.execute('UPDATE users SET password_hash=? WHERE id=?',
+                      (hash_password(password), row['id']))
+        conn2.commit()
+        conn2.close()
+
     token = secrets.token_hex(32)
     conn  = get_db()
+    # Prune expired sessions for this user while we're here
+    conn.execute('DELETE FROM sessions WHERE expires_at < ?', (int(time.time()),))
     conn.execute('INSERT INTO sessions VALUES (?,?,?)',
                  (token, row['id'], int(time.time()) + 30 * 24 * 3600))
     conn.commit()
@@ -777,6 +838,25 @@ def send_message():
 
     return jsonify({'ok': True, 'message': msg}), 201
 
+
+@app.route('/api/messages/<int:msg_id>', methods=['DELETE'])
+def delete_message(msg_id):
+    """Soft-delete a message. Only the sender can delete their own message."""
+    uid, err = require_auth(request)
+    if err: return err
+    conn = get_db()
+    row = conn.execute('SELECT from_user_id FROM messages WHERE id=? AND deleted=0', (msg_id,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'ok': False, 'error': 'Message not found'}), 404
+    if row['from_user_id'] != uid:
+        conn.close()
+        return jsonify({'ok': False, 'error': 'Cannot delete another user\'s message'}), 403
+    conn.execute('UPDATE messages SET deleted=1 WHERE id=?', (msg_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
 # ── Read receipts poll ─────────────────────────────────────────────────────────
 
 @app.route('/api/read_receipts')
@@ -1015,20 +1095,28 @@ def admin_stats():
 @app.route('/api/posts', methods=['GET'])
 def list_posts():
     uid, _  = require_auth(request)   # None if not logged in — that's fine
-    q      = (request.args.get('q') or '').strip()
-    type_  = (request.args.get('type') or '').strip()
+    q           = (request.args.get('q') or '').strip()
+    type_       = (request.args.get('type') or '').strip()
+    friends_only = request.args.get('friends') == '1'
     page   = max(0, int(request.args.get('page', 0) or 0))
     limit  = 20
     offset = page * limit
 
     conn = get_db()
     sql    = '''SELECT p.id, p.user_id, u.username, u.avatar_b64,
-                       p.type, p.title, p.description, p.tags, p.media_data, p.media_url, p.created_at,
+                       p.type, p.title, p.description, p.tags, p.media_data, p.media_url,
+                       p.device_tag, p.created_at,
                        (SELECT COUNT(*) FROM post_likes   l WHERE l.post_id=p.id) AS likes_count,
                        (SELECT COUNT(*) FROM post_comments c WHERE c.post_id=p.id AND c.deleted=0) AS comments_count
                 FROM posts p JOIN users u ON u.id = p.user_id
                 WHERE p.deleted = 0'''
     params = []
+    if friends_only and uid:
+        sql += ''' AND p.user_id IN (
+            SELECT CASE WHEN from_user_id=? THEN to_user_id ELSE from_user_id END
+            FROM friends WHERE (from_user_id=? OR to_user_id=?) AND status='accepted'
+        )'''
+        params += [uid, uid, uid]
     if q:
         sql += ' AND (p.title LIKE ? OR p.description LIKE ? OR p.tags LIKE ?)'
         params += ['%' + q + '%', '%' + q + '%', '%' + q + '%']
@@ -1070,6 +1158,7 @@ def list_posts():
             'tags':           r['tags'] or '',
             'media_url':      media_url,
             'media_data':     media_data,
+            'device_tag':     r['device_tag'] or '',
             'created_at':     r['created_at'],
             'likes_count':    r['likes_count'],
             'comments_count': r['comments_count'],
@@ -1089,6 +1178,7 @@ def create_post():
     description = (data.get('description') or '').strip()
     tags        = (data.get('tags') or '').strip()
     media_data  = data.get('media_data') or ''
+    device_tag  = (data.get('device_tag') or '').strip()[:40]
 
     if not title:
         return jsonify({'ok': False, 'error': 'Title is required'}), 400
@@ -1110,6 +1200,12 @@ def create_post():
     if day_count >= 10:
         conn.close()
         return jsonify({'ok': False, 'error': 'Daily post limit (10) reached'}), 429
+
+    # ── Disk quota guard (500 MB free minimum) ──────────────────────────────
+    free_bytes = shutil.disk_usage(UPLOADS_DIR).free
+    if free_bytes < 500 * 1024 * 1024:
+        conn.close()
+        return jsonify({'ok': False, 'error': 'Server storage is full. Please try again later.'}), 507
 
     # ── Server-side image processing ──────────────────────────────────────────
     saved_url  = ''
@@ -1150,8 +1246,8 @@ def create_post():
         saved_b64 = media_data
 
     cur = conn.execute(
-        'INSERT INTO posts (user_id, type, title, description, tags, media_data, media_url) VALUES (?,?,?,?,?,?,?)',
-        (uid, type_, title, description, tags, saved_b64, saved_url)
+        'INSERT INTO posts (user_id, type, title, description, tags, media_data, media_url, device_tag) VALUES (?,?,?,?,?,?,?,?)',
+        (uid, type_, title, description, tags, saved_b64, saved_url, device_tag)
     )
     conn.commit()
     post_id = cur.lastrowid
