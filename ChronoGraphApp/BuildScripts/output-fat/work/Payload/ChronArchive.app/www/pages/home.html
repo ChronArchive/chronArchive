@@ -455,6 +455,23 @@ function relTime(ts){
   return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.getMonth()]+' '+dt.getDate();
 }
 
+function onFeedPostImgLoad(img){
+  if(!img) return;
+  var full = img.getAttribute('data-full-url') || '';
+  /* Some thumbs come back as tiny placeholders (1x1/2x2); promote to full media. */
+  if(full && img.src !== full && img.naturalWidth <= 2 && img.naturalHeight <= 2){
+    img.src = full;
+  }
+}
+
+function onFeedPostImgErr(img){
+  if(!img) return;
+  var full = img.getAttribute('data-full-url') || '';
+  if(full && img.src !== full){
+    img.src = full;
+  }
+}
+
 /* ─── Feed Tabs ─── */
 function setFeedTab(mode){
   S.feedMode=mode;
@@ -507,7 +524,7 @@ function renderPost(p){
     if(p.type==='video'){
       media='<div class="post-media">'+mkVid(mediaFullSrc)+'</div>';
     } else if(mediaThumbSrc.indexOf('data:')===0||mediaThumbSrc.indexOf('http')===0){
-      media='<div class="post-media" onclick="openImageFull('+JSON.stringify(mediaFullSrc)+')"><img src="'+esc(mediaThumbSrc)+'" alt="" loading="lazy"></div>';
+      media='<div class="post-media" onclick="openImageFull('+JSON.stringify(mediaFullSrc)+')"><img src="'+esc(mediaThumbSrc)+'" data-full-url="'+esc(mediaFullSrc)+'" alt="" onload="onFeedPostImgLoad(this)" onerror="onFeedPostImgErr(this)"></div>';
     }
   }
   var lkFill=p.user_liked?'#e0245e':'none';

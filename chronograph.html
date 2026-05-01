@@ -293,6 +293,30 @@ body { background:#eef1f6; }
   #cg-msg-list-pane { width:100%; border-right:none; border-bottom:1px solid #1e1f22; }
   #cg-msg-panel { -webkit-flex-direction:column; flex-direction:column; min-height:540px; }
 }
+
+/* Muted blue pass: keep identity, reduce Facebook-like saturation */
+:root {
+  --cg-blue: #4f6e92;
+  --cg-blue-dark: #435f80;
+  --cg-blue-soft: #e5edf6;
+  --cg-blue-line: #c7d3e1;
+}
+#cg-header {
+  background: -webkit-linear-gradient(top, #6986a8 0%, var(--cg-blue) 100%);
+  background: linear-gradient(to bottom, #6986a8 0%, var(--cg-blue) 100%);
+}
+.cg-btn-primary { background: var(--cg-blue); }
+.cg-btn-primary:hover { background: var(--cg-blue-dark); }
+.cg-input:focus { border-color: var(--cg-blue); -webkit-box-shadow: 0 0 0 2px rgba(79,110,146,.16); box-shadow: 0 0 0 2px rgba(79,110,146,.16); }
+.cg-tab.active { color: var(--cg-blue); border-bottom-color: var(--cg-blue); }
+.cg-tag { background: var(--cg-blue-soft); color: var(--cg-blue-dark); border: 1px solid var(--cg-blue-line); }
+.cg-av, .cg-av-sm, .cg-av-lg { background: var(--cg-blue); }
+.cg-act-btn.liked { color: var(--cg-blue); }
+.cg-act-btn.liked svg { fill: var(--cg-blue); stroke: var(--cg-blue); }
+.cg-profile-cover {
+  background: -webkit-linear-gradient(130deg,#7ea0c4 0%, var(--cg-blue) 46%, #3c5170 100%);
+  background: linear-gradient(130deg,#7ea0c4 0%, var(--cg-blue) 46%, #3c5170 100%);
+}
   </style>
 </head>
 <body>
@@ -1003,6 +1027,39 @@ function approxDataUrlBytes(dataUrl) {
   return Math.floor((s.length - i - 1) * 0.75);
 }
 
+function onPostImgLoad(imgEl) {
+  if (!imgEl) return;
+  var full = imgEl.getAttribute('data-full-url') || '';
+  // Some generated thumbs can be 1x1 placeholders; promote to full image.
+  if (full && imgEl.src !== full && imgEl.naturalWidth <= 2 && imgEl.naturalHeight <= 2) {
+    imgEl.src = full;
+  }
+}
+
+function onPostImgError(imgEl) {
+  if (!imgEl) return;
+  var full = imgEl.getAttribute('data-full-url') || '';
+  if (full && imgEl.src !== full) {
+    imgEl.src = full;
+  }
+}
+
+function onProfileThumbLoad(imgEl) {
+  if (!imgEl) return;
+  var full = imgEl.getAttribute('data-full-url') || '';
+  if (full && imgEl.src !== full && imgEl.naturalWidth <= 2 && imgEl.naturalHeight <= 2) {
+    imgEl.src = full;
+  }
+}
+
+function onProfileThumbError(imgEl) {
+  if (!imgEl) return;
+  var full = imgEl.getAttribute('data-full-url') || '';
+  if (full && imgEl.src !== full) {
+    imgEl.src = full;
+  }
+}
+
 function renderPost(p) {
   var mediaHtml = '';
   var mediaFullSrc = p.media_url || p.media_data || '';
@@ -1012,7 +1069,7 @@ function renderPost(p) {
     if (treatAsVideo) {
       mediaHtml = '<video class="cg-post-video" controls preload="none" src="' + esc(mediaFullSrc || mediaThumbSrc) + '"></video>';
     } else if (mediaThumbSrc.indexOf('data:') === 0 || mediaThumbSrc.indexOf('http') === 0) {
-      mediaHtml = '<div class="cg-post-media-square" onclick="openPost(' + p.id + ')"><img class="cg-post-media" src="' + esc(mediaThumbSrc) + '" data-full-url="' + esc(mediaFullSrc) + '" alt="" loading="lazy"></div>';
+      mediaHtml = '<div class="cg-post-media-square" onclick="openPost(' + p.id + ')"><img class="cg-post-media" src="' + esc(mediaThumbSrc) + '" data-full-url="' + esc(mediaFullSrc) + '" alt="" onload="onPostImgLoad(this)" onerror="onPostImgError(this)"></div>';
     }
   }
   var tags = '';
@@ -1427,8 +1484,9 @@ function renderProfileModal(u, isSelf, friendStatus, direction, isBlocked) {
     for (var j = 0; j < userPosts.length; j++) {
       var p = userPosts[j];
       var thumbUrl = p.media_thumb_url || p.media_url || p.media_data || '';
+      var fullUrl = p.media_url || p.media_data || thumbUrl;
       var thumb = (thumbUrl && (thumbUrl.indexOf('data:') === 0 || thumbUrl.indexOf('http') === 0))
-        ? '<img src="' + esc(thumbUrl) + '">'
+        ? '<img src="' + esc(thumbUrl) + '" data-full-url="' + esc(fullUrl) + '" onload="onProfileThumbLoad(this)" onerror="onProfileThumbError(this)">'
         : '<div style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px">' + esc((p.title||'Post').substring(0,20)) + '</div>';
       html += '<div class="cg-profile-thumb" onclick="closeModal(\'cg-profile-modal\');openPost(' + p.id + ')" title="' + esc(p.title) + '">' + thumb + '</div>';
     }

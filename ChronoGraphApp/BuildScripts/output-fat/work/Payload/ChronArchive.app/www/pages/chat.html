@@ -70,8 +70,9 @@
     .search-input::-webkit-input-placeholder { color:#aaa; }
     .list-section { padding:6px 16px; background:#f2f2f7; font-size:12px; color:#888; font-weight:bold; letter-spacing:0.5px; text-transform:uppercase; border-bottom:1px solid #e1e1e1; }
     /* Thread / message bubbles — iOS 6 iMessage style */
-    #thread-screen .sb { bottom:84px; background:#f2f2f7; }
-    #thread-body { padding:12px 0 120px; }
+    /* Keep thread viewport aligned to the composer height to avoid dead-space/overscroll. */
+    #thread-screen .sb { bottom:50px; background:#f2f2f7; }
+    #thread-body { padding:12px 0 12px; }
     .msg-row { padding:3px 12px; }
     .msg-bubble { display:inline-block; max-width:74%; padding:8px 12px;
       -webkit-border-radius:16px; border-radius:16px;
