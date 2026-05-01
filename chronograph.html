@@ -991,13 +991,26 @@ var SVG_COMMENT = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" s
 var SVG_SHARE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>';
 var SVG_SEND = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
 
+function isLikelyVideoUrl(url) {
+  var u = String(url || '').toLowerCase();
+  return /\.(mp4|m4v|mov|webm|ogv)(\?|#|$)/.test(u);
+}
+
+function approxDataUrlBytes(dataUrl) {
+  var s = String(dataUrl || '');
+  var i = s.indexOf(',');
+  if (i < 0) return s.length;
+  return Math.floor((s.length - i - 1) * 0.75);
+}
+
 function renderPost(p) {
   var mediaHtml = '';
   var mediaFullSrc = p.media_url || p.media_data || '';
   var mediaThumbSrc = p.media_thumb_url || mediaFullSrc;
+  var treatAsVideo = (p.type === 'video') || isLikelyVideoUrl(mediaFullSrc);
   if (mediaThumbSrc) {
-    if (p.type === 'video') {
-      mediaHtml = '<video class="cg-post-video" controls preload="none" src="' + esc(mediaFullSrc) + '"></video>';
+    if (treatAsVideo) {
+      mediaHtml = '<video class="cg-post-video" controls preload="none" src="' + esc(mediaFullSrc || mediaThumbSrc) + '"></video>';
     } else if (mediaThumbSrc.indexOf('data:') === 0 || mediaThumbSrc.indexOf('http') === 0) {
       mediaHtml = '<div class="cg-post-media-square" onclick="openPost(' + p.id + ')"><img class="cg-post-media" src="' + esc(mediaThumbSrc) + '" data-full-url="' + esc(mediaFullSrc) + '" alt="" loading="lazy"></div>';
     }
@@ -1209,12 +1222,73 @@ function onComposeImg() {
   var f = document.getElementById('cp-file').files[0];
   if (!f) return;
   if (typeof FileReader === 'undefined') { showErr('cg-compose-err', 'Image upload not supported on this browser.'); return; }
-  if (f.size > 2 * 1024 * 1024) { showErr('cg-compose-err', 'Image must be under 2 MB.'); return; }
+  if (f.size > 10 * 1024 * 1024) { showErr('cg-compose-err', 'Image is too large. Please use one under 10 MB.'); return; }
+  clearErr('cg-compose-err');
   var reader = new FileReader();
   reader.onload = function(e) {
-    cgState.composeImgData = e.target.result;
+    var dataUrl = e.target.result;
+    var targetBytes = 1900000;
+    var useOriginal = (typeof Image === 'undefined');
+    if (!useOriginal && approxDataUrlBytes(dataUrl) > targetBytes) {
+      var img = new Image();
+      img.onload = function() {
+        var c = document.createElement('canvas');
+        if (!c || !c.getContext) {
+          cgState.composeImgData = dataUrl;
+          var prevFallback = document.getElementById('cp-preview');
+          prevFallback.src = dataUrl;
+          prevFallback.style.display = 'block';
+          return;
+        }
+        var w = img.width || 0;
+        var h = img.height || 0;
+        if (!w || !h) {
+          cgState.composeImgData = dataUrl;
+          var prevBad = document.getElementById('cp-preview');
+          prevBad.src = dataUrl;
+          prevBad.style.display = 'block';
+          return;
+        }
+        var maxDim = 1600;
+        var scale = Math.min(1, maxDim / w, maxDim / h);
+        var outW = Math.max(1, Math.round(w * scale));
+        var outH = Math.max(1, Math.round(h * scale));
+        var ctx = c.getContext('2d');
+        var out = dataUrl;
+        var quality = 0.85;
+        var tries = 0;
+        while (tries < 5) {
+          c.width = outW;
+          c.height = outH;
+          ctx.clearRect(0, 0, outW, outH);
+          ctx.drawImage(img, 0, 0, outW, outH);
+          out = c.toDataURL('image/jpeg', quality);
+          if (approxDataUrlBytes(out) <= targetBytes) break;
+          quality -= 0.1;
+          outW = Math.max(480, Math.round(outW * 0.88));
+          outH = Math.max(480, Math.round(outH * 0.88));
+          tries++;
+        }
+        cgState.composeImgData = out;
+        var prev = document.getElementById('cp-preview');
+        prev.src = out;
+        prev.style.display = 'block';
+        if (approxDataUrlBytes(out) > targetBytes) {
+          showErr('cg-compose-err', 'Image is large; quality was reduced for upload compatibility.');
+        }
+      };
+      img.onerror = function() {
+        cgState.composeImgData = dataUrl;
+        var prevErr = document.getElementById('cp-preview');
+        prevErr.src = dataUrl;
+        prevErr.style.display = 'block';
+      };
+      img.src = dataUrl;
+      return;
+    }
+    cgState.composeImgData = dataUrl;
     var prev = document.getElementById('cp-preview');
-    prev.src = e.target.result;
+    prev.src = dataUrl;
     prev.style.display = 'block';
   };
   reader.readAsDataURL(f);
@@ -1237,7 +1311,7 @@ function submitPost() {
     if (media.indexOf('javascript:') === 0 || media.indexOf('data:') === 0) {
       showErr('cg-compose-err', 'Invalid URL.'); return;
     }
-    type = 'image';
+    type = isLikelyVideoUrl(media) ? 'video' : 'image';
   } else {
     media = document.getElementById('cp-video-url').value.replace(/^\s+|\s+$/g,'');
     if (!media) { showErr('cg-compose-err', 'Please enter a video URL.'); return; }
