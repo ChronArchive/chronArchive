@@ -186,9 +186,14 @@ def init_db():
         );
         CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status, created_at DESC);
     ''')
-    # Safe migration: add media_url column for file-based image storage
+    # Safe migration: add media_url and media_thumb_url columns for file-based image storage
     try:
         conn.execute('ALTER TABLE posts ADD COLUMN media_url TEXT DEFAULT ""')
+        conn.commit()
+    except Exception:
+        pass
+    try:
+        conn.execute('ALTER TABLE posts ADD COLUMN media_thumb_url TEXT DEFAULT ""')
         conn.commit()
     except Exception:
         pass
@@ -327,6 +332,8 @@ def verify_password(password, stored_hash):
 
 def require_auth(req):
     token = req.headers.get('X-CG-Token') or req.cookies.get('cg_session')
+    if not token and req.method in ('POST', 'PUT', 'DELETE'):
+        token = req.form.get('cg_token') or req.form.get('token')
     if not token:
         return None, (jsonify({'ok': False, 'error': 'Not authenticated'}), 401)
     conn = get_db()
@@ -1199,7 +1206,7 @@ def list_posts():
 
     conn = get_db()
     sql    = '''SELECT p.id, p.user_id, u.username, u.avatar_b64,
-                       p.type, p.title, p.description, p.tags, p.media_data, p.media_url,
+                       p.type, p.title, p.description, p.tags, p.media_data, p.media_url, p.media_thumb_url,
                        p.device_tag, p.created_at,
                        COUNT(DISTINCT pl.user_id) AS likes_count,
                        COUNT(DISTINCT pc.id)      AS comments_count
@@ -1240,8 +1247,9 @@ def list_posts():
     posts = []
     for r in rows:
         # Prefer file URL; fall back to legacy inline base64 if no URL stored yet
-        media_url  = r['media_url'] if r['media_url'] else ''
-        media_data = ''
+        media_url       = r['media_url'] if r['media_url'] else ''
+        media_thumb_url = r['media_thumb_url'] if r['media_thumb_url'] else ''
+        media_data      = ''
         if not media_url and r['media_data']:
             media_data = r['media_data']
         posts.append({
@@ -1254,6 +1262,7 @@ def list_posts():
             'description':    r['description'] or '',
             'tags':           r['tags'] or '',
             'media_url':      media_url,
+            'media_thumb_url': media_thumb_url,
             'media_data':     media_data,
             'device_tag':     r['device_tag'] or '',
             'created_at':     r['created_at'],
@@ -1269,12 +1278,33 @@ def create_post():
     uid, err = require_auth(request)
     if err: return err
 
-    data        = request.get_json(force=True, silent=True) or {}
+    if request.content_type and request.content_type.startswith('multipart/form-data'):
+        form = request.form
+        data = {
+            'type': form.get('type', 'image'),
+            'title': form.get('title', ''),
+            'description': form.get('description', ''),
+            'tags': form.get('tags', ''),
+            'device_tag': form.get('device_tag', ''),
+        }
+        media_file = request.files.get('image_file')
+        if media_file:
+            raw = media_file.read()
+            mimetype = media_file.mimetype or 'application/octet-stream'
+            media_data = 'data:%s;base64,%s' % (
+                mimetype,
+                base64.b64encode(raw).decode('ascii')
+            )
+        else:
+            media_data = ''
+    else:
+        data        = request.get_json(force=True, silent=True) or {}
+        media_data  = data.get('media_data') or ''
+
     type_       = (data.get('type') or 'image').strip()
     title       = (data.get('title') or '').strip()
     description = (data.get('description') or '').strip()
     tags        = (data.get('tags') or '').strip()
-    media_data  = data.get('media_data') or ''
     device_tag  = (data.get('device_tag') or '').strip()[:40]
 
     if not title:
@@ -1283,8 +1313,8 @@ def create_post():
         return jsonify({'ok': False, 'error': 'Type must be image or video'}), 400
     if not media_data:
         return jsonify({'ok': False, 'error': 'Media data is required'}), 400
-    if type_ == 'image' and len(media_data) > 2_000_000:
-        return jsonify({'ok': False, 'error': 'Image too large (max ~1.5 MB base64)'}), 413
+    if type_ == 'image' and len(media_data) > 75_000_000:
+        return jsonify({'ok': False, 'error': 'Image too large (max ~50 MB)'}), 413
 
     # 10 posts per day limit (UTC midnight)
     now            = int(time.time())
@@ -1306,6 +1336,7 @@ def create_post():
 
     # ── Server-side image processing ──────────────────────────────────────────
     saved_url  = ''
+    saved_thumb_url = ''
     saved_b64  = ''
     if type_ == 'image' and media_data:
         # If the client sent an image URL instead of inline base64, store the URL directly.
@@ -1324,20 +1355,48 @@ def create_post():
                 img_bytes = base64.b64decode(raw_b64)
                 if _HAS_PILLOW:
                     img = Image.open(_io.BytesIO(img_bytes)).convert('RGB')
-                    # Resize if wider than 1200px, preserving aspect ratio
+                    # Resize if either side is larger than 1200px, preserving aspect ratio
                     max_dim = 1200
-                    if img.width > max_dim:
-                        ratio = max_dim / img.width
-                        img = img.resize((max_dim, int(img.height * ratio)), Image.LANCZOS)
-                    # Save as JPEG at 82% quality
-                    fname = secrets.token_hex(16) + '.jpg'
+                    if max(img.width, img.height) > max_dim:
+                        ratio = float(max_dim) / float(max(img.width, img.height))
+                        img = img.resize((int(img.width * ratio), int(img.height * ratio)), Image.LANCZOS)
+                    base_name = secrets.token_hex(16)
+                    fname = base_name + '.jpg'
+                    thumb_fname = base_name + '-sq.jpg'
                     fpath = os.path.join(UPLOADS_DIR, fname)
-                    out   = _io.BytesIO()
-                    img.save(out, format='JPEG', quality=82, optimize=True)
+                    thumb_path = os.path.join(UPLOADS_DIR, thumb_fname)
+                    out = _io.BytesIO()
+                    img.save(out, format='JPEG', quality=72, optimize=True)
+                    jpeg_bytes = out.getvalue()
+                    if len(jpeg_bytes) > 1_500_000:
+                        out = _io.BytesIO()
+                        img.save(out, format='JPEG', quality=68, optimize=True)
+                        jpeg_bytes = out.getvalue()
                     with open(fpath, 'wb') as f:
-                        f.write(out.getvalue())
-                    saved_url  = SITE_BASE + '/uploads/' + fname
-                    saved_b64  = ''   # not stored inline
+                        f.write(jpeg_bytes)
+                    # Create a square thumbnail by center-cropping and resizing.
+                    thumb_img = img
+                    if img.width != img.height:
+                        if img.width > img.height:
+                            left = (img.width - img.height) // 2
+                            thumb_img = img.crop((left, 0, left + img.height, img.height))
+                        else:
+                            top = (img.height - img.width) // 2
+                            thumb_img = img.crop((0, top, img.width, top + img.width))
+                    thumb_size = 512
+                    thumb_img = thumb_img.resize((thumb_size, thumb_size), Image.LANCZOS)
+                    out_thumb = _io.BytesIO()
+                    thumb_img.save(out_thumb, format='JPEG', quality=72, optimize=True)
+                    thumb_bytes = out_thumb.getvalue()
+                    if len(thumb_bytes) > 450_000:
+                        out_thumb = _io.BytesIO()
+                        thumb_img.save(out_thumb, format='JPEG', quality=68, optimize=True)
+                        thumb_bytes = out_thumb.getvalue()
+                    with open(thumb_path, 'wb') as f:
+                        f.write(thumb_bytes)
+                    saved_url = SITE_BASE + '/uploads/' + fname
+                    saved_thumb_url = SITE_BASE + '/uploads/' + thumb_fname
+                    saved_b64 = ''   # not stored inline
                 else:
                     # Pillow not installed — keep base64 inline
                     saved_b64 = media_data
@@ -1349,8 +1408,8 @@ def create_post():
         saved_b64 = media_data
 
     cur = conn.execute(
-        'INSERT INTO posts (user_id, type, title, description, tags, media_data, media_url, device_tag) VALUES (?,?,?,?,?,?,?,?)',
-        (uid, type_, title, description, tags, saved_b64, saved_url, device_tag)
+        'INSERT INTO posts (user_id, type, title, description, tags, media_data, media_url, media_thumb_url, device_tag) VALUES (?,?,?,?,?,?,?,?,?)',
+        (uid, type_, title, description, tags, saved_b64, saved_url, saved_thumb_url, device_tag)
     )
     conn.commit()
     post_id = cur.lastrowid

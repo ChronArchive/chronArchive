@@ -65,16 +65,25 @@
                 iconImg = scaled;
         }
         nav.tabBarItem = [[UITabBarItem alloc] initWithTitle:label image:iconImg tag:0];
+        /* iOS 5/6 path: provide both selected+unselected images explicitly so
+           UIKit does not apply blue template tinting/dimming. */
+        SEL legacySel = @selector(setFinishedSelectedImage:withFinishedUnselectedImage:);
+        if ([nav.tabBarItem respondsToSelector:legacySel]) {
+            ((void(*)(id,SEL,id,id))objc_msgSend)(nav.tabBarItem, legacySel, iconImg, iconImg);
+        }
+        /* iOS 7+ path: also set selectedImage to AlwaysOriginal. */
+        if ([nav.tabBarItem respondsToSelector:@selector(setSelectedImage:)]) {
+            nav.tabBarItem.selectedImage = iconImg;
+        }
 
         [navControllers addObject:nav];
     }
 
     UITabBarController *tabs = [[UITabBarController alloc] init];
     tabs.viewControllers = navControllers;
-    /* UITabBar.tintColor is iOS 5+ — guard so the call doesn't crash iOS 3/4 */
-    if ([tabs.tabBar respondsToSelector:@selector(setTintColor:)])
-        tabs.tabBar.tintColor = [UIColor colorWithRed:0.15 green:0.58 blue:0.78 alpha:1.0];
-
+    /* Do not set tabBar.tintColor — it reintroduces template/blue highlight behavior. */
+    if ([tabs.tabBar respondsToSelector:@selector(setTranslucent:)])
+        tabs.tabBar.translucent = NO;
 
     self.window.rootViewController = tabs;
     [self.window makeKeyAndVisible];

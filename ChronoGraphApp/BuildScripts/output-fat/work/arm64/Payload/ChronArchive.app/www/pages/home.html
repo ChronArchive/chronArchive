@@ -34,14 +34,14 @@
     #compose-btn { width:36px; height:36px; border:none; background:none;
       color:#0055cc; font-size:30px; font-weight:300; line-height:36px; padding:0;
       cursor:pointer; -webkit-tap-highlight-color:transparent; }
-    /* Feed tabs */
-    #feed-tabs { height:36px; -webkit-flex-shrink:0; flex-shrink:0;
-      background:#f8f8f8; border-bottom:1px solid #d8d8d8;
-      display:-webkit-box; display:-webkit-flex; display:flex; }
-    .ftab { -webkit-flex:1; flex:1; background:none; border:none; border-bottom:2px solid transparent;
-      font-size:13px; font-weight:bold; color:#888; cursor:pointer;
+    /* Feed toggle */
+    #hdr-feed-toggle { display:-webkit-box; display:-webkit-flex; display:flex; gap:4px;
+      background:#f2f2f7; border:1px solid #d8d8d8; border-radius:12px; padding:4px; margin:0 8px; }
+    .feed-toggle-btn { -webkit-flex:1; flex:1; min-width:0; height:32px; border:none; background:#fff;
+      color:#444; font-size:12px; font-weight:700; border-radius:10px; cursor:pointer;
       font-family:inherit; -webkit-tap-highlight-color:transparent; }
-    .ftab.on { color:#0055cc; border-bottom-color:#0055cc; }
+    .feed-toggle-btn.on { color:#fff; background:#0055cc; }
+    .feed-toggle-btn:active { background:#e8effe; }
 
     /* ── Feed ── */
     #feed-wrap { -webkit-box-flex:1; -webkit-flex:1 1 auto; flex:1 1 auto;
@@ -59,12 +59,13 @@
     .post-uname { font-size:13px; font-weight:bold; color:#1a1a1a; cursor:pointer; }
     .post-time  { font-size:11px; color:#aaa; }
     .post-body  { padding:2px 12px 8px 60px; }
+    #feed-tabs { display:none; }
     .post-title { font-size:14px; font-weight:bold; color:#1a1a1a; line-height:1.4; }
     .post-desc  { font-size:13px; color:#555; margin-top:3px; line-height:1.5; }
     .post-tags  { margin-top:5px; }
     .post-tag   { display:inline-block; font-size:11px; color:#0055cc; margin-right:4px; }
-    .post-media { width:100%; line-height:0; }
-    .post-media img   { width:100%; max-height:300px; object-fit:cover; display:block; }
+    .post-media { width:100%; position:relative; padding-top:100%; overflow:hidden; background:#000; cursor:pointer; }
+    .post-media img { position:absolute; top:50%; left:50%; min-width:100%; min-height:100%; width:auto; height:auto; transform:translate(-50%, -50%); display:block; }
     .post-media video { width:100%; max-height:260px; display:block; background:#000; }
     /* Actions */
     .post-actions { display:-webkit-box; display:-webkit-flex; display:flex; border-top:1px solid #f0f0f0; }
@@ -108,13 +109,16 @@
     .modal-box { background:#fff; margin:40px 16px 60px;
       -webkit-border-radius:12px; border-radius:12px; overflow:hidden; }
     .modal-hdr { padding:14px 16px; border-bottom:1px solid #e8e8e8;
-      display:-webkit-box; display:-webkit-flex; display:flex; -webkit-box-align:center; -webkit-align-items:center; align-items:center; }
+      display:-webkit-box; display:-webkit-flex; display:flex; -webkit-box-align:center; -webkit-align-items:center; align-items:center;
+      -webkit-justify-content:space-between; justify-content:space-between; }
     .modal-title { font-size:17px; font-weight:bold; -webkit-flex:1; flex:1; text-align:center; color:#1a1a1a; }
     .modal-lt, .modal-rt { font-size:15px; color:#0055cc; background:none; border:none;
       cursor:pointer; padding:0; font-family:inherit; -webkit-tap-highlight-color:transparent;
-      min-width:50px; }
+      min-width:60px; }
     .modal-lt { text-align:left; }
     .modal-rt { text-align:right; font-weight:bold; }
+    #compose-modal .modal-box { top:0; left:0; right:0; bottom:0; width:auto; height:auto; margin:0; -webkit-border-radius:0; border-radius:0; }
+    #compose-modal .modal-body { max-height: calc(100% - 56px); overflow-y:auto; }
     .modal-body { padding:16px; }
     .mfield { display:block; width:100%; padding:10px 12px; margin-bottom:10px;
       background:#f7f7f7; border:1px solid #ddd;
@@ -164,15 +168,13 @@
   <!-- Navigation Bar -->
   <div id="hdr">
     <img id="hdr-logo" src="../assets/ChronoGraphLogo.png" alt="Chronograph">
+    <div id="hdr-feed-toggle">
+      <button class="feed-toggle-btn on" id="ft-all" onclick="setFeedTab('all')">All</button>
+      <button class="feed-toggle-btn" id="ft-friends" onclick="setFeedTab('friends')">Friends</button>
+    </div>
     <div id="hdr-right">
       <button id="compose-btn" onclick="openCompose()" title="New Post">+</button>
     </div>
-  </div>
-
-  <!-- Feed Tabs -->
-  <div id="feed-tabs">
-    <button class="ftab on" id="ft-all"     onclick="setFeedTab('all')">Posts</button>
-    <button class="ftab"    id="ft-friends" onclick="setFeedTab('friends')">Friends</button>
   </div>
 
   <!-- Feed -->
@@ -239,6 +241,28 @@
   </div>
 </div>
 
+<!-- IMAGE FULLSCREEN MODAL -->
+<div class="modal-bg" id="img-modal" onclick="closeImageFull()">
+  <div class="img-modal-box" onclick="event.stopPropagation()" style="position:relative;max-width:90%;max-height:90%;margin:auto;">
+    <button class="img-modal-close" onclick="closeImageFull()" style="position:absolute;top:-10px;right:-10px;width:34px;height:34px;border:none;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:20px;line-height:34px;cursor:pointer;z-index:2;">&times;</button>
+    <img id="img-modal-img" src="" alt="" style="max-width:100%;max-height:100%;display:block;object-fit:contain;">
+  </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-bg" id="delete-modal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <button class="modal-lt" onclick="closeDeleteConfirm()">Cancel</button>
+      <span class="modal-title">Delete Post</span>
+      <button class="modal-rt" id="delete-confirm-btn" onclick="confirmDeletePost()">Delete</button>
+    </div>
+    <div class="modal-body" style="font-size:15px;line-height:1.6;color:#333;">
+      Are you sure you want to delete this post? This cannot be undone.
+    </div>
+  </div>
+</div>
+
 <!-- PROFILE MODAL -->
 <div class="modal-bg" id="prof-modal">
   <div class="modal-box">
@@ -297,7 +321,7 @@ var cgrPJ = (window.JSON && JSON.parse) ? function(s){return JSON.parse(s);} : f
 var S = {
   token:null, uid:null, uname:null, av:'',
   page:0, allLoaded:false,
-  ctype:'photo', cpImg:null, avData:null,
+  ctype:'photo', cpImg:null, cpFile:null, avData:null,
   authMode:'login', feedMode:'all'
 };
 S.token = store.g('cg_t')||store.g('hm_t');
@@ -324,6 +348,32 @@ function req(m,path,body,cb){
   x.send(body?JSON.stringify(body):null);
 }
 
+function uploadPostFormData(file,title,description,tags,deviceTag){
+  var btn=document.getElementById('cp-post-btn'); btn.disabled=true;
+  var fd=new FormData();
+  fd.append('type','image');
+  fd.append('title',title||description);
+  fd.append('description',description);
+  fd.append('tags',tags);
+  fd.append('device_tag',deviceTag);
+  fd.append('image_file',file);
+  if(S.token) fd.append('cg_token',S.token);
+
+  var x; try{x=new XMLHttpRequest();}catch(e){showErr('cp-err','Image upload not supported on this browser.');btn.disabled=false;return;}
+  x.open('POST',API+'/api/posts',true);
+  if(S.token) x.setRequestHeader('X-CG-Token',S.token);
+  x.onreadystatechange=function(){
+    if(x.readyState!==4)return;
+    btn.disabled=false;
+    var d;try{d=cgrPJ(x.responseText);}catch(e){d={ok:false,error:'Bad response'}};
+    if(!d.ok){showErr('cp-err',d.error||'Failed to post.');return;}
+    closeModal('compose-modal');
+    loadFeed(true);
+  };
+  x.onerror=function(){btn.disabled=false;showErr('cp-err','Upload failed.');};
+  x.send(fd);
+}
+
 function resizeImg(dataUrl,maxPx,cb){
   try{
     var img=new Image();
@@ -336,6 +386,7 @@ function resizeImg(dataUrl,maxPx,cb){
         cv.width=Math.round(w*sc); cv.height=Math.round(h*sc);
         var ctx=cv.getContext('2d');
         if(!ctx){cb(dataUrl);return;}
+        ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height);
         ctx.drawImage(img,0,0,cv.width,cv.height);
         var reduced = cv.toDataURL ? cv.toDataURL('image/jpeg',0.80) : dataUrl;
         cb(reduced);
@@ -406,11 +457,12 @@ function renderPost(p){
   var tags='';
   if(p.tags){var ta=(p.tags+'').split(/[\s,]+/);for(var i=0;i<ta.length;i++){if(ta[i])tags+='<span class="post-tag">#'+esc(ta[i])+'</span> ';}}
   var media='';
-  if(p.media_data){
+  var mediaSrc = p.media_data || p.media_url || '';
+  if(mediaSrc){
     if(p.type==='video'){
-      media='<div class="post-media">'+mkVid(p.media_data)+'</div>';
-    } else if(p.media_data.indexOf('data:')===0||p.media_data.indexOf('http')===0){
-      media='<div class="post-media"><img src="'+esc(p.media_data)+'" alt="" loading="lazy"></div>';
+      media='<div class="post-media">'+mkVid(mediaSrc)+'</div>';
+    } else if(mediaSrc.indexOf('data:')===0||mediaSrc.indexOf('http')===0){
+      media='<div class="post-media" onclick="openImageFull('+JSON.stringify(mediaSrc)+')"><img src="'+esc(mediaSrc)+'" alt="" loading="lazy"></div>';
     }
   }
   var lkFill=p.user_liked?'#e0245e':'none';
@@ -451,6 +503,19 @@ function renderPost(p){
   +'</div>';
 }
 
+function openImageFull(src){
+  var modal=document.getElementById('img-modal');
+  var img=document.getElementById('img-modal-img');
+  if(!modal||!img)return;
+  img.src=src;
+  modal.className='modal-bg open';
+}
+function closeImageFull(){
+  var modal=document.getElementById('img-modal');
+  var img=document.getElementById('img-modal-img');
+  if(modal) modal.className='modal-bg';
+  if(img) img.src='';
+}
 function mkVid(url){
   var yt=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
   if(yt) return '<iframe width="100%" height="210" src="https://www.youtube.com/embed/'+yt[1]+'" frameborder="0" allowfullscreen style="display:block;"></iframe>';
@@ -476,9 +541,24 @@ function toggleLike(pid){
 }
 
 /* ─── Delete ─── */
+S.pendingDeletePostId = null;
 function delPost(pid){
-  if(!confirm('Delete this post?'))return;
-  req('DELETE','/api/posts/'+pid,null,function(){
+  S.pendingDeletePostId = pid;
+  openModal('delete-modal');
+}
+function closeDeleteConfirm(){
+  S.pendingDeletePostId = null;
+  closeModal('delete-modal');
+}
+function confirmDeletePost(){
+  var pid = S.pendingDeletePostId;
+  if(!pid){closeDeleteConfirm();return;}
+  var btn = document.getElementById('delete-confirm-btn');
+  if(btn) btn.disabled = true;
+  req('DELETE','/api/posts/'+pid,null,function(d,err){
+    if(btn) btn.disabled = false;
+    closeDeleteConfirm();
+    if(err||!d||!d.ok){ showErr('cp-err', d&&d.error ? d.error : 'Could not delete post.'); return; }
     var el=document.getElementById('pc-'+pid);
     if(el)el.parentNode.removeChild(el);
   });
@@ -644,6 +724,7 @@ function openCompose(){
   document.getElementById('cp-preview').style.display='none';
   document.getElementById('cp-drop').style.display='block';
   S.cpImg=null;
+  S.cpFile=null;
   setCType('photo');
   hideErr('cp-err');
   openModal('compose-modal');
@@ -656,21 +737,33 @@ function setCType(t){
   document.getElementById('cp-video-wrap').style.display=t==='video'?'block':'none';
 }
 function onCpImg(){
-  if(!window.FileReader){showErr('cp-err','Image upload not supported on this browser.');return;}
   var f=document.getElementById('cp-file').files[0];
   if(!f)return;
-  if(f.size>4*1024*1024){showErr('cp-err','Image must be under 4 MB.');return;}
-  var reader=new FileReader();
-  reader.onload=function(e){
-    resizeImg(e.target.result,900,function(data){
-      S.cpImg=data;
-      var prev=document.getElementById('cp-preview');
-      prev.src=data; prev.style.display='block';
-      document.getElementById('cp-drop').style.display='none';
-    });
-  };
-  reader.onerror=function(){showErr('cp-err','Unable to read chosen image.');};
-  reader.readAsDataURL(f);
+  if(f.size>50*1024*1024){showErr('cp-err','Image must be under 50 MB.');return;}
+  S.cpFile = f;
+  S.cpImg = null;
+  if(window.FileReader){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      resizeImg(e.target.result,900,function(data){
+        S.cpImg=data;
+        var prev=document.getElementById('cp-preview');
+        prev.src=data; prev.style.display='block';
+        document.getElementById('cp-drop').style.display='none';
+      });
+    };
+    reader.onerror=function(){showErr('cp-err','Unable to read chosen image.');};
+    reader.readAsDataURL(f);
+    return;
+  }
+  var prev=document.getElementById('cp-preview');
+  if(window.URL && URL.createObjectURL){
+    prev.src=URL.createObjectURL(f);
+    prev.style.display='block';
+    document.getElementById('cp-drop').style.display='none';
+  } else {
+    document.getElementById('cp-drop').textContent='Photo selected';
+  }
 }
 function submitPost(){
   hideErr('cp-err');
@@ -680,8 +773,16 @@ function submitPost(){
   if(!title&&!desc){showErr('cp-err','Write something first!');return;}
   var media='',type='image';
   if(S.ctype==='photo'){
-    if(!S.cpImg){showErr('cp-err','Choose a photo or switch to Video URL.');return;}
-    media=S.cpImg;
+    if(S.cpFile && window.FormData){
+      var deviceTag='';
+      try{deviceTag=localStorage.getItem('cg-active-device')||'';}catch(e){}
+      uploadPostFormData(S.cpFile,title,desc,tags,deviceTag);
+      return;
+    } else if(S.cpImg){
+      media=S.cpImg;
+    } else {
+      showErr('cp-err','Choose a photo or switch to Video URL.');return;
+    }
   } else {
     var url=(document.getElementById('cp-vid-url').value||'').replace(/^\s+|\s+$/g,'');
     if(!url){showErr('cp-err','Enter a video URL.');return;}
@@ -757,25 +858,34 @@ function saveProfile(){
 function updatePill(){}
 
 /* ─── Theme ─── */
-(function(){
+function accentColorForName(name){
+  var colors={blue:'#8abdec',green:'#90e0ad',red:'#ff3b30',orange:'#ff9500',purple:'#5856d6',pink:'#ff2d55',teal:'#5ac8fa',gray:'#8e8e93'};
+  return colors[name]||colors.blue;
+}
+function accentName(){
+  try{return store.g('cg-accent-color')||store.g('cg-chat-bubble')||'blue';}catch(e){return 'blue';}
+}
+function applyTheme(){
   var THEMES={
     light:{bg:'#f2f2f7',grp:'#fff',text:'#1a1a1a',sub:'#8e8e93',brd:'#c8c8cb'},
     dark: {bg:'#1a1a1a',grp:'#2c2c2e',text:'#e8e8e8',sub:'#666', brd:'#3a3a3c'},
     oled: {bg:'#000',   grp:'#111',   text:'#fff',   sub:'#555', brd:'#2a2a2a'}
   };
   var t=THEMES[store.g('cg-theme')||'light']||THEMES.light;
+  var a=accentColorForName(accentName());
   var s=document.getElementById('cg-theme-style');
   if(s)s.innerHTML=
     'html,body,#shell,#feed-wrap{background:'+t.bg+'!important}'
     +'.post-card{background:'+t.grp+'!important;border-color:'+t.brd+'!important}'
     +'.post-title{color:'+t.text+'!important}'
     +'.post-desc{color:'+(t===THEMES.light?'#555':t.sub)+'!important}'
-    +'#feed-tabs{background:'+t.grp+'!important;border-color:'+t.brd+'!important}'
+    +'#hdr{background:'+a+'!important;color:#fff!important}'
+    +'.ftab.on{background:'+a+'!important;border-color:'+a+'!important;color:#fff!important}'
+    +'.post-action .act-btn.liked,.act-btn.liked{color:'+a+'!important}'
     +'.ftab{color:'+t.sub+'!important}';
-})();
-
-/* ─── Init ─── */
+}
 window.onload=function(){
+  applyTheme();
   /* Sync legacy hm_* values only when cg_* is present but hm_* is absent. */
   if(!store.g('hm_t') && store.g('cg_t')){
     S.token = store.g('cg_t');
@@ -795,6 +905,7 @@ window.onload=function(){
   }
   loadFeed(true);
 };
+window.onfocus = applyTheme;
 </script>
 </body>
 </html>

@@ -84,6 +84,8 @@ body { margin: 0; background: #f5f5f7; font-family: -apple-system, BlinkMacSyste
 .cg-act-btn.liked svg { fill: #0055cc; stroke: #0055cc; }
 
 /* ── Post image ── */
+.cg-post-media-square { width: 100%; position: relative; padding-top: 100%; overflow: hidden; background: #000; cursor: pointer; }
+.cg-post-media-square img { position: absolute; top: 50%; left: 50%; min-width: 100%; min-height: 100%; width: auto; height: auto; transform: translate(-50%, -50%); display: block; }
 .cg-post-media { width: 100%; max-height: 540px; object-fit: contain; background: #000; display: block; }
 .cg-post-video { width: 100%; max-height: 480px; display: block; background: #000; }
 
@@ -218,6 +220,79 @@ body { margin: 0; background: #f5f5f7; font-family: -apple-system, BlinkMacSyste
 .cg-dm-compose > * + * { margin-left: 6px; }
 .cg-friend-row > * + * { margin-left: 10px; }
 .cg-share-row > * + * { margin-left: 8px; }
+
+/* ── 2026 UI Rewrite Layer (single-page parity) ── */
+body { background:#eef1f6; }
+#cg-root { max-width:1200px; }
+#cg-main { max-width:760px; }
+
+/* Feed: old Instagram feel */
+.cg-post-card { border:1px solid #d8dde6; border-radius:10px; overflow:hidden; background:#fff; }
+.cg-post-card .cg-card-head { padding:10px 12px; }
+.cg-post-card .cg-card-foot { padding:7px 10px; border-top:none; border-bottom:1px solid #edf0f4; }
+.cg-post-card .cg-card-body { padding:10px 12px 12px; }
+.cg-post-meta { -webkit-box-flex:1; flex:1; min-width:0; }
+.cg-post-topline { display:-webkit-box; display:-webkit-flex; display:flex; -webkit-box-align:center; -webkit-align-items:center; align-items:center; }
+.cg-post-topline .cg-username { font-size:14px; }
+.cg-post-time { margin-left:8px; font-size:12px; color:#7a8392; }
+.cg-post-actions-top { white-space:nowrap; }
+.cg-post-media-square { border-top:1px solid #edf0f4; border-bottom:1px solid #edf0f4; }
+.cg-post-media-square img { position:absolute; top:50%; left:50%; min-width:100%; min-height:100%; width:auto; height:auto; -webkit-transform:translate(-50%,-50%); transform:translate(-50%,-50%); display:block; }
+.cg-act-btn { -webkit-box-pack:start; -webkit-justify-content:flex-start; justify-content:flex-start; font-size:12px; color:#424b57; }
+.cg-act-btn svg { -webkit-flex-shrink:0; flex-shrink:0; }
+.cg-post-caption { font-size:13px; line-height:1.45; color:#1f2630; word-break:break-word; }
+.cg-post-caption .cg-username { margin-right:6px; }
+.cg-post-title-link { font-size:14px; font-weight:600; margin-bottom:4px; cursor:pointer; color:#111; }
+
+/* Profile: Twitter-like modal */
+#cg-profile-modal .cg-modal { max-width:760px; border-radius:14px; }
+.cg-profile-cover { height:158px; background:-webkit-linear-gradient(130deg,#1d9bf0 0%,#0055cc 45%,#123b87 100%); background:linear-gradient(130deg,#1d9bf0 0%,#0055cc 45%,#123b87 100%); }
+.cg-profile-info { padding:0 22px 16px; }
+.cg-profile-av-wrap { margin-top:-54px; margin-bottom:8px; }
+.cg-profile-av-wrap .cg-av-lg { width:108px; height:108px; border-radius:54px; border:4px solid #fff; line-height:100px; font-size:40px; }
+.cg-profile-name { font-size:24px; line-height:1.2; margin-top:4px; }
+.cg-profile-handle { font-size:14px; color:#5b6675; margin-top:2px; }
+.cg-profile-meta { font-size:12px; color:#7a8392; margin-top:8px; }
+.cg-profile-bio { color:#1f2630; font-size:14px; margin:10px 0 12px; }
+.cg-profile-stats { margin:0 0 14px; padding:10px 0; border-top:1px solid #edf0f4; border-bottom:1px solid #edf0f4; }
+.cg-profile-stat { min-width:92px; text-align:left; }
+.cg-profile-stat .val { font-size:18px; }
+.cg-profile-stat .lbl { font-size:12px; }
+.cg-profile-actions { gap:8px; }
+.cg-profile-posts { padding:0 22px 22px; }
+.cg-profile-posts-grid { margin-top:12px; }
+
+/* Messages: Discord DM style */
+#cg-panel-messages .cg-card { border:none; background:transparent; }
+#cg-msg-panel { min-height:560px; background:#313338; border:1px solid #232428; border-radius:12px; }
+#cg-msg-list-pane { width:260px; background:#2b2d31; border-right:1px solid #1e1f22; }
+#cg-msg-list-head { background:#2b2d31; border-bottom:1px solid #1e1f22; }
+#cg-msg-list-head span { color:#f2f3f5; letter-spacing:.2px; }
+#cg-msg-convos { background:#2b2d31; }
+.cg-dm-convo-row { border-bottom:none; padding:9px 10px; margin:2px 8px; border-radius:8px; }
+.cg-dm-convo-row:hover { background:#35373c; }
+.cg-dm-convo-row.active { background:#404249; }
+.cg-dm-convo-name { color:#f2f3f5; }
+.cg-dm-convo-preview { color:#b5bac1; }
+.cg-dm-convo-time { color:#8f949b; }
+#cg-msg-thread-pane { background:#313338; }
+#cg-msg-thread-head { border-bottom:1px solid #232428; background:#313338; color:#f2f3f5; }
+#cg-msg-thread-empty { color:#8f949b !important; }
+.cg-dm-msgs { background:#313338; }
+.cg-dm-bubble { max-width:82%; border-radius:14px; }
+.cg-dm-bubble.mine { background:#5865f2; color:#fff; }
+.cg-dm-bubble.theirs { background:#3b3d44; color:#f2f3f5; }
+.cg-dm-read-tick { color:#8ea1ff; }
+.cg-dm-compose { border-top:1px solid #232428; background:#313338; }
+#cg-msg-compose .cg-input,
+#cg-msg-compose input.cg-input { background:#1e1f22; border:1px solid #111214; color:#d7dbe1; }
+#cg-msg-compose .cg-input:focus,
+#cg-msg-compose input.cg-input:focus { border-color:#5865f2; box-shadow:none; }
+
+@media (max-width: 760px) {
+  #cg-msg-list-pane { width:100%; border-right:none; border-bottom:1px solid #1e1f22; }
+  #cg-msg-panel { -webkit-flex-direction:column; flex-direction:column; min-height:540px; }
+}
   </style>
 </head>
 <body>
@@ -918,11 +993,13 @@ var SVG_SEND = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stro
 
 function renderPost(p) {
   var mediaHtml = '';
-  if (p.media_data) {
+  var mediaFullSrc = p.media_url || p.media_data || '';
+  var mediaThumbSrc = p.media_thumb_url || mediaFullSrc;
+  if (mediaThumbSrc) {
     if (p.type === 'video') {
-      mediaHtml = '<video class="cg-post-video" controls preload="none" src="' + esc(p.media_data) + '"></video>';
-    } else if (p.media_data.indexOf('data:') === 0 || p.media_data.indexOf('http') === 0) {
-      mediaHtml = '<img class="cg-post-media" src="' + esc(p.media_data) + '" alt="" loading="lazy" onclick="openPost(' + p.id + ')" style="cursor:pointer">';
+      mediaHtml = '<video class="cg-post-video" controls preload="none" src="' + esc(mediaFullSrc) + '"></video>';
+    } else if (mediaThumbSrc.indexOf('data:') === 0 || mediaThumbSrc.indexOf('http') === 0) {
+      mediaHtml = '<div class="cg-post-media-square" onclick="openPost(' + p.id + ')"><img class="cg-post-media" src="' + esc(mediaThumbSrc) + '" data-full-url="' + esc(mediaFullSrc) + '" alt="" loading="lazy"></div>';
     }
   }
   var tags = '';
@@ -937,19 +1014,16 @@ function renderPost(p) {
   var deleteBtn = isMine ? '<button class="cg-btn cg-btn-sm cg-btn-danger" style="margin-right:6px" onclick="deletePost(' + p.id + ')">Delete</button>' : '';
   var reportBtn = (cgState.userId && !isMine) ? '<button class="cg-btn cg-btn-sm cg-btn-ghost" onclick="openReport(\'post\',' + p.id + ')" style="font-size:11px">Report</button>' : '';
   var dateStr = fmtDate(p.created_at) + ' at ' + fmtTime(p.created_at);
-  return '<div class="cg-card" id="cg-post-' + p.id + '">' +
+  return '<div class="cg-card cg-post-card" id="cg-post-' + p.id + '">' +
     '<div class="cg-card-head">' +
       '<div class="cg-av" onclick="openProfileById(' + p.user_id + ')">' + avatarHtml(p.avatar_b64, p.username) + '</div>' +
-      '<div style="flex:1;min-width:0">' +
-        '<div class="cg-username" onclick="openProfileById(' + p.user_id + ')">' + esc(p.username) + '</div>' +
-        '<div class="cg-meta">' + esc(dateStr) + '</div>' +
+      '<div class="cg-post-meta">' +
+        '<div class="cg-post-topline">' +
+          '<div class="cg-username" onclick="openProfileById(' + p.user_id + ')">@' + esc(p.username) + '</div>' +
+          '<div class="cg-post-time">' + esc(dateStr) + '</div>' +
+        '</div>' +
       '</div>' +
-      '<div>' + deleteBtn + reportBtn + '</div>' +
-    '</div>' +
-    '<div class="cg-card-body" style="padding-top:8px">' +
-      '<div style="font-size:15px;font-weight:600;margin-bottom:4px;cursor:pointer;text-align:left" onclick="openPost(' + p.id + ')">' + esc(p.title) + '</div>' +
-      (p.description ? '<div style="color:#555;font-size:13px;margin-bottom:6px;text-align:left">' + esc(p.description).replace(/\n/g,'<br>') + '</div>' : '') +
-      (tags ? '<div style="margin-bottom:8px;text-align:left">' + tags + '</div>' : '') +
+      '<div class="cg-post-actions-top">' + deleteBtn + reportBtn + '</div>' +
     '</div>' +
     (mediaHtml ? '<div>' + mediaHtml + '</div>' : '') +
     '<div class="cg-card-foot">' +
@@ -963,6 +1037,14 @@ function renderPost(p) {
         SVG_SHARE + ' Share' +
       '</button>' +
       (cgState.userId ? '<button class="cg-act-btn" onclick="openSendDm(' + p.id + ',\'' + esc(p.title) + '\')">' + SVG_SEND + '</button>' : '') +
+    '</div>' +
+    '<div class="cg-card-body">' +
+      '<div class="cg-post-title-link" onclick="openPost(' + p.id + ')">' + esc(p.title || 'Untitled') + '</div>' +
+      '<div class="cg-post-caption">' +
+        '<span class="cg-username" onclick="openProfileById(' + p.user_id + ')">@' + esc(p.username) + '</span>' +
+        (p.description ? esc(p.description).replace(/\n/g,'<br>') : '<span style="color:#8a93a1">No description.</span>') +
+      '</div>' +
+      (tags ? '<div style="margin-top:8px">' + tags + '</div>' : '') +
     '</div>' +
   '</div>';
 }
@@ -1024,10 +1106,13 @@ function openPost(postId) {
 
     // Try to get title/media from the post card in the feed
     var title = '', mediaHtml = '', desc = '';
-    var titleEl = postEl ? postEl.querySelector('[onclick*="openPost"]') : null;
+    var titleEl = postEl ? postEl.querySelector('.cg-post-title-link') : null;
     if (titleEl) title = titleEl.textContent;
     var imgEl = postEl ? postEl.querySelector('img.cg-post-media') : null;
-    if (imgEl) mediaHtml = '<img style="max-width:100%;max-height:460px;object-fit:contain;display:block" src="' + esc(imgEl.src) + '">';
+    if (imgEl) {
+      var fullUrl = imgEl.getAttribute('data-full-url') || imgEl.src;
+      mediaHtml = '<img style="max-width:100%;max-height:460px;object-fit:contain;display:block" src="' + esc(fullUrl) + '">';
+    }
     var vidEl = postEl ? postEl.querySelector('video.cg-post-video') : null;
     if (vidEl) mediaHtml = '<video controls src="' + esc(vidEl.src) + '" style="max-width:100%;max-height:380px;display:block;background:#000"></video>';
 
@@ -1082,13 +1167,10 @@ function addCommentFromModal(postId) {
     // Update comment count on feed card
     var feedCard = document.getElementById('cg-post-' + postId);
     if (feedCard) {
-      var actBtns = feedCard.querySelectorAll('.cg-act-btn');
-      for (var i = 0; i < actBtns.length; i++) {
-        if (actBtns[i].textContent.indexOf('comments') !== -1) {
-          var cur = parseInt(actBtns[i].textContent) || 0;
-          actBtns[i].innerHTML = '&#128172; ' + (cur + 1) + ' comments';
-          break;
-        }
+      var cBtn = feedCard.querySelector('.cg-card-foot .cg-act-btn:nth-child(2)');
+      if (cBtn) {
+        var cur = parseInt(cBtn.textContent, 10) || 0;
+        cBtn.innerHTML = SVG_COMMENT + ' ' + (cur + 1);
       }
     }
   });
@@ -1234,6 +1316,7 @@ function renderProfileModal(u, isSelf, friendStatus, direction, isBlocked) {
 
   // Load this user's posts
   var postsHtml = '<div class="cg-loading">Loading posts&hellip;</div>';
+  var privacyText = isSelf ? (cgState.isPrivate ? 'Private account' : 'Public account') : (u.is_private ? 'Private account' : 'Public account');
 
   document.getElementById('cg-profile-modal-inner').innerHTML =
     '<div class="cg-profile-cover"></div>' +
@@ -1242,7 +1325,13 @@ function renderProfileModal(u, isSelf, friendStatus, direction, isBlocked) {
         '<div class="cg-av-lg">' + avatarHtml(u.avatar_b64, u.username, 80) + '</div>' +
       '</div>' +
       '<div class="cg-profile-name">' + esc(u.username) + (u.is_admin ? ' <span style="font-size:12px;background:#0055cc;color:#fff;border-radius:4px;padding:1px 6px">Admin</span>' : '') + '</div>' +
+      '<div class="cg-profile-handle">@' + esc(u.username) + '</div>' +
+      '<div class="cg-profile-meta">Joined Chronograph · ' + privacyText + '</div>' +
       '<div class="cg-profile-bio">' + (u.bio ? esc(u.bio) : '<em style="color:#bbb">No bio yet.</em>') + '</div>' +
+      '<div class="cg-profile-stats">' +
+        '<div class="cg-profile-stat"><div class="val" id="prof-stat-posts-' + uid + '">0</div><div class="lbl">Posts</div></div>' +
+        '<div class="cg-profile-stat"><div class="val">' + (friendStatus === 'accepted' ? 'Friends' : 'Not friends') + '</div><div class="lbl">Relationship</div></div>' +
+      '</div>' +
       '<div class="cg-profile-actions">' + actions + '</div>' +
     '</div>' +
     '<div class="cg-profile-posts">' +
@@ -1255,13 +1344,18 @@ function renderProfileModal(u, isSelf, friendStatus, direction, isBlocked) {
     var posts = (d && d.posts) || [];
     var userPosts = [];
     for (var i = 0; i < posts.length; i++) { if (posts[i].user_id === uid) userPosts.push(posts[i]); }
+    var statPosts = document.getElementById('prof-stat-posts-' + uid);
+    if (statPosts) statPosts.textContent = String(userPosts.length);
     var grid = document.getElementById('prof-posts-' + uid);
     if (!grid) return;
     if (!userPosts.length) { grid.innerHTML = '<div class="cg-empty" style="padding:20px 0">No posts yet.</div>'; return; }
     var html = '<div class="cg-profile-posts-grid">';
     for (var j = 0; j < userPosts.length; j++) {
       var p = userPosts[j];
-      var thumb = p.media_data && p.media_data.indexOf('data:') === 0 ? '<img src="' + esc(p.media_data) + '">' : '<div style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px">' + esc(p.title.substring(0,20)) + '</div>';
+      var thumbUrl = p.media_thumb_url || p.media_url || p.media_data || '';
+      var thumb = (thumbUrl && (thumbUrl.indexOf('data:') === 0 || thumbUrl.indexOf('http') === 0))
+        ? '<img src="' + esc(thumbUrl) + '">'
+        : '<div style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px">' + esc((p.title||'Post').substring(0,20)) + '</div>';
       html += '<div class="cg-profile-thumb" onclick="closeModal(\'cg-profile-modal\');openPost(' + p.id + ')" title="' + esc(p.title) + '">' + thumb + '</div>';
     }
     html += '</div>';

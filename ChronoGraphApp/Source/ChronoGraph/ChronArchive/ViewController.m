@@ -59,6 +59,24 @@
     [self.navigationController setNavigationBarHidden:isRoot animated:animated];
 }
 
+- (UIColor *)accentColorForName:(NSString *)name {
+    if (!name) return [UIColor colorWithRed:0.35 green:0.78 blue:0.98 alpha:1.0];
+    if ([name isEqualToString:@"green"]) {
+        return [UIColor colorWithRed:0.39 green:0.85 blue:0.20 alpha:1.0];
+    }
+    return [UIColor colorWithRed:0.35 green:0.78 blue:0.98 alpha:1.0];
+}
+
+- (void)webViewDidFinishLoad:(UIWebView *)webView {
+    NSString *accentName = [webView stringByEvaluatingJavaScriptFromString:
+        @"(function(){var a=localStorage.getItem('cg-accent-color'); if(!a)a=localStorage.getItem('cg-chat-bubble'); if(!a)a='blue'; return a; })();"];
+    if (accentName && accentName.length > 0) {
+        UIColor *accent = [self accentColorForName:accentName];
+        self.navigationController.navigationBar.tintColor = accent;
+        /* Keep tab bar icons fully original/opaque: do not set tabBar.tintColor here. */
+    }
+}
+
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     /* Free the WebView when this tab is not on screen to reclaim memory.

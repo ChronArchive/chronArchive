@@ -28,7 +28,7 @@
       -webkit-box-shadow:inset 0 1px 2px rgba(0,0,0,0.08); box-shadow:inset 0 1px 2px rgba(0,0,0,0.08); }
     #sb-icon { padding:0 6px 0 10px; font-size:14px; color:#888; }
     #sb-inp { -webkit-flex:1; flex:1; min-width:0; height:34px; border:none; background:none;
-      font-size:15px; color:#1a1a1a; outline:none; -webkit-appearance:none; font-family:inherit; }
+      font-size:14px; color:#1a1a1a; outline:none; -webkit-appearance:none; font-family:inherit; }
     #sb-inp::-webkit-input-placeholder { color:#aaa; }
     #sb-clear { padding:0 10px; font-size:18px; color:#aaa; cursor:pointer;
       -webkit-tap-highlight-color:transparent; display:none; }
@@ -94,6 +94,16 @@
     #default-screen { text-align:center; padding:40px 20px; }
     #default-screen img { width:70%; max-width:220px; margin-bottom:14px; }
     #default-screen p { font-size:13px; color:#aaa; }
+    /* ── Pull-to-refresh ── */
+    .ptr-ind { width:100%; height:0; overflow:hidden;
+      display:-webkit-flex; display:flex;
+      -webkit-align-items:center; align-items:center;
+      -webkit-justify-content:center; justify-content:center;
+      -webkit-transition:height 0.12s; transition:height 0.12s; }
+    .ptr-ind:after { content:'\2193'; font-size:20px; color:#aaa; display:block;
+      -webkit-transition:-webkit-transform 0.15s; transition:transform 0.15s; }
+    .ptr-ind.ptr-ready:after { color:#0055cc;
+      -webkit-transform:rotate(180deg); transform:rotate(180deg); }
   </style>
 </head>
 <body>
@@ -102,7 +112,7 @@
   <div id="searchbar">
     <div id="sb-inner">
       <span id="sb-icon">&#128269;</span>
-      <input type="text" id="sb-inp" placeholder="Search posts, people, web&#8230;"
+      <input type="text" id="sb-inp" placeholder="Search posts, people & web"
         autocorrect="off" autocapitalize="off" autocomplete="off"
         oninput="onInput()" onkeydown="onKey(event)">
       <span id="sb-clear" onclick="clearSearch()">&#215;</span>
@@ -430,27 +440,63 @@ function openUrl(u){
 }
 
 /* ── Theme ── */
-(function(){
+function accentColorForName(name){
+  var colors={blue:'#8abdec',green:'#90e0ad',red:'#ff3b30',orange:'#ff9500',purple:'#5856d6',pink:'#ff2d55',teal:'#5ac8fa',gray:'#8e8e93'};
+  return colors[name]||colors.blue;
+}
+function accentName(){
+  try{return store.g('cg-accent-color')||store.g('cg-chat-bubble')||'blue';}catch(e){return 'blue';}
+}
+function applyTheme(){
   var THEMES={
     light:{bg:'#f2f2f7',bar:'#f0f0f0',grp:'#fff',brd:'#d8d8d8',text:'#1a1a1a',sub:'#8e8e93'},
     dark: {bg:'#1a1a1a',bar:'#2c2c2e',grp:'#2c2c2e',brd:'#3a3a3c',text:'#e8e8e8',sub:'#888'},
     oled: {bg:'#000',   bar:'#111',   grp:'#111',   brd:'#2a2a2a',text:'#fff',   sub:'#666'}
   };
   var t=THEMES[store.g('cg-theme')||'light']||THEMES.light;
+  var a=accentColorForName(accentName());
   var s=document.getElementById('cg-theme-style');
   if(s)s.innerHTML=
     'html,body,#results-wrap{background:'+t.bg+'!important}'
-    +'#searchbar{background:'+t.bar+'!important;border-color:'+t.brd+'!important}'
+    +'#searchbar{background:'+a+'!important;border-color:'+a+'!important;color:#fff!important}'
     +'#sb-inner{background:'+t.grp+'!important;border-color:'+t.brd+'!important}'
     +'#sb-inp{color:'+t.text+'!important}'
     +'#cat-tabs{background:'+t.bar+'!important;border-color:'+t.brd+'!important}'
     +'.ctab{color:'+t.sub+'!important}'
+    +'.ctab.on{color:#fff!important;border-bottom-color:'+a+'!important}'
     +'.res-post,.res-person,.res-web,.sug-row{background:'+t.grp+'!important;border-color:'+t.brd+'!important}'
     +'.rp-body,.rpe-name,.sug-text{color:'+t.text+'!important}';
-})();
+}
 
 /* ── Init ── */
-window.onload=function(){ if(!restoreSearchState()) showSuggestions(); };
+function initPTR(el,cb){
+  var ind=document.createElement('div');ind.className='ptr-ind';
+  el.insertBefore(ind,el.firstChild);
+  var y0=0,pulling=false,ready=false;
+  el.addEventListener('touchstart',function(e){
+    if(el.scrollTop<=0){y0=e.touches[0].clientY;pulling=true;ready=false;}
+  },false);
+  el.addEventListener('touchmove',function(e){
+    if(!pulling)return;
+    var dy=e.touches[0].clientY-y0;
+    if(dy>0){ind.style.height=Math.min(dy*0.5,50)+'px';ready=(dy>60);ind.className='ptr-ind'+(ready?' ptr-ready':'');}
+  },false);
+  el.addEventListener('touchend',function(){
+    if(!pulling)return;
+    pulling=false;ind.style.height='';ind.className='ptr-ind';
+    if(ready){ready=false;cb();}
+  },false);
+}
+window.onload=function(){
+  applyTheme();
+  if(!restoreSearchState()) showSuggestions();
+  var rw=document.getElementById('results-wrap');
+  if(rw)initPTR(rw,function(){
+    var q=(document.getElementById('sb-inp').value||'').replace(/^\s+|\s+$/g,'');
+    if(q)runSearch(q,false);else showSuggestions();
+  });
+};
+window.onfocus=applyTheme;
 window.onhashchange=function(){ restoreSearchState(); };
 </script>
 </body>

@@ -472,13 +472,21 @@ function mkAv(b64,name,sz){
 }
 
 /* ── Theme ── */
-(function(){
+function accentColorForName(name){
+  var colors={blue:'#8abdec',green:'#90e0ad',red:'#ff3b30',orange:'#ff9500',purple:'#5856d6',pink:'#ff2d55',teal:'#5ac8fa',gray:'#8e8e93'};
+  return colors[name]||colors.blue;
+}
+function accentName(){
+  try{return store.g('cg-accent-color')||store.g('cg-chat-bubble')||'blue';}catch(e){return 'blue';}
+}
+function applyTheme(){
   var THEMES={
     light:{bg:'#f2f2f7',grp:'#fff',text:'#1a1a1a',sub:'#8e8e93',brd:'#c8c8cb',hdr:'#6d6d72'},
     dark: {bg:'#1a1a1a',grp:'#2c2c2e',text:'#e8e8e8',sub:'#888', brd:'#3a3a3c',hdr:'#888'},
     oled: {bg:'#000',   grp:'#111',   text:'#fff',   sub:'#666', brd:'#2a2a2a',hdr:'#666'}
   };
   var t=THEMES[store.g('cg-theme')||'light']||THEMES.light;
+  var a=accentColorForName(accentName());
   var s=document.getElementById('cg-theme-style');
   if(s)s.innerHTML=
     'html,body,#scroll,#hdr{background:'+t.bg+'!important}'
@@ -490,8 +498,9 @@ function mkAv(b64,name,sz){
     +'.sub-back,.sub-right{color:#0a84ff!important}'
     +'.field{background:'+t.grp+'!important;border-color:'+t.brd+'!important;color:'+t.text+'!important}'
     +'#prof-card{background:'+t.grp+'!important;border-color:'+t.brd+'!important}'
-    +'#pc-name{color:'+t.text+'!important}';
-})();
+    +'#pc-name{color:'+t.text+'!important}'
+    +'#hdr{background:'+a+'!important;color:#fff!important}';
+}
 
 /* ── UI state ── */
 function closeSubscreen(id){document.getElementById(id).className='subscreen';}
@@ -912,12 +921,14 @@ function openDeviceSelect(){
 
 /* ── Init ── */
 window.onload=function(){
+  applyTheme();
   if(S.token){
     afterLogin();
   } else {
     renderSignedOut();
   }
 };
+window.onfocus = applyTheme;
 </script>
 </body>
 </html>
