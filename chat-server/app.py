@@ -1308,36 +1308,42 @@ def create_post():
     saved_url  = ''
     saved_b64  = ''
     if type_ == 'image' and media_data:
-        # Strip data-URI prefix to get raw base64
-        if ',' in media_data:
-            raw_b64 = media_data.split(',', 1)[1]
+        # If the client sent an image URL instead of inline base64, store the URL directly.
+        if media_data.lower().startswith('http://') or media_data.lower().startswith('https://'):
+            saved_b64 = media_data
         else:
-            raw_b64 = media_data
-        try:
-            img_bytes = base64.b64decode(raw_b64)
-            if _HAS_PILLOW:
-                img = Image.open(_io.BytesIO(img_bytes)).convert('RGB')
-                # Resize if wider than 1200px, preserving aspect ratio
-                max_dim = 1200
-                if img.width > max_dim:
-                    ratio = max_dim / img.width
-                    img = img.resize((max_dim, int(img.height * ratio)), Image.LANCZOS)
-                # Save as JPEG at 82% quality
-                fname = secrets.token_hex(16) + '.jpg'
-                fpath = os.path.join(UPLOADS_DIR, fname)
-                out   = _io.BytesIO()
-                img.save(out, format='JPEG', quality=82, optimize=True)
-                with open(fpath, 'wb') as f:
-                    f.write(out.getvalue())
-                saved_url  = SITE_BASE + '/uploads/' + fname
-                saved_b64  = ''   # not stored inline
+            # Strip data-URI prefix to get raw base64
+            if ',' in media_data:
+                raw_b64 = media_data.split(',', 1)[1]
             else:
-                # Pillow not installed — keep base64 inline
-                saved_b64 = media_data
-        except Exception:
-            # Malformed image — reject
-            conn.close()
-            return jsonify({'ok': False, 'error': 'Invalid image data'}), 400
+                raw_b64 = media_data
+            raw_b64 = raw_b64.strip()
+            try:
+                if len(raw_b64) % 4 != 0:
+                    raw_b64 += '=' * (4 - (len(raw_b64) % 4))
+                img_bytes = base64.b64decode(raw_b64)
+                if _HAS_PILLOW:
+                    img = Image.open(_io.BytesIO(img_bytes)).convert('RGB')
+                    # Resize if wider than 1200px, preserving aspect ratio
+                    max_dim = 1200
+                    if img.width > max_dim:
+                        ratio = max_dim / img.width
+                        img = img.resize((max_dim, int(img.height * ratio)), Image.LANCZOS)
+                    # Save as JPEG at 82% quality
+                    fname = secrets.token_hex(16) + '.jpg'
+                    fpath = os.path.join(UPLOADS_DIR, fname)
+                    out   = _io.BytesIO()
+                    img.save(out, format='JPEG', quality=82, optimize=True)
+                    with open(fpath, 'wb') as f:
+                        f.write(out.getvalue())
+                    saved_url  = SITE_BASE + '/uploads/' + fname
+                    saved_b64  = ''   # not stored inline
+                else:
+                    # Pillow not installed — keep base64 inline
+                    saved_b64 = media_data
+            except Exception:
+                conn.close()
+                return jsonify({'ok': False, 'error': 'Invalid image data'}), 400
     elif type_ == 'video':
         # Video posts store the URL string as media_data (no file upload)
         saved_b64 = media_data
