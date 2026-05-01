@@ -580,6 +580,7 @@ def users():
     if q:
         rows = conn.execute(
             "SELECT id, username, bio, avatar_b64 FROM users WHERE id!=? AND is_banned=0"
+            " AND username NOT LIKE 'ChronoGraph' COLLATE NOCASE"
             " AND username LIKE ? COLLATE NOCASE ORDER BY username COLLATE NOCASE LIMIT 30",
             (uid, '%' + q + '%')
         ).fetchall()

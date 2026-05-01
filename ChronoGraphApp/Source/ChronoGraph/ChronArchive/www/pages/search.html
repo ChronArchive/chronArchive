@@ -217,6 +217,9 @@ function clearRecent(q){
   try{localStorage.setItem('cg-searches',JSON.stringify(r));}catch(e){}
   showSuggestions();
 }
+function historyIcon(){
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="vertical-align:middle;display:inline-block"><path d="M12 6a6 6 0 1 1-5.66 4H5.5a.5.5 0 0 1 0-1h3.25c.28 0 .5.22.5.5V13a.5.5 0 0 1-1 0V9.82A5 5 0 1 0 7 12H5a7 7 0 1 1 7-7zm.5 3.5V7a.5.5 0 0 0-1 0v2.5H9a.5.5 0 1 0 0 1h2.5a.5.5 0 0 0 .5-.5z"/></svg>';
+}
 
 /* ── Tab ── */
 var TABS=['all','posts','people','web'];
@@ -243,7 +246,7 @@ function onKey(e){
   if(e.keyCode===13){
     var q=(document.getElementById('sb-inp').value||'').replace(/^\s+|\s+$/g,'');
     if(cur.timer)clearTimeout(cur.timer);
-    if(q)runSearch(q);
+    if(q)runSearch(q,true);
   }
 }
 function clearSearch(){
@@ -255,7 +258,7 @@ function clearSearch(){
 function fillSearch(q){
   document.getElementById('sb-inp').value=q;
   document.getElementById('sb-clear').style.display='inline';
-  runSearch(q);
+  runSearch(q,true);
 }
 
 /* ── Suggestions (no query) ── */
@@ -270,7 +273,7 @@ function showSuggestions(){
   for(var i=0;i<r.length;i++){
     var rq=r[i];
     html+='<div class="sug-row" onclick="fillSearch(\''+esc(rq).replace(/'/g,"&#39;")+'\')">'
-      +'<div class="sug-icon">&#128337;</div>'
+      +'<div class="sug-icon">'+historyIcon()+'</div>'
       +'<div class="sug-text">'+esc(rq)+'</div>'
       +'<div class="sug-fill" onclick="event.stopPropagation();clearRecent(\''+esc(rq).replace(/'/g,"&#39;")+'\')">&#215;</div>'
       +'</div>';
@@ -279,11 +282,10 @@ function showSuggestions(){
   body.innerHTML=html;
 }
 
-/* ── Run search ── */
-function runSearch(q){
+function runSearch(q, saveHistory){
   cur.query=q;
   updateHash(q, cur.tab);
-  addRecent(q);
+  if(saveHistory){ addRecent(q); }
   var t=cur.tab;
   setLoading();
   if(t==='posts'){searchPosts(q);}
@@ -310,15 +312,25 @@ function searchAll(q){
       html+='<div class="sug-hdr">Posts</div>';
       for(var i=0;i<Math.min(postData.length,4);i++)html+=renderPostResult(postData[i]);
     }
-    if(!html)html='<div class="res-empty">No results for &#8220;'+esc(q)+'&#8221;</div>';
+    if(!html){
+      if(!token){
+        html='<div class="res-empty">No results for &#8220;'+esc(q)+'&#8221;. Sign in to search people.</div>';
+      } else {
+        html='<div class="res-empty">No results for &#8220;'+esc(q)+'&#8221;</div>';
+      }
+    }
     body.innerHTML=html;
   }
   req('GET',API+'/api/posts?q='+encodeURIComponent(q),null,function(d){
     postData=(d&&d.ok)?d.posts||[]:[];check();
   });
-  req('GET',API+'/api/users?q='+encodeURIComponent(q),null,function(d){
-    peopleData=(d&&d.ok)?d.users||[]:[];check();
-  });
+  if(!token){
+    peopleData=[];check();
+  } else {
+    req('GET',API+'/api/users?q='+encodeURIComponent(q),null,function(d){
+      peopleData=(d&&d.ok)?d.users||[]:[];check();
+    });
+  }
 }
 
 /* ── Posts ── */
@@ -345,8 +357,12 @@ function renderPostResult(p){
 
 /* ── People ── */
 function searchPeople(q){
+  var body=document.getElementById('results-body');
+  if(!token){
+    body.innerHTML='<div class="res-empty">Sign in to search users.</div>';
+    return;
+  }
   req('GET',API+'/api/users?q='+encodeURIComponent(q),null,function(d){
-    var body=document.getElementById('results-body');
     if(!d||!d.ok||!(d.users||[]).length){body.innerHTML='<div class="res-empty">No users found.</div>';return;}
     var html='';for(var i=0;i<d.users.length;i++)html+=renderPerson(d.users[i]);
     body.innerHTML=html;
@@ -391,8 +407,27 @@ function searchWeb(q){
   };
   x.send(null);
 }
-function goWeb(q){window.location.href='https://m.bing.com/search?q='+encodeURIComponent(q);}
-function openUrl(u){window.location.href=u;}
+function safeOpenUrl(u){
+  try{
+    var w=window.open(u,'_blank');
+    if(w&&typeof w.focus==='function'){w.focus();return true;}
+  }catch(e){}
+  try{
+    var a=document.createElement('a');
+    a.href=u; a.target='_blank'; a.rel='noreferrer noopener';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    return true;
+  }catch(e){}
+  return false;
+}
+function goWeb(q){
+  if(!safeOpenUrl('https://m.bing.com/search?q='+encodeURIComponent(q))){window.location.href='https://m.bing.com/search?q='+encodeURIComponent(q);}
+}
+function openUrl(u){
+  if(!safeOpenUrl(u)){
+    window.location.href=u;
+  }
+}
 
 /* ── Theme ── */
 (function(){

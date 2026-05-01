@@ -300,10 +300,10 @@ var S = {
   ctype:'photo', cpImg:null, avData:null,
   authMode:'login', feedMode:'all'
 };
-S.token = store.g('hm_t')||store.g('cg_t');
-S.uid   = parseInt(store.g('hm_u')||store.g('cg_u')||'0',10)||null;
-S.uname = store.g('hm_n')||store.g('cg_n');
-S.av    = store.g('hm_av')||store.g('cg_av')||'';
+S.token = store.g('cg_t')||store.g('hm_t');
+S.uid   = parseInt(store.g('cg_u')||store.g('hm_u')||'0',10)||null;
+S.uname = store.g('cg_n')||store.g('hm_n');
+S.av    = store.g('cg_av')||store.g('hm_av')||'';
 
 function esc(s){var d=document.createElement('div');d.appendChild(document.createTextNode(s||''));return d.innerHTML;}
 function openModal(id){document.getElementById(id).className='modal-bg open';}
@@ -596,9 +596,25 @@ function doAuth(){
   req('POST','/api/'+S.authMode,{username:user,password:pass},function(d,err){
     btn.disabled=false;
     if(err||!d.ok){showErr('af-err',d.error||'Authentication failed.');return;}
-    store.s('hm_t',d.token); store.s('hm_u',d.user_id+''); store.s('hm_n',d.username); store.s('hm_av',d.avatar_b64||'');
-    store.s('cg_t',d.token); store.s('cg_u',d.user_id+''); store.s('cg_n',d.username); if(d.avatar_b64){store.s('cg_av',d.avatar_b64);}
     S.token=d.token; S.uid=d.user_id; S.uname=d.username; S.av=d.avatar_b64||'';
+    store.s('cg_t',d.token); store.s('cg_u',d.user_id+''); store.s('cg_n',d.username);
+    store.s('hm_t',d.token); store.s('hm_u',d.user_id+''); store.s('hm_n',d.username);
+    if(d.avatar_b64){store.s('cg_av',d.avatar_b64); store.s('hm_av',d.avatar_b64);}    
+    afterLogin();
+  });
+}
+function afterLogin(){
+  req('GET','/api/me',null,function(d,err){
+    if(err||!d.ok){
+      S.token=null; store.d('hm_t'); store.d('cg_t'); S.uid=null; S.uname=null; S.av='';
+      closeModal('auth-modal');
+      updatePill();
+      loadFeed(true);
+      return;
+    }
+    S.uid=d.id||d.user_id; S.uname=d.username; S.av=d.avatar_b64||'';
+    store.s('cg_n',d.username); store.s('cg_av',S.av);
+    store.s('hm_n',d.username); store.s('hm_av',S.av);
     closeModal('auth-modal');
     updatePill();
     loadFeed(true);
@@ -753,8 +769,17 @@ function updatePill(){}
 
 /* ─── Init ─── */
 window.onload=function(){
-  /* Sync auth tokens — account.html saves to cg_t, home.html uses hm_t, keep both in sync */
-  if(!S.token){var alt=store.g('cg_t');if(alt){S.token=alt;S.uid=parseInt(store.g('cg_u')||'0',10)||null;S.uname=store.g('cg_n');S.av=store.g('cg_av')||'';store.s('hm_t',S.token);store.s('hm_u',S.uid+'');store.s('hm_n',S.uname);store.s('hm_av',S.av);}}
+  /* Sync legacy hm_* values only when cg_* is present but hm_* is absent. */
+  if(!store.g('hm_t') && store.g('cg_t')){
+    S.token = store.g('cg_t');
+    S.uid = parseInt(store.g('cg_u')||'0',10)||null;
+    S.uname = store.g('cg_n')||'';
+    S.av = store.g('cg_av')||'';
+    store.s('hm_t',S.token);
+    store.s('hm_u',S.uid+'');
+    store.s('hm_n',S.uname);
+    store.s('hm_av',S.av);
+  }
   if(S.token){
     req('GET','/api/me',null,function(d,err){
       if(err||!d.ok){S.token=null;store.d('hm_t');store.d('cg_t');S.uid=null;S.uname=null;}

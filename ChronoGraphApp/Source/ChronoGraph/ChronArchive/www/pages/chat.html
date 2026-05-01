@@ -397,9 +397,20 @@ function afterLogin(d){
   store.set('cg_n',d.username);store.set('cg_a',S.isAdmin?'1':'0');
   store.set('hm_t',d.token);store.set('hm_u',String(d.user_id));
   store.set('hm_n',d.username);
-  if(d.avatar_b64){store.set('cg_av',d.avatar_b64);store.set('hm_av',d.avatar_b64);}
-  updateChatPill();
-  goConvos();
+  if(d.avatar_b64){store.set('cg_av',d.avatar_b64);store.set('hm_av',d.avatar_b64);}  
+  req('GET','/api/me',null,function(d2,err2){
+    if(!d2||!d2.ok){
+      doLogout();
+      return;
+    }
+    S.userId=d2.id||S.userId;S.username=d2.username;S.isAdmin=!!d2.is_admin;
+    S.av=d2.avatar_b64||S.av;
+    store.set('cg_n',S.username);store.set('cg_av',S.av);
+    store.set('hm_n',S.username);store.set('hm_av',S.av);
+    if(S.isAdmin){store.set('cg_a','1');}
+    updateChatPill();
+    goConvos();
+  });
 }
 function doLogout(){
   stopPoll();req('POST','/api/logout',null,function(){});
