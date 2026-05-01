@@ -783,11 +783,17 @@ def conversations():
     if err: return err
     conn = get_db()
     rows = conn.execute('''
-        SELECT u.id, u.username, u.avatar_b64,
+        SELECT u.id AS id,
+               u.id AS user_id,
+               u.username,
+               u.avatar_b64,
                m.text        AS last_text,
+               m.text        AS last_message,
                m.created_at  AS last_at,
+               m.created_at  AS last_ts,
                m.from_user_id,
-               COALESCE(unr.unread, 0) AS unread
+               COALESCE(unr.unread, 0) AS unread,
+               COALESCE(unr.unread, 0) AS unread_count
         FROM users u
         JOIN messages m ON m.id = (
             SELECT id FROM messages

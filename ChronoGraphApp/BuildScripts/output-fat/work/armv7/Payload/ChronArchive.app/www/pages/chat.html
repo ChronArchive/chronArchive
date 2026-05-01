@@ -395,14 +395,28 @@ function afterLogin(d){
   S.token=d.token;S.userId=d.user_id;S.username=d.username;S.isAdmin=!!(d.is_admin);
   store.set('cg_t',d.token);store.set('cg_u',String(d.user_id));
   store.set('cg_n',d.username);store.set('cg_a',S.isAdmin?'1':'0');
-  if(d.avatar_b64)store.set('cg_av',d.avatar_b64);
-  updateChatPill();
-  goConvos();
+  store.set('hm_t',d.token);store.set('hm_u',String(d.user_id));
+  store.set('hm_n',d.username);
+  if(d.avatar_b64){store.set('cg_av',d.avatar_b64);store.set('hm_av',d.avatar_b64);}  
+  req('GET','/api/me',null,function(d2,err2){
+    if(!d2||!d2.ok){
+      doLogout();
+      return;
+    }
+    S.userId=d2.id||S.userId;S.username=d2.username;S.isAdmin=!!d2.is_admin;
+    S.av=d2.avatar_b64||S.av;
+    store.set('cg_n',S.username);store.set('cg_av',S.av);
+    store.set('hm_n',S.username);store.set('hm_av',S.av);
+    if(S.isAdmin){store.set('cg_a','1');}
+    updateChatPill();
+    goConvos();
+  });
 }
 function doLogout(){
   stopPoll();req('POST','/api/logout',null,function(){});
   S.token=S.userId=S.username=null;S.isAdmin=false;
   store.del('cg_t');store.del('cg_u');store.del('cg_n');store.del('cg_a');store.del('cg_av');
+  store.del('hm_t');store.del('hm_u');store.del('hm_n');store.del('hm_av');
   updateChatPill();
   show('auth-screen');
 }
@@ -445,7 +459,7 @@ function saveProfile(){
   btn.innerHTML='Saving\u2026';
   req('PUT','/api/me',{bio:bio,avatar_b64:av},function(d,err){
     btn.innerHTML=(!err&&d&&d.ok)?'Saved!':'Save';
-    if(!err&&d&&d.ok&&av){store.set('cg_av',av);updateChatPill();}
+    if(!err&&d&&d.ok&&av){store.set('cg_av',av);store.set('hm_av',av);updateChatPill();}
   });
 }
 function goChangePassword(){show('changepw-screen');}
@@ -840,12 +854,13 @@ function saveAdminFilter(){
 })();
 
 (function(){
-  var t=store.get('cg_t'),u=store.get('cg_u'),n=store.get('cg_n'),a=store.get('cg_a');
+  var t=store.get('cg_t')||store.get('hm_t'),u=store.get('cg_u')||store.get('hm_u'),n=store.get('cg_n')||store.get('hm_n'),a=store.get('cg_a');
   if(t&&u&&n){
     S.token=t;S.userId=parseInt(u,10);S.username=n;S.isAdmin=(a==='1');
+    if(!store.get('cg_t')){store.set('cg_t',t);store.set('cg_u',u);store.set('cg_n',n);}    
     updateChatPill();
     req('GET','/api/me',null,function(d,err){
-      if(d&&d.ok){S.isAdmin=!!(d.is_admin);store.set('cg_a',S.isAdmin?'1':'0');if(d.avatar_b64){store.set('cg_av',d.avatar_b64);}updateChatPill();goConvos();}
+      if(d&&d.ok){S.isAdmin=!!(d.is_admin);store.set('cg_a',S.isAdmin?'1':'0');if(d.avatar_b64){store.set('cg_av',d.avatar_b64);store.set('hm_av',d.avatar_b64);}updateChatPill();goConvos();}
       else{store.del('cg_t');store.del('cg_u');store.del('cg_n');store.del('cg_a');store.del('cg_av');updateChatPill();show('auth-screen');}
     });
   } else { show('auth-screen'); }

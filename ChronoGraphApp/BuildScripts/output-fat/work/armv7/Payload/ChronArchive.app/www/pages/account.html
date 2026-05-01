@@ -524,7 +524,8 @@ function doAuth(){
     btn.disabled=false;
     if(err||!d.ok){showErr('af-err',d.error||'Authentication failed.');return;}
     store.s('cg_t',d.token);store.s('cg_u',d.user_id+'');store.s('cg_n',d.username);
-    if(d.avatar_b64){store.s('cg_av',d.avatar_b64);}
+    store.s('hm_t',d.token);store.s('hm_u',d.user_id+'');store.s('hm_n',d.username);
+    if(d.avatar_b64){store.s('cg_av',d.avatar_b64);store.s('hm_av',d.avatar_b64);}
     S.token=d.token;S.uid=d.user_id;S.uname=d.username;S.av=d.avatar_b64||'';
     afterLogin();
   });
@@ -536,6 +537,7 @@ function afterLogin(){
     S.uid=d.id;S.uname=d.username;S.av=d.avatar_b64||'';
     S.isPrivate=!!d.is_private;S.friendCode=d.friend_code||'';S.isAdmin=!!d.is_admin;
     store.s('cg_n',d.username);store.s('cg_av',S.av);
+    store.s('hm_n',d.username);store.s('hm_av',S.av);
     renderSignedIn();
   });
 }

@@ -69,9 +69,9 @@
   <div id="bottom-nav">
     <div class="nav-tab"        id="tab-home"   ><img class="cyd-nav-img" src="assets/ChronographHomeBtn.png"   alt="Home"></div>
     <div class="nav-tab active" id="tab-search" ><img class="cyd-nav-img" src="assets/ChronographSearchBtn.png" alt="Search"></div>
-    <div class="nav-tab"        id="tab-account"><img class="cyd-nav-img" src="assets/ChronographFilesBtn.png"  alt="Account"></div>
     <div class="nav-tab"        id="tab-chat"   ><img class="cyd-nav-img" src="assets/ChronographChatBtn.png"   alt="Chat"></div>
     <div class="nav-tab"        id="tab-tools"  ><img class="cyd-nav-img" src="assets/ChronographToolsBtn.png"  alt="Tools"></div>
+    <div class="nav-tab"        id="tab-account"><img class="cyd-nav-img" src="assets/ChronographFilesBtn.png"  alt="Account"></div>
   </div>
 
   <script type="text/javascript">
@@ -112,7 +112,7 @@
     }
 
     function setActiveTab(active) {
-      var tabs = ['home','search','account','chat','tools'];
+      var tabs = ['home','search','chat','tools','account'];
       for (var i = 0; i < tabs.length; i++) {
         var el = document.getElementById('tab-' + tabs[i]);
         if (el) el.className = 'nav-tab' + (tabs[i] === active ? ' active' : '');
@@ -126,11 +126,23 @@
         header.style.display = 'none';
         sizeFrame();
       } else {
-        /* User-followed link — may be cross-origin, do NOT touch contentDocument */
+        /* User-followed link — may be cross-origin */
         header.style.display = 'block';
         sizeFrame();
       }
     };
+
+    frame.onerror = function () {
+      /* Some external navigations may fail silently; keep the header visible so back works */
+      header.style.display = 'block';
+      sizeFrame();
+    };
+    if (frame.addEventListener) {
+      frame.addEventListener('error', function () {
+        header.style.display = 'block';
+        sizeFrame();
+      }, false);
+    }
 
     backBtn.onclick = function () {
       /* Always reload the current tab's main page — avoids cross-origin history.back() */
@@ -149,9 +161,9 @@
     }
     fastTap(document.getElementById('tab-home'),    function() { loadPage('home');    });
     fastTap(document.getElementById('tab-search'),  function() { loadPage('search');  });
-    fastTap(document.getElementById('tab-account'), function() { loadPage('account'); });
     fastTap(document.getElementById('tab-chat'),    function() { loadPage('chat');    });
     fastTap(document.getElementById('tab-tools'),   function() { loadPage('tools');   });
+    fastTap(document.getElementById('tab-account'), function() { loadPage('account'); });
 
     /* Prevent navbar and header from scrolling on iOS 7 — only lock the chrome, not the iframe */
     var bottomNav = document.getElementById('bottom-nav');

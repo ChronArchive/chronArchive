@@ -1426,13 +1426,17 @@ function loadMsgConvos() {
     var html = '';
     for (var i = 0; i < convos.length; i++) {
       var c = convos[i];
-      html += '<div class="cg-dm-convo-row" id="cg-convo-' + c.user_id + '" onclick="openMsgWith(' + c.user_id + ',\'' + esc(c.username) + '\')">' +
+      var userId = c.user_id || c.id;
+      var lastMessage = c.last_message || c.last_text || '';
+      var lastTs = c.last_ts || c.last_at;
+      var unread = (typeof c.unread_count !== 'undefined' ? c.unread_count : c.unread || 0);
+      html += '<div class="cg-dm-convo-row" id="cg-convo-' + userId + '" onclick="openMsgWith(' + userId + ',\'' + esc(c.username) + '\')">' +
         '<div class="cg-av-sm">' + avatarHtml(c.avatar_b64, c.username, 28) + '</div>' +
         '<div style="flex:1;min-width:0">' +
-          '<div class="cg-dm-convo-name">' + esc(c.username) + (c.unread_count ? ' <span class="cg-badge">' + c.unread_count + '</span>' : '') + '</div>' +
-          '<div class="cg-dm-convo-preview">' + esc((c.last_message || '').substring(0, 60)) + '</div>' +
+          '<div class="cg-dm-convo-name">' + esc(c.username) + (unread ? ' <span class="cg-badge">' + unread + '</span>' : '') + '</div>' +
+          '<div class="cg-dm-convo-preview">' + esc(lastMessage.substring(0, 60)) + '</div>' +
         '</div>' +
-        '<div class="cg-dm-convo-time">' + (c.last_ts ? fmtTime(c.last_ts) : '') + '</div>' +
+        '<div class="cg-dm-convo-time">' + (lastTs ? fmtTime(lastTs) : '') + '</div>' +
       '</div>';
     }
     if (box) box.innerHTML = html || '<div class="cg-empty" style="padding:20px;font-size:13px">No messages yet.</div>';
