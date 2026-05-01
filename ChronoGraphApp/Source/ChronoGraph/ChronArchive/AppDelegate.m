@@ -19,12 +19,12 @@
     NSString *assetBase = [wwwBase stringByAppendingPathComponent:@"assets"];
 
     /* Tab definitions — avoid @[] literal and subscript syntax for clang 3.1 compat */
-    /* Files tab removed per RC1 redesign */
     NSArray *tabDefs = [NSArray arrayWithObjects:
-        [NSArray arrayWithObjects:@"pages/home.html",   @"Home",   @"HomeBtn",   nil],
-        [NSArray arrayWithObjects:@"pages/search.html", @"Search", @"SearchBtn", nil],
-        [NSArray arrayWithObjects:@"pages/chat.html",   @"Chat",   @"ChatBTN",   nil],
-        [NSArray arrayWithObjects:@"pages/tools.html",  @"Tools",  @"ToolsBtn",  nil],
+        [NSArray arrayWithObjects:@"pages/home.html",    @"Home",    @"HomeBtn",   nil],
+        [NSArray arrayWithObjects:@"pages/search.html",  @"Search",  @"SearchBtn", nil],
+        [NSArray arrayWithObjects:@"pages/chat.html",    @"Chat",    @"ChatBTN",   nil],
+        [NSArray arrayWithObjects:@"pages/tools.html",   @"Tools",   @"ToolsBtn",  nil],
+        [NSArray arrayWithObjects:@"pages/account.html", @"Account", @"FilesBtn",  nil],
         nil];
 
     NSMutableArray *navControllers = [NSMutableArray array];
@@ -73,7 +73,7 @@
     tabs.viewControllers = navControllers;
     /* UITabBar.tintColor is iOS 5+ — guard so the call doesn't crash iOS 3/4 */
     if ([tabs.tabBar respondsToSelector:@selector(setTintColor:)])
-        tabs.tabBar.tintColor = [UIColor colorWithRed:0.35 green:0.78 blue:0.98 alpha:1.0];
+        tabs.tabBar.tintColor = [UIColor colorWithRed:0.15 green:0.58 blue:0.78 alpha:1.0];
 
 
     self.window.rootViewController = tabs;

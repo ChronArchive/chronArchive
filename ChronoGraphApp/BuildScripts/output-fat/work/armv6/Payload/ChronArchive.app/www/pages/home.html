@@ -25,7 +25,7 @@
       -webkit-box-shadow:0 1px 3px rgba(0,0,0,0.15); box-shadow:0 1px 3px rgba(0,0,0,0.15);
       display:-webkit-box; display:-webkit-flex; display:flex;
       -webkit-box-align:center; -webkit-align-items:center; align-items:center;
-      -webkit-justify-content:space-between; justify-content:space-between;
+      -webkit-box-pack:justify; -webkit-justify-content:space-between; justify-content:space-between;
       padding:0 10px; }
     #hdr-logo { height:24px; display:block; }
     #hdr-right { display:-webkit-box; display:-webkit-flex; display:flex;
@@ -328,13 +328,18 @@ function resizeImg(dataUrl,maxPx,cb){
   try{
     var img=new Image();
     img.onload=function(){
-      var w=img.width,h=img.height;
-      if(w<=maxPx&&h<=maxPx){cb(dataUrl);return;}
-      var sc=w>h?maxPx/w:maxPx/h;
-      var cv=document.createElement('canvas');
-      cv.width=Math.round(w*sc); cv.height=Math.round(h*sc);
-      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
-      cb(cv.toDataURL('image/jpeg',0.80));
+      try{
+        var w=img.width,h=img.height;
+        if(w<=maxPx&&h<=maxPx){cb(dataUrl);return;}
+        var sc=w>h?maxPx/w:maxPx/h;
+        var cv=document.createElement('canvas');
+        cv.width=Math.round(w*sc); cv.height=Math.round(h*sc);
+        var ctx=cv.getContext('2d');
+        if(!ctx){cb(dataUrl);return;}
+        ctx.drawImage(img,0,0,cv.width,cv.height);
+        var reduced = cv.toDataURL ? cv.toDataURL('image/jpeg',0.80) : dataUrl;
+        cb(reduced);
+      }catch(e){cb(dataUrl);}
     };
     img.onerror=function(){cb(dataUrl);};
     img.src=dataUrl;
@@ -651,6 +656,7 @@ function setCType(t){
   document.getElementById('cp-video-wrap').style.display=t==='video'?'block':'none';
 }
 function onCpImg(){
+  if(!window.FileReader){showErr('cp-err','Image upload not supported on this browser.');return;}
   var f=document.getElementById('cp-file').files[0];
   if(!f)return;
   if(f.size>4*1024*1024){showErr('cp-err','Image must be under 4 MB.');return;}
@@ -663,6 +669,7 @@ function onCpImg(){
       document.getElementById('cp-drop').style.display='none';
     });
   };
+  reader.onerror=function(){showErr('cp-err','Unable to read chosen image.');};
   reader.readAsDataURL(f);
 }
 function submitPost(){
