@@ -121,7 +121,10 @@ echo "  Injected launch images"
 
 INFO="$OUTPUT_DIR/Payload/ChronArchive.app/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 12.0" "$INFO" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 0.9" "$INFO" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 9" "$INFO" 2>/dev/null || true
 echo "  MinimumOSVersion → 12.0"
+echo "  Version → 0.9 (build 9)"
 
 echo "  Ad-hoc signing..."
 xattr -cr "$OUTPUT_DIR/Payload/ChronArchive.app"

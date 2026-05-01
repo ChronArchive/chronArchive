@@ -93,6 +93,11 @@ for LAUNCH in Default.png Default@2x.png Default-568h@2x.png Default-667h@2x.png
 done
 echo "  Injected launch images"
 
+INFO="$OUTPUT_DIR/Payload/ChronArchive.app/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 0.9" "$INFO" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 9" "$INFO" 2>/dev/null || true
+echo "  Version → 0.9 (build 9)"
+
 # Ad-hoc sign the app so the Mach-O loader accepts it on the device.
 # AppSync Unified / ipainstaller bypass the signature *check*, but the
 # binary must still carry a code signature or the kernel refuses to load it.
