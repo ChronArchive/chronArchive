@@ -4,6 +4,9 @@
 
 # Internal docs
 DESIGN.md
+TopLevelSummary
+ChronographAppConsolidationPlan
+NextMajorRevisionPlan
 
 # Xcode build artifacts
 build/
@@ -30,14 +33,9 @@ admin_secret.txt
 admin_pass.txt
 
 # Old app folder
-chronograph-old/
+old-chronograph-files-outdated/
 
 # Build outputs (compiled IPAs and extracted app bundles — never committed)
-ChronoGraph RC1/output/
-ChronoGraph RC1/output-arm64/
-ChronoGraph RC1/output-armv6/
-ChronoGraph RC1/output-fat/
-
-# Stale old tree
-Chronograph/
+ChronoGraphApp/Bundles/
+ChronoGraphApp/Source/ChronoGraph/build/
 

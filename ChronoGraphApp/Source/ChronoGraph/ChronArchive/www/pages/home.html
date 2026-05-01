@@ -1,0 +1,768 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <title>Chronograph</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style id="cg-theme-style"></style>
+  <style>
+    * { margin:0; padding:0; -webkit-box-sizing:border-box; box-sizing:border-box; }
+    html,body { width:100%; height:100%; overflow:hidden; background:#f2f2f7;
+      font-family:-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif;
+      -webkit-text-size-adjust:none; color:#1a1a1a; }
+    #shell { width:100%; height:100%;
+      display:-webkit-box; -webkit-box-orient:vertical;
+      display:-webkit-box; display:-webkit-flex; display:flex;
+      -webkit-flex-direction:column; flex-direction:column; overflow:hidden; }
+
+    /* ── Navigation Bar ── */
+    #hdr { height:44px; -webkit-flex-shrink:0; flex-shrink:0;
+      background:-webkit-gradient(linear,left top,left bottom,from(#f0f0f0),to(#d8d8d8));
+      background:-webkit-linear-gradient(top,#f0f0f0 0%,#d8d8d8 100%);
+      background:linear-gradient(to bottom,#f0f0f0 0%,#d8d8d8 100%);
+      border-bottom:1px solid #b8b8b8;
+      -webkit-box-shadow:0 1px 3px rgba(0,0,0,0.15); box-shadow:0 1px 3px rgba(0,0,0,0.15);
+      display:-webkit-box; display:-webkit-flex; display:flex;
+      -webkit-box-align:center; -webkit-align-items:center; align-items:center;
+      -webkit-justify-content:space-between; justify-content:space-between;
+      padding:0 10px; }
+    #hdr-logo { height:24px; display:block; }
+    #hdr-right { display:-webkit-box; display:-webkit-flex; display:flex;
+      -webkit-box-align:center; -webkit-align-items:center; align-items:center; }
+    /* Compose button */
+    #compose-btn { width:36px; height:36px; border:none; background:none;
+      color:#0055cc; font-size:30px; font-weight:300; line-height:36px; padding:0;
+      cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    /* Feed tabs */
+    #feed-tabs { height:36px; -webkit-flex-shrink:0; flex-shrink:0;
+      background:#f8f8f8; border-bottom:1px solid #d8d8d8;
+      display:-webkit-box; display:-webkit-flex; display:flex; }
+    .ftab { -webkit-flex:1; flex:1; background:none; border:none; border-bottom:2px solid transparent;
+      font-size:13px; font-weight:bold; color:#888; cursor:pointer;
+      font-family:inherit; -webkit-tap-highlight-color:transparent; }
+    .ftab.on { color:#0055cc; border-bottom-color:#0055cc; }
+
+    /* ── Feed ── */
+    #feed-wrap { -webkit-box-flex:1; -webkit-flex:1 1 auto; flex:1 1 auto;
+      overflow-y:scroll; -webkit-overflow-scrolling:touch; background:#f2f2f7; min-height:0; }
+
+    /* Post card */
+    .post-card { background:#fff; border-bottom:1px solid #e1e1e1; }
+    .post-hd { display:-webkit-box; display:-webkit-flex; display:flex; -webkit-box-align:start; -webkit-align-items:flex-start; align-items:flex-start; padding:10px 12px 4px; }
+    .post-av { width:38px; height:38px; -webkit-border-radius:19px; border-radius:19px;
+      background:#0055cc; -webkit-flex-shrink:0; flex-shrink:0;
+      text-align:center; line-height:38px; font-size:17px; font-weight:bold; color:#fff;
+      overflow:hidden; margin-right:10px; cursor:pointer; }
+    .post-av img { width:38px; height:38px; display:block; -webkit-border-radius:19px; border-radius:19px; }
+    .post-meta { -webkit-flex:1; flex:1; min-width:0; }
+    .post-uname { font-size:13px; font-weight:bold; color:#1a1a1a; cursor:pointer; }
+    .post-time  { font-size:11px; color:#aaa; }
+    .post-body  { padding:2px 12px 8px 60px; }
+    .post-title { font-size:14px; font-weight:bold; color:#1a1a1a; line-height:1.4; }
+    .post-desc  { font-size:13px; color:#555; margin-top:3px; line-height:1.5; }
+    .post-tags  { margin-top:5px; }
+    .post-tag   { display:inline-block; font-size:11px; color:#0055cc; margin-right:4px; }
+    .post-media { width:100%; line-height:0; }
+    .post-media img   { width:100%; max-height:300px; object-fit:cover; display:block; }
+    .post-media video { width:100%; max-height:260px; display:block; background:#000; }
+    /* Actions */
+    .post-actions { display:-webkit-box; display:-webkit-flex; display:flex; border-top:1px solid #f0f0f0; }
+    .act-btn { -webkit-flex:1; flex:1;
+      display:-webkit-box; display:-webkit-flex; display:flex; -webkit-box-align:center; -webkit-align-items:center; align-items:center;
+      -webkit-justify-content:center; justify-content:center;
+      padding:8px 4px; background:none; border:none; border-right:1px solid #f0f0f0;
+      color:#888; font-size:12px; cursor:pointer; -webkit-tap-highlight-color:transparent;
+      font-family:inherit; }
+    .act-btn:last-child { border-right:none; }
+    .act-btn.liked { color:#e0245e; }
+    .act-narrow { -webkit-flex:0 0 40px; flex:0 0 40px; }
+    /* Comments */
+    .cmts { background:#fafafa; border-top:1px solid #f0f0f0; padding:8px 12px; display:none; }
+    .cmts.open { display:block; }
+    .cmt-row { display:-webkit-box; display:-webkit-flex; display:flex; gap:7px; margin-bottom:8px; }
+    .cmt-av { width:24px; height:24px; -webkit-border-radius:12px; border-radius:12px;
+      background:#888; -webkit-flex-shrink:0; flex-shrink:0;
+      text-align:center; line-height:24px; font-size:11px; font-weight:bold; color:#fff; overflow:hidden; }
+    .cmt-av img { width:24px; height:24px; display:block; -webkit-border-radius:12px; border-radius:12px; }
+    .cmt-bubble { background:#f0f0f0; -webkit-border-radius:12px; border-radius:12px; padding:6px 10px; font-size:12px; line-height:1.4; }
+    .cmt-name { font-weight:bold; color:#1a1a1a; font-size:11px; }
+    .cmt-inp-row { display:-webkit-box; display:-webkit-flex; display:flex; gap:6px; margin-top:4px; -webkit-box-align:center; -webkit-align-items:center; align-items:center; }
+    .cmt-inp { -webkit-flex:1; flex:1; padding:7px 10px; background:#f0f0f0; border:1px solid #ddd;
+      -webkit-border-radius:16px; border-radius:16px; font-size:13px; color:#1a1a1a;
+      outline:none; -webkit-appearance:none; font-family:inherit; }
+    .cmt-send { padding:7px 12px; background:#0055cc; border:none;
+      -webkit-border-radius:14px; border-radius:14px;
+      color:#fff; font-size:12px; font-weight:bold; cursor:pointer; -webkit-appearance:none; }
+    .load-more { display:block; width:100%; padding:14px; background:#fff; border:none;
+      border-top:1px solid #e1e1e1; color:#0055cc; font-size:14px; cursor:pointer;
+      font-family:inherit; -webkit-tap-highlight-color:transparent; }
+    .feed-empty { text-align:center; padding:60px 28px; color:#aaa; font-size:14px; }
+    .feed-load  { text-align:center; padding:40px 20px; color:#aaa; font-size:14px; }
+
+    /* ── Modals ── */
+    .modal-bg { display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+      background:rgba(0,0,0,0.45); z-index:200;
+      overflow-y:auto; -webkit-overflow-scrolling:touch; }
+    .modal-bg.open { display:block; }
+    .modal-box { background:#fff; margin:40px 16px 60px;
+      -webkit-border-radius:12px; border-radius:12px; overflow:hidden; }
+    .modal-hdr { padding:14px 16px; border-bottom:1px solid #e8e8e8;
+      display:-webkit-box; display:-webkit-flex; display:flex; -webkit-box-align:center; -webkit-align-items:center; align-items:center; }
+    .modal-title { font-size:17px; font-weight:bold; -webkit-flex:1; flex:1; text-align:center; color:#1a1a1a; }
+    .modal-lt, .modal-rt { font-size:15px; color:#0055cc; background:none; border:none;
+      cursor:pointer; padding:0; font-family:inherit; -webkit-tap-highlight-color:transparent;
+      min-width:50px; }
+    .modal-lt { text-align:left; }
+    .modal-rt { text-align:right; font-weight:bold; }
+    .modal-body { padding:16px; }
+    .mfield { display:block; width:100%; padding:10px 12px; margin-bottom:10px;
+      background:#f7f7f7; border:1px solid #ddd;
+      -webkit-border-radius:8px; border-radius:8px; color:#1a1a1a; font-size:15px;
+      outline:none; -webkit-appearance:none; font-family:inherit; }
+    .mfield::-webkit-input-placeholder { color:#aaa; }
+    .mfield-sm { font-size:13px; padding:8px 10px; }
+    .mbtn { display:block; width:100%; padding:13px; margin-bottom:8px;
+      background:-webkit-linear-gradient(top,#1a7ce8 0%,#0055cc 100%);
+      background:linear-gradient(to bottom,#1a7ce8 0%,#0055cc 100%);
+      border:1px solid #003ca0; -webkit-border-radius:8px; border-radius:8px;
+      -webkit-box-shadow:0 1px 2px rgba(0,0,80,0.2); box-shadow:0 1px 2px rgba(0,0,80,0.2);
+      color:#fff; font-size:15px; font-weight:bold; cursor:pointer;
+      -webkit-appearance:none; font-family:inherit; }
+    .mbtn:disabled { opacity:0.5; }
+    .mbtn-gray { background:#f2f2f2; border:1px solid #ddd; color:#333; font-weight:normal;
+      -webkit-box-shadow:none; box-shadow:none; }
+    .mbtn-red  { background:#fff; border:1px solid #cc0000; color:#cc0000;
+      font-weight:normal; -webkit-box-shadow:none; box-shadow:none; }
+    .merr { color:#cc0000; font-size:13px; margin-top:6px; text-align:center; display:none; }
+    /* Auth tabs */
+    .auth-tabs { display:table; width:100%; border-bottom:1px solid #ddd; margin-bottom:14px; }
+    .auth-tab  { display:table-cell; text-align:center; padding:10px 0; color:#888; cursor:pointer; font-size:14px; }
+    .auth-tab.on { color:#0055cc; border-bottom:2px solid #0055cc; }
+    /* Compose type toolbar */
+    .ctoolbar { display:-webkit-box; display:-webkit-flex; display:flex; gap:8px; margin-bottom:10px; }
+    .ctool { background:#f2f2f2; border:1px solid #ddd; -webkit-border-radius:6px; border-radius:6px;
+      padding:6px 10px; font-size:13px; color:#0055cc; cursor:pointer;
+      -webkit-tap-highlight-color:transparent; font-family:inherit; }
+    .ctool.on { background:#e8effe; border-color:#0055cc; }
+    #cp-preview { max-width:100%; max-height:180px; display:block; margin:0 auto 8px;
+      -webkit-border-radius:8px; border-radius:8px; }
+    /* Profile modal */
+    .prof-av-wrap { text-align:center; margin-bottom:14px; }
+    .prof-av-lg { width:72px; height:72px; -webkit-border-radius:36px; border-radius:36px;
+      background:#0055cc; display:inline-block; text-align:center;
+      line-height:72px; font-size:30px; font-weight:bold; color:#fff; overflow:hidden; cursor:pointer; }
+    .prof-av-lg img { width:72px; height:72px; -webkit-border-radius:36px; border-radius:36px; display:block; }
+    .prof-name { text-align:center; font-size:16px; font-weight:bold; color:#1a1a1a; margin-bottom:4px; }
+    .mlabel { font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.5px;
+      margin:12px 0 6px; font-weight:bold; }
+  </style>
+</head>
+<body>
+<div id="shell">
+
+  <!-- Navigation Bar -->
+  <div id="hdr">
+    <img id="hdr-logo" src="../assets/ChronoGraphLogo.png" alt="Chronograph">
+    <div id="hdr-right">
+      <button id="compose-btn" onclick="openCompose()" title="New Post">+</button>
+    </div>
+  </div>
+
+  <!-- Feed Tabs -->
+  <div id="feed-tabs">
+    <button class="ftab on" id="ft-all"     onclick="setFeedTab('all')">Posts</button>
+    <button class="ftab"    id="ft-friends" onclick="setFeedTab('friends')">Friends</button>
+  </div>
+
+  <!-- Feed -->
+  <div id="feed-wrap">
+    <div id="posts-feed"><div class="feed-load">Loading&#8230;</div></div>
+  </div>
+
+</div><!-- /shell -->
+
+<!-- AUTH MODAL -->
+<div class="modal-bg" id="auth-modal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <button class="modal-lt" onclick="closeModal('auth-modal')">Cancel</button>
+      <span class="modal-title">Chronograph</span>
+      <span style="min-width:50px"></span>
+    </div>
+    <div class="modal-body">
+      <div class="auth-tabs">
+        <div class="auth-tab on" id="at-li" onclick="setAMode('login')">Sign In</div>
+        <div class="auth-tab"   id="at-re" onclick="setAMode('register')">Register</div>
+      </div>
+      <input type="text"     id="af-user" class="mfield" placeholder="Username" autocorrect="off" autocapitalize="off">
+      <input type="password" id="af-pass" class="mfield" placeholder="Password">
+      <div id="af-conf-row" style="display:none">
+        <input type="password" id="af-conf" class="mfield" placeholder="Confirm Password">
+      </div>
+      <input type="button" id="af-btn" class="mbtn" value="Sign In" onclick="doAuth()">
+      <div id="af-err" class="merr"></div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPOSE MODAL -->
+<div class="modal-bg" id="compose-modal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <button class="modal-lt" onclick="closeModal('compose-modal')">Cancel</button>
+      <span class="modal-title">New Post</span>
+      <button class="modal-rt" id="cp-post-btn" onclick="submitPost()">Post</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" id="cp-title" class="mfield mfield-sm" placeholder="Title (optional)" maxlength="120">
+      <textarea id="cp-desc" class="mfield" placeholder="What&#8217;s happening?" rows="4" maxlength="500"
+        style="resize:none;font-size:16px;line-height:1.5"></textarea>
+      <input type="text" id="cp-tags" class="mfield mfield-sm" placeholder="Tags: retro ios app" maxlength="200">
+      <div class="ctoolbar">
+        <button class="ctool on" id="ct-photo" onclick="setCType('photo')">&#128247; Photo</button>
+        <button class="ctool"    id="ct-video" onclick="setCType('video')">&#9654; Video URL</button>
+      </div>
+      <div id="cp-photo-wrap">
+        <label id="cp-drop" for="cp-file"
+          style="display:block;border:2px dashed #ccc;-webkit-border-radius:8px;border-radius:8px;padding:20px;text-align:center;color:#aaa;font-size:13px;cursor:pointer;">
+          Tap to choose a photo
+        </label>
+        <input type="file" id="cp-file" accept="image/*" style="display:none" onchange="onCpImg()">
+        <img id="cp-preview" style="display:none" alt="">
+      </div>
+      <div id="cp-video-wrap" style="display:none">
+        <input type="text" id="cp-vid-url" class="mfield" placeholder="YouTube, Vimeo, or direct video URL">
+      </div>
+      <div id="cp-err" class="merr"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="modal-bg" id="prof-modal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <button class="modal-lt" onclick="closeModal('prof-modal')">Close</button>
+      <span class="modal-title">Profile</span>
+      <span style="min-width:50px"></span>
+    </div>
+    <div class="modal-body">
+      <div class="prof-av-wrap">
+        <div class="prof-av-lg" id="pm-av" onclick="pickAv()"></div>
+        <div style="font-size:11px;color:#0055cc;margin-top:5px;cursor:pointer" onclick="pickAv()">Change Photo</div>
+        <input type="file" id="pm-av-inp" accept="image/*" style="display:none" onchange="onAvPick()">
+      </div>
+      <div class="prof-name" id="pm-name"></div>
+      <div class="mlabel">Bio</div>
+      <input type="text" id="pm-bio" class="mfield" placeholder="About yourself&#8230;" maxlength="160">
+      <div class="mlabel">Change Password</div>
+      <input type="password" id="pm-oldpw" class="mfield mfield-sm" placeholder="Current password">
+      <input type="password" id="pm-newpw" class="mfield mfield-sm" placeholder="New password (leave blank to keep)">
+      <input type="button" class="mbtn mbtn-gray" id="pm-save" value="Save Profile" onclick="saveProfile()">
+      <div class="merr" id="pm-err"></div>
+      <div style="height:4px"></div>
+      <input type="button" class="mbtn mbtn-red" value="Sign Out" onclick="doLogout()">
+    </div>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="modal-bg" id="report-modal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <button class="modal-lt" onclick="closeModal('report-modal')">Cancel</button>
+      <span class="modal-title">Report</span>
+      <span style="min-width:50px"></span>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="rp-type">
+      <input type="hidden" id="rp-id">
+      <textarea id="rp-reason" class="mfield" placeholder="Describe the issue&#8230;" rows="4" maxlength="500" style="resize:none"></textarea>
+      <input type="button" class="mbtn" value="Submit Report" onclick="submitReport()">
+      <div id="rp-err" class="merr"></div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+var API = 'https://chat.chronarchive.com';
+var _m = {};
+var store = {
+  g: function(k){try{return localStorage.getItem(k);}catch(e){return _m[k]||null;}},
+  s: function(k,v){try{localStorage.setItem(k,v);}catch(e){_m[k]=v;}},
+  d: function(k){try{localStorage.removeItem(k);}catch(e){delete _m[k];}}
+};
+var cgrPJ = (window.JSON && JSON.parse) ? function(s){return JSON.parse(s);} : function(s){return eval('('+s+')');};
+var S = {
+  token:null, uid:null, uname:null, av:'',
+  page:0, allLoaded:false,
+  ctype:'photo', cpImg:null, avData:null,
+  authMode:'login', feedMode:'all'
+};
+S.token = store.g('hm_t')||store.g('cg_t');
+S.uid   = parseInt(store.g('hm_u')||store.g('cg_u')||'0',10)||null;
+S.uname = store.g('hm_n')||store.g('cg_n');
+S.av    = store.g('hm_av')||store.g('cg_av')||'';
+
+function esc(s){var d=document.createElement('div');d.appendChild(document.createTextNode(s||''));return d.innerHTML;}
+function openModal(id){document.getElementById(id).className='modal-bg open';}
+function closeModal(id){document.getElementById(id).className='modal-bg';}
+function showErr(id,msg){var e=document.getElementById(id);if(e){e.style.display='block';e.textContent=msg;}}
+function hideErr(id){var e=document.getElementById(id);if(e){e.style.display='none';}}
+
+function req(m,path,body,cb){
+  var x; try{x=new XMLHttpRequest();}catch(e){try{x=new ActiveXObject('Microsoft.XMLHTTP');}catch(e2){return;}}
+  x.open(m,API+path,true);
+  x.setRequestHeader('Content-Type','application/json');
+  if(S.token) x.setRequestHeader('X-CG-Token',S.token);
+  x.onreadystatechange=function(){
+    if(x.readyState!==4)return;
+    var d;try{d=cgrPJ(x.responseText);}catch(e){d={ok:false,error:'Bad response'};}
+    if(cb)cb(d,x.status>=400?(d.error||'Error'):null);
+  };
+  x.send(body?JSON.stringify(body):null);
+}
+
+function resizeImg(dataUrl,maxPx,cb){
+  try{
+    var img=new Image();
+    img.onload=function(){
+      var w=img.width,h=img.height;
+      if(w<=maxPx&&h<=maxPx){cb(dataUrl);return;}
+      var sc=w>h?maxPx/w:maxPx/h;
+      var cv=document.createElement('canvas');
+      cv.width=Math.round(w*sc); cv.height=Math.round(h*sc);
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+      cb(cv.toDataURL('image/jpeg',0.80));
+    };
+    img.onerror=function(){cb(dataUrl);};
+    img.src=dataUrl;
+  }catch(e){cb(dataUrl);}
+}
+function mkAv(b64,name,sz){
+  sz=sz||38;
+  if(b64) return '<img src="'+esc(b64)+'" style="width:'+sz+'px;height:'+sz+'px;display:block;-webkit-border-radius:'+(sz/2)+'px;border-radius:'+(sz/2)+'px;" alt="">';
+  return esc((name||'?').charAt(0).toUpperCase());
+}
+function relTime(ts){
+  var d=Math.floor(Date.now()/1000)-ts;
+  if(d<60)return 'just now';
+  if(d<3600)return Math.floor(d/60)+'m';
+  if(d<86400)return Math.floor(d/3600)+'h';
+  if(d<604800)return Math.floor(d/86400)+'d';
+  var dt=new Date(ts*1000);
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.getMonth()]+' '+dt.getDate();
+}
+
+/* ─── Feed Tabs ─── */
+function setFeedTab(mode){
+  S.feedMode=mode;
+  document.getElementById('ft-all').className='ftab'+(mode==='all'?' on':'');
+  document.getElementById('ft-friends').className='ftab'+(mode==='friends'?' on':'');
+  loadFeed(true);
+}
+
+/* ─── Feed ─── */
+function loadFeed(reset){
+  if(reset){S.page=0;S.allLoaded=false;document.getElementById('posts-feed').innerHTML='<div class="feed-load">Loading&#8230;</div>';}
+  if(S.allLoaded)return;
+  var friendsParam=S.feedMode==='friends'&&S.token?'&friends=1':'';
+  if(S.feedMode==='friends'&&!S.token){
+    document.getElementById('posts-feed').innerHTML='<div class="feed-empty">Sign in to see friends\' posts.</div>';
+    return;
+  }
+  req('GET','/api/posts?page='+S.page+friendsParam,null,function(d,err){
+    var feed=document.getElementById('posts-feed');
+    if(err||!d.ok){feed.innerHTML='<div class="feed-empty">Could not load posts.</div>';return;}
+    var posts=d.posts||[];
+    if(reset) feed.innerHTML='';
+    if(!posts.length&&reset){
+      var emptyMsg=S.feedMode==='friends'?'No friends\' posts yet.':'No posts yet. Be the first!';
+      feed.innerHTML='<div class="feed-empty">'+emptyMsg+'</div>';
+      return;
+    }
+    var html='';
+    for(var i=0;i<posts.length;i++) html+=renderPost(posts[i]);
+    feed.innerHTML+=html;
+    if(posts.length<20){S.allLoaded=true;}
+    else{feed.innerHTML+='<button class="load-more" onclick="loadMore()">Load more &#8595;</button>';}
+  });
+}
+function loadMore(){
+  var btn=document.querySelector('.load-more');
+  if(btn)btn.parentNode.removeChild(btn);
+  S.page++;
+  loadFeed(false);
+}
+
+function renderPost(p){
+  var isMine=S.uid&&p.user_id===S.uid;
+  var tags='';
+  if(p.tags){var ta=(p.tags+'').split(/[\s,]+/);for(var i=0;i<ta.length;i++){if(ta[i])tags+='<span class="post-tag">#'+esc(ta[i])+'</span> ';}}
+  var media='';
+  if(p.media_data){
+    if(p.type==='video'){
+      media='<div class="post-media">'+mkVid(p.media_data)+'</div>';
+    } else if(p.media_data.indexOf('data:')===0||p.media_data.indexOf('http')===0){
+      media='<div class="post-media"><img src="'+esc(p.media_data)+'" alt="" loading="lazy"></div>';
+    }
+  }
+  var lkFill=p.user_liked?'#e0245e':'none';
+  var lkCol =p.user_liked?'#e0245e':'#aaa';
+  var more='';
+  if(isMine){
+    more='<button class="act-btn act-narrow" onclick="delPost('+p.id+')" style="color:#cc0000;font-size:16px;">&times;</button>';
+  } else if(S.token){
+    more='<button class="act-btn act-narrow" onclick="openRpt(\'post\','+p.id+')" style="font-size:15px;">&#8942;</button>';
+  }
+  return '<div class="post-card" id="pc-'+p.id+'">'
+    +'<div class="post-hd">'
+      +'<div class="post-av" onclick="openProfOf('+p.user_id+')">'+mkAv(p.avatar_b64,p.username,38)+'</div>'
+      +'<div class="post-meta">'
+        +'<span class="post-uname" onclick="openProfOf('+p.user_id+')">'+esc(p.username)+'</span>'
+        +'&nbsp;<span class="post-time">'+relTime(p.created_at)+(p.device_tag?' &middot; via '+esc(p.device_tag):'')+'</span>'
+      +'</div>'
+    +'</div>'
+    +'<div class="post-body">'
+      +(p.title?'<div class="post-title">'+esc(p.title)+'</div>':'')
+      +(p.description?'<div class="post-desc">'+esc(p.description).replace(/\n/g,'<br>')+'</div>':'')
+      +(tags?'<div class="post-tags">'+tags+'</div>':'')
+    +'</div>'
+    +media
+    +'<div class="post-actions">'
+      +'<button class="act-btn'+(p.user_liked?' liked':'')+'" id="lb-'+p.id+'" onclick="toggleLike('+p.id+')">'
+        +'<svg style="width:16px;height:16px;display:inline-block;vertical-align:middle;" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="'+lkFill+'" stroke="'+lkCol+'" stroke-width="2"/></svg>'
+        +'&nbsp;<span id="lc-'+p.id+'">'+(p.likes_count||0)+'</span>'
+      +'</button>'
+      +'<button class="act-btn" onclick="toggleCmts('+p.id+')">'
+        +'<svg style="width:16px;height:16px;display:inline-block;vertical-align:middle;" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="none" stroke="#aaa" stroke-width="2"/></svg>'
+        +'&nbsp;<span id="cc-'+p.id+'">'+(p.comments_count||0)+'</span>'
+      +'</button>'
+      +'<button class="act-btn" onclick="sharePost('+p.id+')">&#8679; Share</button>'
+      +more
+    +'</div>'
+    +'<div class="cmts" id="cs-'+p.id+'"></div>'
+  +'</div>';
+}
+
+function mkVid(url){
+  var yt=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+  if(yt) return '<iframe width="100%" height="210" src="https://www.youtube.com/embed/'+yt[1]+'" frameborder="0" allowfullscreen style="display:block;"></iframe>';
+  var vi=url.match(/vimeo\.com\/(\d+)/);
+  if(vi) return '<iframe width="100%" height="210" src="https://player.vimeo.com/video/'+vi[1]+'" frameborder="0" allowfullscreen style="display:block;"></iframe>';
+  return '<video controls style="width:100%;max-height:240px;display:block;background:#000;" preload="none"><source src="'+esc(url)+'"></video>';
+}
+
+/* ─── Like ─── */
+function toggleLike(pid){
+  if(!S.token){openModal('auth-modal');return;}
+  req('POST','/api/posts/'+pid+'/like',null,function(d){
+    if(!d.ok)return;
+    var btn=document.getElementById('lb-'+pid);
+    var cnt=document.getElementById('lc-'+pid);
+    if(btn){
+      btn.className='act-btn'+(d.liked?' liked':'');
+      var p=btn.querySelector('path');
+      if(p){p.setAttribute('fill',d.liked?'#e0245e':'none');p.setAttribute('stroke',d.liked?'#e0245e':'#aaa');}
+    }
+    if(cnt)cnt.textContent=d.likes_count;
+  });
+}
+
+/* ─── Delete ─── */
+function delPost(pid){
+  if(!confirm('Delete this post?'))return;
+  req('DELETE','/api/posts/'+pid,null,function(){
+    var el=document.getElementById('pc-'+pid);
+    if(el)el.parentNode.removeChild(el);
+  });
+}
+
+/* ─── Comments ─── */
+function toggleCmts(pid){
+  var cs=document.getElementById('cs-'+pid);
+  if(!cs)return;
+  if(cs.className.indexOf('open')>=0){cs.className='cmts';return;}
+  cs.className='cmts open';
+  if(cs.getAttribute('data-loaded'))return;
+  cs.innerHTML='<div style="text-align:center;padding:10px;color:#aaa;font-size:12px;">Loading&#8230;</div>';
+  req('GET','/api/posts/'+pid+'/comments',null,function(d){
+    cs.setAttribute('data-loaded','1');
+    var cms=d.comments||[];
+    var html='';
+    for(var i=0;i<cms.length;i++){
+      var c=cms[i];
+      html+='<div class="cmt-row" id="cmr-'+c.id+'">'
+        +'<div class="cmt-av">'+mkAv(c.avatar_b64,c.username,24)+'</div>'
+        +'<div class="cmt-bubble"><div class="cmt-name">'+esc(c.username)+'</div><div>'+esc(c.text)+'</div></div>'
+      +'</div>';
+    }
+    var inp=S.token
+      ? '<div class="cmt-inp-row"><input type="text" class="cmt-inp" id="ci-'+pid+'" placeholder="Comment&#8230;" onkeydown="if(event.keyCode===13)addCmt('+pid+')"><button class="cmt-send" onclick="addCmt('+pid+')">Post</button></div>'
+      : '';
+    cs.innerHTML=html+(html?'':('<div style="text-align:center;padding:6px;color:#aaa;font-size:12px;">No comments yet.</div>'))+inp;
+  });
+}
+function addCmt(pid){
+  if(!S.token){openModal('auth-modal');return;}
+  var inp=document.getElementById('ci-'+pid);
+  if(!inp)return;
+  var txt=(inp.value||'').replace(/^\s+|\s+$/g,'');
+  if(!txt)return;
+  inp.value='';
+  req('POST','/api/posts/'+pid+'/comments',{text:txt},function(d){
+    if(!d.ok)return;
+    var c=d.comment;
+    var cs=document.getElementById('cs-'+pid);
+    var ir=cs.querySelector('.cmt-inp-row');
+    var html='<div class="cmt-row">'
+      +'<div class="cmt-av">'+mkAv(S.av,S.uname,24)+'</div>'
+      +'<div class="cmt-bubble"><div class="cmt-name">'+esc(S.uname)+'</div><div>'+esc(c.text)+'</div></div>'
+    +'</div>';
+    if(ir&&ir.insertAdjacentHTML){ir.insertAdjacentHTML('beforebegin',html);}
+    else{
+      var tmp=document.createElement('div');
+      tmp.innerHTML=html;
+      var node=tmp.firstChild;
+      if(node)cs.insertBefore(node,ir||null);
+    }
+    var cnt=document.getElementById('cc-'+pid);
+    if(cnt)cnt.textContent=parseInt(cnt.textContent||'0',10)+1;
+  });
+}
+
+/* ─── Share ─── */
+function sharePost(pid){
+  var url='https://chronarchive.com/chronograph.html#post-'+pid;
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(function(){alert('Link copied!');});
+    } else {
+      window.prompt('Copy link:',url);
+    }
+  }catch(e){
+    window.prompt('Copy link:',url);
+  }
+}
+
+/* ─── View user (opens chat with that user) ─── */
+function openProfOf(uid){
+  /* Navigate to the chat page which has full user profile support */
+  try{window.location.href='chat.html';}catch(e){}
+}
+
+/* ─── Report ─── */
+function openRpt(type,id){
+  if(!S.token){openModal('auth-modal');return;}
+  document.getElementById('rp-type').value=type;
+  document.getElementById('rp-id').value=id;
+  document.getElementById('rp-reason').value='';
+  hideErr('rp-err');
+  openModal('report-modal');
+}
+function submitReport(){
+  var type=document.getElementById('rp-type').value;
+  var id=parseInt(document.getElementById('rp-id').value,10);
+  var reason=(document.getElementById('rp-reason').value||'').replace(/^\s+|\s+$/g,'');
+  if(!reason){showErr('rp-err','Please describe the issue.');return;}
+  req('POST','/api/reports',{target_type:type,target_id:id,reason:reason},function(d,err){
+    if(err){showErr('rp-err',d.error||'Failed.');return;}
+    closeModal('report-modal');
+    alert('Report submitted. Thank you.');
+  });
+}
+
+/* ─── Auth ─── */
+function setAMode(m){
+  S.authMode=m;
+  document.getElementById('at-li').className='auth-tab'+(m==='login'?' on':'');
+  document.getElementById('at-re').className='auth-tab'+(m==='register'?' on':'');
+  document.getElementById('af-conf-row').style.display=m==='login'?'none':'block';
+  document.getElementById('af-btn').value=m==='login'?'Sign In':'Create Account';
+  hideErr('af-err');
+}
+function doAuth(){
+  var user=(document.getElementById('af-user').value||'').replace(/^\s+|\s+$/g,'');
+  var pass=document.getElementById('af-pass').value||'';
+  hideErr('af-err');
+  if(!user||!pass){showErr('af-err','Fill in all fields.');return;}
+  if(S.authMode==='register'){
+    var conf=document.getElementById('af-conf').value||'';
+    if(pass!==conf){showErr('af-err','Passwords do not match.');return;}
+    if(pass.length<6){showErr('af-err','Password must be at least 6 characters.');return;}
+  }
+  var btn=document.getElementById('af-btn'); btn.disabled=true;
+  req('POST','/api/'+S.authMode,{username:user,password:pass},function(d,err){
+    btn.disabled=false;
+    if(err||!d.ok){showErr('af-err',d.error||'Authentication failed.');return;}
+    store.s('hm_t',d.token); store.s('hm_u',d.user_id+''); store.s('hm_n',d.username); store.s('hm_av',d.avatar_b64||'');
+    store.s('cg_t',d.token); store.s('cg_u',d.user_id+''); store.s('cg_n',d.username); if(d.avatar_b64){store.s('cg_av',d.avatar_b64);}
+    S.token=d.token; S.uid=d.user_id; S.uname=d.username; S.av=d.avatar_b64||'';
+    closeModal('auth-modal');
+    updatePill();
+    loadFeed(true);
+  });
+}
+function doLogout(){
+  req('POST','/api/logout',null,function(){});
+  store.d('hm_t'); store.d('hm_u'); store.d('hm_n'); store.d('hm_av');
+  store.d('cg_t'); store.d('cg_u'); store.d('cg_n'); store.d('cg_av');
+  S.token=S.uid=S.uname=null; S.av='';
+  closeModal('prof-modal');
+  updatePill();
+  loadFeed(true);
+}
+
+/* ─── Compose ─── */
+function openCompose(){
+  if(!S.token){openModal('auth-modal');return;}
+  document.getElementById('cp-title').value='';
+  document.getElementById('cp-desc').value='';
+  document.getElementById('cp-tags').value='';
+  document.getElementById('cp-preview').style.display='none';
+  document.getElementById('cp-drop').style.display='block';
+  S.cpImg=null;
+  setCType('photo');
+  hideErr('cp-err');
+  openModal('compose-modal');
+}
+function setCType(t){
+  S.ctype=t;
+  document.getElementById('ct-photo').className='ctool'+(t==='photo'?' on':'');
+  document.getElementById('ct-video').className='ctool'+(t==='video'?' on':'');
+  document.getElementById('cp-photo-wrap').style.display=t==='photo'?'block':'none';
+  document.getElementById('cp-video-wrap').style.display=t==='video'?'block':'none';
+}
+function onCpImg(){
+  var f=document.getElementById('cp-file').files[0];
+  if(!f)return;
+  if(f.size>4*1024*1024){showErr('cp-err','Image must be under 4 MB.');return;}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    resizeImg(e.target.result,900,function(data){
+      S.cpImg=data;
+      var prev=document.getElementById('cp-preview');
+      prev.src=data; prev.style.display='block';
+      document.getElementById('cp-drop').style.display='none';
+    });
+  };
+  reader.readAsDataURL(f);
+}
+function submitPost(){
+  hideErr('cp-err');
+  var title=(document.getElementById('cp-title').value||'').replace(/^\s+|\s+$/g,'');
+  var desc =(document.getElementById('cp-desc').value||'').replace(/^\s+|\s+$/g,'');
+  var tags =(document.getElementById('cp-tags').value||'').replace(/^\s+|\s+$/g,'');
+  if(!title&&!desc){showErr('cp-err','Write something first!');return;}
+  var media='',type='image';
+  if(S.ctype==='photo'){
+    if(!S.cpImg){showErr('cp-err','Choose a photo or switch to Video URL.');return;}
+    media=S.cpImg;
+  } else {
+    var url=(document.getElementById('cp-vid-url').value||'').replace(/^\s+|\s+$/g,'');
+    if(!url){showErr('cp-err','Enter a video URL.');return;}
+    if(url.indexOf('javascript:')===0||url.indexOf('data:')===0){showErr('cp-err','Invalid URL.');return;}
+    media=url; type='video';
+  }
+  var deviceTag='';
+  try{deviceTag=localStorage.getItem('cg-active-device')||'';}catch(e){}
+  var btn=document.getElementById('cp-post-btn'); btn.disabled=true;
+  req('POST','/api/posts',{type:type,title:title||desc,description:desc,tags:tags,media_data:media,device_tag:deviceTag},function(d,err){
+    btn.disabled=false;
+    if(err||!d.ok){showErr('cp-err',d.error||'Failed to post.');return;}
+    closeModal('compose-modal');
+    loadFeed(true);
+  });
+}
+
+/* ─── Profile Modal ─── */
+function openProfile(){
+  if(!S.token){setAMode('login');openModal('auth-modal');return;}
+  document.getElementById('pm-av').innerHTML=mkAv(S.av,S.uname,72);
+  document.getElementById('pm-name').textContent=S.uname||'';
+  document.getElementById('pm-bio').value='';
+  document.getElementById('pm-oldpw').value='';
+  document.getElementById('pm-newpw').value='';
+  S.avData=null;
+  hideErr('pm-err');
+  req('GET','/api/me',null,function(d){
+    if(d.ok) document.getElementById('pm-bio').value=d.bio||'';
+  });
+  openModal('prof-modal');
+}
+function pickAv(){document.getElementById('pm-av-inp').click();}
+function onAvPick(){
+  var f=document.getElementById('pm-av-inp').files[0];
+  if(!f)return;
+  if(f.size>1024*1024){alert('Avatar must be under 1 MB.');return;}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    resizeImg(e.target.result,256,function(data){
+      S.avData=data;
+      document.getElementById('pm-av').innerHTML=mkAv(data,S.uname,72);
+    });
+  };
+  reader.readAsDataURL(f);
+}
+function saveProfile(){
+  hideErr('pm-err');
+  var bio=(document.getElementById('pm-bio').value||'').replace(/^\s+|\s+$/g,'');
+  var oldPw=document.getElementById('pm-oldpw').value||'';
+  var newPw=document.getElementById('pm-newpw').value||'';
+  var body={bio:bio};
+  if(S.avData) body.avatar_b64=S.avData;
+  var btn=document.getElementById('pm-save'); btn.disabled=true;
+  req('PUT','/api/me',body,function(d,err){
+    if(err){showErr('pm-err',d.error||'Save failed.');btn.disabled=false;return;}
+    if(S.avData){S.av=S.avData;store.s('hm_av',S.av);store.s('cg_av',S.av);S.avData=null;}
+    if(newPw){
+      if(!oldPw){showErr('pm-err','Enter your current password to change it.');btn.disabled=false;return;}
+      req('POST','/api/me/password',{old_password:oldPw,new_password:newPw},function(d2,err2){
+        btn.disabled=false;
+        if(err2){showErr('pm-err',d2.error||'Password change failed.');return;}
+        updatePill(); closeModal('prof-modal'); alert('Profile saved!');
+      });
+    } else {
+      btn.disabled=false;
+      updatePill(); closeModal('prof-modal'); alert('Profile saved!');
+    }
+  });
+}
+
+/* profile pill removed — account page handles it */
+function updatePill(){}
+
+/* ─── Theme ─── */
+(function(){
+  var THEMES={
+    light:{bg:'#f2f2f7',grp:'#fff',text:'#1a1a1a',sub:'#8e8e93',brd:'#c8c8cb'},
+    dark: {bg:'#1a1a1a',grp:'#2c2c2e',text:'#e8e8e8',sub:'#666', brd:'#3a3a3c'},
+    oled: {bg:'#000',   grp:'#111',   text:'#fff',   sub:'#555', brd:'#2a2a2a'}
+  };
+  var t=THEMES[store.g('cg-theme')||'light']||THEMES.light;
+  var s=document.getElementById('cg-theme-style');
+  if(s)s.innerHTML=
+    'html,body,#shell,#feed-wrap{background:'+t.bg+'!important}'
+    +'.post-card{background:'+t.grp+'!important;border-color:'+t.brd+'!important}'
+    +'.post-title{color:'+t.text+'!important}'
+    +'.post-desc{color:'+(t===THEMES.light?'#555':t.sub)+'!important}'
+    +'#feed-tabs{background:'+t.grp+'!important;border-color:'+t.brd+'!important}'
+    +'.ftab{color:'+t.sub+'!important}';
+})();
+
+/* ─── Init ─── */
+window.onload=function(){
+  /* Sync auth tokens — account.html saves to cg_t, home.html uses hm_t, keep both in sync */
+  if(!S.token){var alt=store.g('cg_t');if(alt){S.token=alt;S.uid=parseInt(store.g('cg_u')||'0',10)||null;S.uname=store.g('cg_n');S.av=store.g('cg_av')||'';store.s('hm_t',S.token);store.s('hm_u',S.uid+'');store.s('hm_n',S.uname);store.s('hm_av',S.av);}}
+  if(S.token){
+    req('GET','/api/me',null,function(d,err){
+      if(err||!d.ok){S.token=null;store.d('hm_t');store.d('cg_t');S.uid=null;S.uname=null;}
+      else{S.uid=d.id||d.user_id;S.uname=d.username;S.av=d.avatar_b64||'';store.s('hm_n',d.username);store.s('hm_av',S.av);store.s('cg_n',d.username);store.s('cg_av',S.av);store.s('cg_t',S.token);store.s('cg_u',S.uid+'');}
+    });
+  }
+  loadFeed(true);
+};
+</script>
+</body>
+</html>

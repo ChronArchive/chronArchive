@@ -1,0 +1,169 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <title>HTTP Headers | CHRONARCHIVE</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="../../assets/CA-favicon-192x192.png">
+  <link rel="stylesheet" type="text/css" href="../../assets/10.css">
+  <style type="text/css">
+    #tool-run { font-size: 13px; padding: 6px 22px; cursor: pointer; margin-top: 8px; }
+    #tool-status { font-size: 12px; color: #888888; margin: 10px 0 4px; min-height: 16px; }
+    #tool-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #tool-table { width: 100%; min-width: 220px; border-collapse: collapse; margin-top: 10px; font-size: 12px; display: none; }
+    #tool-table th { background: #ddeeff; border: 1px solid #bbccdd; padding: 5px 10px; text-align: left; font-weight: bold; }
+    #tool-table td { border: 1px solid #dddddd; padding: 4px 10px; vertical-align: top; word-break: break-word; }
+    #tool-table td:first-child { white-space: nowrap; font-weight: bold; color: #336; width: 160px; }
+    .tool-note { font-size: 11px; color: #888888; margin-top: 10px; }
+  </style>
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="../../assets/socialpreview10.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="../../assets/socialpreview10.png">
+</head>
+<body>
+
+  <div id="navbar">
+    <div id="navbar-inner">
+      <div id="navbar-left">
+        <a href="../../index.html" id="navbar-logo">CHRONARCHIVE</a>
+        <a href="../../index.html" class="navbar-link">Search</a>
+        <a href="https://beta.chronarchive.com" class="navbar-link">Files</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="wrapper">
+    <div id="logo-area">
+      <a href="../../index.html"><img src="../../assets/CAlog10.png" alt="CHRONARCHIVE"></a>
+      <p id="tagline"><img src="../../assets/ytc10.png" alt="Your Time Capsule"></p>
+    </div>
+
+    <div class="content-panel" style="margin-top: 28px;">
+      <h2>HTTP Header Viewer</h2>
+      <div class="content-panel-body">
+        <p class="blog-post-meta">shows HTTP headers and browser properties your client sends. handy if you want to see what's going out, debug proxies, or just check cache stuff.</p>
+
+        <button id="tool-run" onclick="inspectHeaders()">Inspect Headers</button>
+        <div id="tool-status">Press Inspect to read your browser headers.</div>
+
+        <div id="tool-table-wrap"><table id="tool-table">
+          <tr><th>Header / Property</th><th>Value</th></tr>
+          <tbody id="tool-rows"></tbody>
+        </table></div>
+        <p class="tool-note">* headers come from XHR response headers where available, plus <code>navigator</code> and <code>window.location</code> directly. some fields like Cookie and Authorization are never exposed by the browser.</p>
+      </div>
+    </div>
+
+    <div id="chronodulator" class="clearfix">
+      <span id="chrono-label">Chronodulator</span>
+      <div id="chrono-buttons">
+        <a href="../../index.html" class="era-btn">'95</a>
+        <a href="../../index.html" class="era-btn">'05</a>
+        <a href="../../index.html" class="era-btn era-active">'10</a>
+        <a href="../../index.html" class="era-btn">Now</a>
+      </div>
+    </div>
+
+    <div id="footer">
+      &copy; 2026 CHRONARCHIVE &nbsp;&middot;&nbsp;
+      <a href="../../index.html">Home</a>
+    </div>
+  </div>
+
+<script type="text/javascript">
+function escapeHTML(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function addRow(tbody, label, value) {
+  var tr = document.createElement('tr');
+  var td1 = document.createElement('td');
+  var td2 = document.createElement('td');
+  td1.innerHTML = escapeHTML(label);
+  td2.innerHTML = value ? escapeHTML(value) : '<span style="color:#aaa">(not available)</span>';
+  tr.appendChild(td1);
+  tr.appendChild(td2);
+  tbody.appendChild(tr);
+}
+
+function inspectHeaders() {
+  var btn = document.getElementById('tool-run');
+  var status = document.getElementById('tool-status');
+  var tbody = document.getElementById('tool-rows');
+  var table = document.getElementById('tool-table');
+  btn.disabled = true;
+  status.innerHTML = 'Collecting\u2026';
+  tbody.innerHTML = '';
+  table.style.display = 'none';
+
+  /* ---- Navigator / window properties (always available) ---- */
+  var nav = window.navigator;
+  var rows = [];
+
+  rows.push(['User-Agent', nav.userAgent]);
+  rows.push(['Accept-Language', nav.language || (nav.userLanguage || null)]);
+  rows.push(['Platform', nav.platform]);
+  rows.push(['Vendor', nav.vendor || null]);
+  rows.push(['Product', nav.product || null]);
+  rows.push(['Do Not Track', (nav.doNotTrack !== undefined && nav.doNotTrack !== null) ? nav.doNotTrack : null]);
+  rows.push(['Cookies Enabled', nav.cookieEnabled ? 'Yes' : 'No']);
+  rows.push(['Online', (nav.onLine !== undefined) ? (nav.onLine ? 'Yes' : 'No') : null]);
+  rows.push(['Java Enabled', (nav.javaEnabled && nav.javaEnabled()) ? 'Yes' : 'No']);
+  rows.push(['Connection Href', window.location.href]);
+  rows.push(['Protocol', window.location.protocol]);
+
+  /* ---- Referrer ---- */
+  rows.push(['Referrer', document.referrer || '(none)']);
+
+  for (var i = 0; i < rows.length; i++) {
+    addRow(tbody, rows[i][0], rows[i][1]);
+  }
+
+  /* ---- XHR response headers ---- */
+  try {
+    var xhr;
+    if (typeof XMLHttpRequest !== 'undefined') {
+      xhr = new XMLHttpRequest();
+    } else if (typeof ActiveXObject !== 'undefined') {
+      xhr = new ActiveXObject('Microsoft.XMLHTTP');
+    }
+    if (xhr) {
+      xhr.open('HEAD', window.location.href, true);
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          var raw = xhr.getAllResponseHeaders();
+          if (raw) {
+            var lines = raw.split(/\r?\n/);
+            for (var j = 0; j < lines.length; j++) {
+              var line = lines[j].trim();
+              if (!line) continue;
+              var sep = line.indexOf(':');
+              if (sep === -1) continue;
+              var hname = line.substring(0, sep).trim();
+              var hval = line.substring(sep + 1).trim();
+              addRow(tbody, 'Response: ' + hname, hval);
+            }
+          }
+          table.style.display = 'table';
+          btn.disabled = false;
+          status.innerHTML = 'Done.';
+        }
+      };
+      xhr.send(null);
+    } else {
+      table.style.display = 'table';
+      btn.disabled = false;
+      status.innerHTML = 'Done (XHR not available in this browser).';
+    }
+  } catch (e) {
+    table.style.display = 'table';
+    btn.disabled = false;
+    status.innerHTML = 'Done (XHR response headers unavailable: ' + escapeHTML(e.message) + ').';
+  }
+}
+</script>
+
+</body>
+</html>

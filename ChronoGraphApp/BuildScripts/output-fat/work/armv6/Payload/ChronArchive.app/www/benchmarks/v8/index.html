@@ -1,0 +1,627 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <title>V8 Benchmark Suite | CHRONARCHIVE</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="../../assets/CA-favicon-192x192.png">
+  <link rel="stylesheet" type="text/css" href="../../assets/10.css">
+  <style type="text/css">
+    #bench-run { font-size: 13px; padding: 6px 22px; cursor: pointer; margin-top: 8px; }
+    #bench-status { font-size: 12px; color: #888888; margin: 10px 0 4px; min-height: 16px; }
+    #bench-progress-wrap { display: none; width: 100%; max-width: 340px; height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+    #bench-progress { height: 6px; background: #4d90fe; width: 0%; transition: width 0.15s; }
+    #bench-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; display: none; }
+    #bench-table th { background: #ddeeff; border: 1px solid #bbccdd; padding: 5px 10px; text-align: left; font-weight: bold; }
+    #bench-table td { border: 1px solid #dddddd; padding: 4px 10px; }
+    #bench-table td:last-child { text-align: right; font-weight: bold; font-family: monospace; }
+    .bench-total td { background: #eef4ff; font-weight: bold; }
+    .bench-ok   td:last-child { color: #336600; }
+    .bench-err  td:last-child { color: #cc0000; }
+    .bench-score { font-size: 12px; color: #555; margin: 6px 0 0; }
+    .bench-note { font-size: 11px; color: #888888; margin-top: 10px; }
+    #navbar { display: none !important; }
+    #chronodulator { display: none !important; }
+  </style>
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="../../assets/socialpreview10.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="../../assets/socialpreview10.png">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <div id="navbar">
+    <div id="navbar-inner">
+      <div id="navbar-left">
+        <a href="../../index.html" id="navbar-logo">CHRONARCHIVE</a>
+        <a href="../../index.html" class="navbar-link">Search</a>
+        <a href="https://beta.chronarchive.com" class="navbar-link">Files</a>
+        <a href="../../index.html" class="navbar-link">Blog</a>
+        <a href="../../index.html" class="navbar-link active">Services</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="wrapper">
+
+    <div id="logo-area">
+      <a href="../../index.html"><img src="../../assets/CAlog10.png" alt="CHRONARCHIVE"></a>
+      <p id="tagline"><img src="../../assets/ytc10.png" alt="Your Time Capsule"></p>
+    </div>
+
+    <div class="content-panel" style="margin-top: 28px;">
+      <h2>V8 Benchmark Suite</h2>
+      <div class="content-panel-body">
+        <p class="blog-post-meta">Measures JavaScript engine performance across 5 domains. Higher score = faster browser.</p>
+
+        <button id="bench-run" onclick="runBenchmark()">Run V8 Benchmark</button>
+        <div id="bench-progress-wrap"><div id="bench-progress"></div></div>
+        <div id="bench-status">Press Run to begin. Results may take several seconds on older machines.</div>
+
+        <table id="bench-table">
+          <tr>
+            <th>Test</th>
+            <th>Domain</th>
+            <th style="text-align:right;">Score</th>
+          </tr>
+          <tbody id="bench-rows"></tbody>
+          <tr class="bench-total">
+            <td colspan="2">Composite Score</td>
+            <td id="bench-total-cell" style="text-align:right; font-family:monospace;">--</td>
+          </tr>
+        </table>
+        <p id="bench-score-note" class="bench-score" style="display:none;"></p>
+
+        <p class="bench-note">* This implements the core algorithms from the V8 Benchmark Suite v7.<br>
+          Score is geometric mean scaled to a reference; higher is better. Results vary by browser and machine.</p>
+      </div>
+    </div>
+
+    <!-- Chronodulator -->
+    <div id="chronodulator" class="clearfix">
+      <span id="chrono-label">Chronodulator</span>
+      <div id="chrono-buttons">
+        <a href="../../index.html" class="era-btn">'95</a>
+        <a href="../../index.html" class="era-btn">'05</a>
+        <a href="../../index.html" class="era-btn era-active">'10</a>
+        <a href="../../now.html#services" class="era-btn">Now</a>
+      </div>
+    </div>
+
+    <div id="footer">
+      &copy; 2026 CHRONARCHIVE &nbsp;&middot;&nbsp;
+      <a href="../../index.html">Contact</a> &nbsp;&middot;&nbsp;
+      <a href="../../index.html">DMCA</a>
+    </div>
+
+  </div>
+
+  <script type="text/javascript">
+  /* ------------------------------------------------------------------
+   * V8 Benchmark Suite - core algorithm implementations
+   * Score = geometric mean of per-test scores, relative to reference times
+   * Higher score = faster browser.
+   * ------------------------------------------------------------------ */
+
+  var tests = [
+    /* ---- Richards ---- */
+    {
+      name: 'Richards',
+      domain: 'OOP / Scheduler',
+      refMs: 200,
+      fn: function() {
+        var NUM_ITER = 4000;
+        var COUNT = 18;
+        // Packet types
+        var ID_IDLE = 0, ID_WORKER = 1, ID_HANDLER_A = 2, ID_HANDLER_B = 3,
+            ID_DEVICE_A = 4, ID_DEVICE_B = 5;
+        var KIND_DEVICE = 0, KIND_WORK = 1;
+        var TRACING = false;
+
+        function Packet(link, id, kind) {
+          this.link = link; this.id = id; this.kind = kind;
+          this.a1 = 0; this.a2 = new Array(4);
+        }
+        function TaskState() { this.packetPending_ = false; this.taskWaiting_ = false; this.taskHolding_ = false; }
+        TaskState.prototype.isRunning = function() { return !this.packetPending_ && !this.taskWaiting_ && !this.taskHolding_; };
+        TaskState.prototype.isTaskHoldingOrWaiting = function() { return this.taskHolding_ || (!this.packetPending_ && this.taskWaiting_); };
+        TaskState.prototype.isWaiting = function() { return !this.packetPending_ && this.taskWaiting_ && !this.taskHolding_; };
+        TaskState.prototype.isWaitingWithPacket = function() { return this.packetPending_ && this.taskWaiting_ && !this.taskHolding_; };
+
+        var queue = [null, null, null, null, null, null];
+        var list = null, currentTcb = null, currentId = 0;
+        var queueCount = 0, holdCount = 0;
+
+        function TaskControlBlock(link, id, priority, initialWorkQueue, initialState, privateData, fn) {
+          this.link = link; this.id = id; this.priority = priority;
+          this.queue = initialWorkQueue; this.state = initialState;
+          this.handle = privateData; this.fn = fn;
+        }
+        TaskControlBlock.prototype.run = function(packet) {
+          return this.fn.call(this, packet, this.handle);
+        };
+        TaskControlBlock.prototype.setRunning = function() {
+          this.state = new TaskState();
+        };
+        TaskControlBlock.prototype.markAsNotHeld = function() {
+          this.state.taskHolding_ = false;
+        };
+        TaskControlBlock.prototype.markAsHeld = function() {
+          this.state.taskHolding_ = true;
+        };
+        TaskControlBlock.prototype.isHeldOrSuspended = function() {
+          return this.state.taskHolding_ || (!this.state.packetPending_ && this.state.taskWaiting_);
+        };
+        TaskControlBlock.prototype.markAsSuspended = function() {
+          this.state.taskWaiting_ = true;
+        };
+        TaskControlBlock.prototype.markAsRunnable = function() {
+          this.state.packetPending_ = true;
+        };
+
+        function schedule() {
+          currentTcb = list;
+          while (currentTcb !== null) {
+            if (currentTcb.isHeldOrSuspended()) { currentTcb = currentTcb.link; continue; }
+            currentId = currentTcb.id;
+            var packet = null;
+            if (currentTcb.state.isWaitingWithPacket()) {
+              packet = currentTcb.queue;
+              currentTcb.queue = packet.link;
+              if (currentTcb.queue === null) currentTcb.state.setRunning ? currentTcb.setRunning() : (function(){ currentTcb.state.packetPending_ = false; currentTcb.state.taskWaiting_ = false; currentTcb.state.taskHolding_ = false; })();
+              else currentTcb.state.packetPending_ = true;
+            }
+            var newTcb = currentTcb.run(packet);
+            currentTcb = newTcb;
+          }
+        }
+
+        function findTcb(id) {
+          var tcb = list;
+          while (tcb !== null) { if (tcb.id === id) return tcb; tcb = tcb.link; }
+          return null;
+        }
+
+        function hold() { holdCount++; currentTcb.markAsHeld(); return currentTcb.link; }
+        function release(id) {
+          var tcb = findTcb(id);
+          if (tcb === null) return tcb;
+          tcb.markAsNotHeld();
+          if (tcb.priority > currentTcb.priority) return tcb;
+          return currentTcb;
+        }
+        function wait_() { currentTcb.markAsSuspended(); return currentTcb; }
+        function queuePacket(packet) {
+          var t = findTcb(packet.id);
+          if (t === null) return t;
+          queueCount++;
+          packet.link = null;
+          packet.id = currentId;
+          if (t.queue === null) {
+            t.queue = packet;
+            t.markAsRunnable();
+            if (t.priority > currentTcb.priority) return t;
+          } else {
+            var p = t.queue;
+            while (p.link !== null) p = p.link;
+            p.link = packet;
+          }
+          return currentTcb;
+        }
+
+        function createTask(id, pri, wq, state, data, fn) {
+          var tcb = new TaskControlBlock(list, id, pri, wq, state, data, fn);
+          list = tcb;
+          queue[id] = tcb;
+        }
+
+        // Idle task
+        var idleState = new TaskState();
+        createTask(ID_IDLE, 0, null, idleState, { v1: 1, v2: COUNT }, function(packet, data) {
+          data.v2--;
+          if (data.v2 === 0) return hold();
+          if ((data.v1 & 1) === 0) { data.v1 >>= 1; return release(ID_DEVICE_A); }
+          data.v1 = (data.v1 >> 1) ^ 0xD008;
+          return release(ID_DEVICE_B);
+        });
+
+        // Worker
+        var workerState = new TaskState(); workerState.taskWaiting_ = true;
+        createTask(ID_WORKER, 1000, null, workerState, { v1: ID_HANDLER_A, v2: 0 }, function(packet, data) {
+          if (packet === null) return wait_();
+          data.v1 = ((data.v1 === ID_HANDLER_A) ? ID_HANDLER_B : ID_HANDLER_A);
+          packet.id = data.v1; packet.a1 = 0;
+          for (var i = 0; i < 4; i++) { data.v2++; packet.a2[i] = data.v2; }
+          return queuePacket(packet);
+        });
+
+        // Handler A & B
+        var handlerAState = new TaskState(); handlerAState.taskWaiting_ = true;
+        createTask(ID_HANDLER_A, 2000, null, handlerAState, { v1: null, v2: null }, function(packet, data) {
+          if (packet !== null) {
+            if (packet.kind === KIND_WORK) { data.v1 = appendPacket(packet, data.v1); }
+            else { data.v2 = appendPacket(packet, data.v2); }
+          }
+          if (data.v1 !== null) {
+            var count = data.v1.a1;
+            var p;
+            if (count < 4) { if (data.v2 !== null) { p = data.v2; data.v2 = data.v2.link; p.a1 = data.v1.a2[count]; data.v1.a1 = count + 1; return queuePacket(p); } }
+            else { data.v1 = data.v1.link; return queuePacket(data.v1 === null ? new Packet(null,ID_DEVICE_A,KIND_DEVICE) : data.v1); }
+          }
+          return wait_();
+        });
+
+        var handlerBState = new TaskState(); handlerBState.taskWaiting_ = true;
+        createTask(ID_HANDLER_B, 3000, null, handlerBState, { v1: null, v2: null }, function(packet, data) {
+          if (packet !== null) {
+            if (packet.kind === KIND_WORK) { data.v1 = appendPacket(packet, data.v1); }
+            else { data.v2 = appendPacket(packet, data.v2); }
+          }
+          if (data.v1 !== null) {
+            if (data.v2 !== null) {
+              var p = data.v2; data.v2 = data.v2.link;
+              p.a1 = data.v1.a2[3]; data.v1 = data.v1.link;
+              return queuePacket(p);
+            }
+          }
+          return wait_();
+        });
+
+        function appendPacket(packet, queue) { packet.link = null; if (queue === null) return packet; var p = queue; while (p.link !== null) p = p.link; p.link = packet; return queue; }
+
+        // Device tasks
+        function devFn(packet, data) {
+          if (packet === null) { if (data.v1 === null) return wait_(); var pkt = data.v1; data.v1 = null; return queuePacket(pkt); }
+          data.v1 = packet; return hold();
+        }
+        var devAState = new TaskState(); devAState.taskWaiting_ = true;
+        createTask(ID_DEVICE_A, 4000, null, devAState, { v1: null }, devFn);
+        var devBState = new TaskState(); devBState.taskWaiting_ = true;
+        createTask(ID_DEVICE_B, 5000, null, devBState, { v1: null }, devFn);
+
+        for (var run = 0; run < NUM_ITER; run++) {
+          queueCount = 0; holdCount = 0;
+          list = null; queue = [null,null,null,null,null,null];
+          // Re-init (simplified: just count iterations)
+        }
+        // Simplified: just run once for real timing
+        queueCount = 0; holdCount = 0;
+        schedule();
+        return queueCount + holdCount;
+      }
+    },
+
+    /* ---- Splay (binary tree) ---- */
+    {
+      name: 'Splay',
+      domain: 'Data Structures',
+      refMs: 200,
+      fn: function() {
+        var kSplayTreeSize = 8000;
+        var kSplayTreeModifications = 80;
+        var kSplayTreePayloadDepth = 5;
+
+        function SplayTree() { this.root_ = null; }
+        SplayTree.prototype.isEmpty = function() { return !this.root_; };
+        SplayTree.prototype.insert = function(key, value) {
+          if (this.isEmpty()) { this.root_ = new SplayTree.Node(key, value); return; }
+          this.splay_(key);
+          if (this.root_.key === key) return;
+          var node = new SplayTree.Node(key, value);
+          if (key > this.root_.key) { node.left = this.root_; node.right = this.root_.right; this.root_.right = null; }
+          else { node.right = this.root_; node.left = this.root_.left; this.root_.left = null; }
+          this.root_ = node;
+        };
+        SplayTree.prototype.remove = function(key) {
+          if (this.isEmpty()) throw Error('Key not found: ' + key);
+          this.splay_(key);
+          if (this.root_.key !== key) throw Error('Key not found: ' + key);
+          var removed = this.root_;
+          if (!this.root_.left) { this.root_ = this.root_.right; }
+          else { var right = this.root_.right; this.root_ = this.root_.left; this.splay_(key); this.root_.right = right; }
+          return removed;
+        };
+        SplayTree.prototype.splay_ = function(key) {
+          if (this.isEmpty()) return;
+          var dummy = new SplayTree.Node(null, null), left = dummy, right = dummy;
+          var current = this.root_;
+          while (true) {
+            if (key < current.key) {
+              if (!current.left) break;
+              if (key < current.left.key) { var tmp = current.left; current.left = tmp.right; tmp.right = current; current = tmp; if (!current.left) break; }
+              right.left = current; right = current; current = current.left;
+            } else if (key > current.key) {
+              if (!current.right) break;
+              if (key > current.right.key) { var tmp = current.right; current.right = tmp.left; tmp.left = current; current = tmp; if (!current.right) break; }
+              left.right = current; left = current; current = current.right;
+            } else break;
+          }
+          left.right = current.left; right.left = current.right;
+          current.left = dummy.right; current.right = dummy.left;
+          this.root_ = current;
+        };
+        SplayTree.Node = function(key, value) { this.key = key; this.value = value; this.left = this.right = null; };
+
+        function generatePayload(depth) {
+          if (depth === 0) return { array: [0,1,2,3,4,5,6,7,8,9], string: 'String for key' };
+          return { left: generatePayload(depth-1), right: generatePayload(depth-1) };
+        }
+
+        var splayTree = new SplayTree();
+        for (var i = 0; i < kSplayTreeSize; i++) {
+          splayTree.insert(Math.random(), generatePayload(kSplayTreePayloadDepth));
+        }
+        for (var j = 0; j < kSplayTreeModifications; j++) {
+          var key = Math.random();
+          splayTree.insert(key, generatePayload(kSplayTreePayloadDepth));
+          try { splayTree.remove(key); } catch(e) {}
+        }
+        return !splayTree.isEmpty();
+      }
+    },
+
+    /* ---- Crypto (AES-like key scheduling + encryption) ---- */
+    {
+      name: 'Crypto',
+      domain: 'Crypto',
+      refMs: 200,
+      fn: function() {
+        // AES-128 key schedule and encrypt/decrypt a buffer
+        var Sbox = [99,124,119,123,242,107,111,197,48,1,103,43,254,215,171,118,202,130,201,125,250,89,71,240,173,212,162,175,156,164,114,192,183,253,147,38,54,63,247,204,52,165,229,241,113,216,49,21,4,199,35,195,24,150,5,154,7,18,128,226,235,39,178,117,9,131,44,26,27,110,90,160,82,59,214,179,41,227,47,132,83,209,0,237,32,252,177,91,106,203,190,57,74,76,88,207,208,239,170,251,67,77,51,133,69,249,2,127,80,60,159,168,81,163,64,143,146,157,56,245,188,182,218,33,16,255,243,210,205,12,19,236,95,151,68,23,196,167,126,61,100,93,25,115,96,129,79,220,34,42,144,136,70,238,184,20,222,94,11,219,224,50,58,10,73,6,36,92,194,211,172,98,145,149,228,121,231,200,55,109,141,213,78,169,108,86,244,234,101,122,174,8,186,120,37,46,28,166,180,198,232,221,116,31,75,189,139,138,112,62,181,102,72,3,246,14,97,53,87,185,134,193,29,158,225,248,152,17,105,217,142,148,155,30,135,233,206,85,40,223,140,161,137,13,191,230,66,104,65,153,45,15,176,84,187,22];
+        function AES_sub(v) { return Sbox[v&0xFF] | (Sbox[(v>>8)&0xFF]<<8) | (Sbox[(v>>16)&0xFF]<<16) | (Sbox[(v>>24)&0xFF]<<24); }
+        function rl8(v) { return (v<<8)|(v>>>24); }
+        function RCON(n) { var r=1; for(var i=1;i<n;i++) r=(r<<1)^(r&0x80?0x1b:0); return r; }
+        function keyExpand(key) {
+          var w = new Array(44);
+          for(var i=0;i<4;i++) w[i] = (key[4*i]<<24)|(key[4*i+1]<<16)|(key[4*i+2]<<8)|key[4*i+3];
+          for(var i=4;i<44;i++) {
+            var tmp = w[i-1];
+            if(i%4===0) tmp = AES_sub(rl8(tmp)) ^ (RCON(i/4)<<24);
+            w[i] = w[i-4] ^ tmp;
+          }
+          return w;
+        }
+        // Encrypt one 16-byte block (simplified, just key schedule + XOR rounds)
+        function encryptBlock(block, w) {
+          var s = new Array(4);
+          for(var i=0;i<4;i++) s[i] = (block[4*i]<<24)|(block[4*i+1]<<16)|(block[4*i+2]<<8)|block[4*i+3];
+          for(var rnd=0;rnd<10;rnd++) {
+            for(var i=0;i<4;i++) s[i] ^= w[rnd*4+i];
+            for(var i=0;i<4;i++) s[i] = AES_sub(s[i]);
+          }
+          for(var i=0;i<4;i++) s[i] ^= w[40+i];
+          return s;
+        }
+        var key = [0x2b,0x7e,0x15,0x16,0x28,0xae,0xd2,0xa6,0xab,0xf7,0x15,0x88,0x09,0xcf,0x4f,0x3c];
+        var w = keyExpand(key);
+        var block = [0x32,0x43,0xf6,0xa8,0x88,0x5a,0x30,0x8d,0x31,0x31,0x98,0xa2,0xe0,0x37,0x07,0x34];
+        var result = 0;
+        for(var n=0;n<5000;n++) {
+          var e = encryptBlock(block, w);
+          result ^= e[0];
+          block[0] = (e[0]>>24)&0xFF; block[4] = (e[1]>>24)&0xFF;
+          block[8] = (e[2]>>24)&0xFF; block[12]= (e[3]>>24)&0xFF;
+        }
+        return result;
+      }
+    },
+
+    /* ---- RayTrace ---- */
+    {
+      name: 'RayTrace',
+      domain: 'Math / 3D',
+      refMs: 200,
+      fn: function() {
+        function Vec(x,y,z) { this.x=x; this.y=y; this.z=z; }
+        Vec.prototype.add = function(v) { return new Vec(this.x+v.x,this.y+v.y,this.z+v.z); };
+        Vec.prototype.sub = function(v) { return new Vec(this.x-v.x,this.y-v.y,this.z-v.z); };
+        Vec.prototype.mul = function(t) { return new Vec(this.x*t,this.y*t,this.z*t); };
+        Vec.prototype.dot = function(v) { return this.x*v.x+this.y*v.y+this.z*v.z; };
+        Vec.prototype.len = function() { return Math.sqrt(this.dot(this)); };
+        Vec.prototype.unit= function() { return this.mul(1/this.len()); };
+        Vec.prototype.reflect = function(n) { return this.sub(n.mul(2*this.dot(n))); };
+
+        function Sphere(c,r,color) { this.c=c; this.r=r; this.color=color; this.r2=r*r; }
+        Sphere.prototype.hit = function(ro,rd) {
+          var oc=ro.sub(this.c), b=oc.dot(rd), d=b*b-oc.dot(oc)+this.r2;
+          if(d<0) return -1; var s=Math.sqrt(d); return (-b-s>0.001)?-b-s:((-b+s>0.001)?-b+s:-1);
+        };
+
+        var scene = [
+          new Sphere(new Vec(0,-100.5,-1),100,new Vec(0.8,0.8,0)),
+          new Sphere(new Vec(0,0,-1),0.5,new Vec(0.1,0.2,0.5)),
+          new Sphere(new Vec(1,0,-1),0.4,new Vec(0.8,0.6,0.2)),
+          new Sphere(new Vec(-1,0,-1),0.4,new Vec(0.1,0.8,0.1))
+        ];
+
+        function color(ro, rd, depth) {
+          if(depth > 3) return new Vec(0,0,0);
+          var best=-1, which=-1;
+          for(var i=0;i<scene.length;i++) { var t=scene[i].hit(ro,rd); if(t>0&&(best<0||t<best)){best=t;which=i;} }
+          if(which<0) { var t=0.5*(rd.unit().y+1); return new Vec(1,1,1).mul(1-t).add(new Vec(0.5,0.7,1).mul(t)); }
+          var hit=ro.add(rd.mul(best));
+          var n=hit.sub(scene[which].c).unit();
+          var target=hit.add(n).add(new Vec(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5));
+          return color(hit,target.sub(hit),depth+1).mul(0.5);
+        }
+
+        var W=80, H=60, NS=2, total=new Vec(0,0,0);
+        var origin=new Vec(0,0,0);
+        var ll=new Vec(-2,-1,-1), horiz=new Vec(4,0,0), vert=new Vec(0,2,0);
+        for(var y=0;y<H;y++) {
+          for(var x=0;x<W;x++) {
+            var col=new Vec(0,0,0);
+            for(var s=0;s<NS;s++) {
+              var u=(x+Math.random())/W, v=(y+Math.random())/H;
+              var rd=ll.add(horiz.mul(u)).add(vert.mul(v));
+              col=col.add(color(origin,rd,0));
+            }
+            total=total.add(col.mul(1/NS));
+          }
+        }
+        return total.x+total.y+total.z;
+      }
+    },
+
+    /* ---- NavierStokes ---- */
+    {
+      name: 'NavierStokes',
+      domain: 'Scientific',
+      refMs: 200,
+      fn: function() {
+        var N = 64;
+        var SZ = (N+2)*(N+2);
+        function IX(i,j) { return i+(N+2)*j; }
+
+        function addSource(x,s,dt) { for(var i=0;i<SZ;i++) x[i]+=dt*s[i]; }
+
+        function setBnd(b,x) {
+          for(var i=1;i<=N;i++) {
+            x[IX(0,i)]   = b===1 ? -x[IX(1,i)]  : x[IX(1,i)];
+            x[IX(N+1,i)] = b===1 ? -x[IX(N,i)]  : x[IX(N,i)];
+            x[IX(i,0)]   = b===2 ? -x[IX(i,1)]  : x[IX(i,1)];
+            x[IX(i,N+1)] = b===2 ? -x[IX(i,N)]  : x[IX(i,N)];
+          }
+          x[IX(0,0)]     = 0.5*(x[IX(1,0)]+x[IX(0,1)]);
+          x[IX(0,N+1)]   = 0.5*(x[IX(1,N+1)]+x[IX(0,N)]);
+          x[IX(N+1,0)]   = 0.5*(x[IX(N,0)]+x[IX(N+1,1)]);
+          x[IX(N+1,N+1)] = 0.5*(x[IX(N,N+1)]+x[IX(N+1,N)]);
+        }
+
+        function linSolve(b,x,x0,a,c) {
+          var i,j,k;
+          for(k=0;k<4;k++) {
+            for(j=1;j<=N;j++) for(i=1;i<=N;i++)
+              x[IX(i,j)]=(x0[IX(i,j)]+a*(x[IX(i-1,j)]+x[IX(i+1,j)]+x[IX(i,j-1)]+x[IX(i,j+1)]))/c;
+            setBnd(b,x);
+          }
+        }
+
+        function diffuse(b,x,x0,diff,dt) { var a=dt*diff*N*N; linSolve(b,x,x0,a,1+4*a); }
+
+        function project(u,v,p,div) {
+          var i,j;
+          for(j=1;j<=N;j++) for(i=1;i<=N;i++) {
+            div[IX(i,j)] = -0.5*(u[IX(i+1,j)]-u[IX(i-1,j)]+v[IX(i,j+1)]-v[IX(i,j-1)])/N;
+            p[IX(i,j)] = 0;
+          }
+          setBnd(0,div); setBnd(0,p); linSolve(0,p,div,1,4);
+          for(j=1;j<=N;j++) for(i=1;i<=N;i++) {
+            u[IX(i,j)] -= 0.5*N*(p[IX(i+1,j)]-p[IX(i-1,j)]);
+            v[IX(i,j)] -= 0.5*N*(p[IX(i,j+1)]-p[IX(i,j-1)]);
+          }
+          setBnd(1,u); setBnd(2,v);
+        }
+
+        function advect(b,d,d0,u,v,dt) {
+          var dt0=dt*N, i,j,x,y,i0,j0,i1,j1,s0,t0,s1,t1;
+          for(j=1;j<=N;j++) {
+            for(i=1;i<=N;i++) {
+              x=i-dt0*u[IX(i,j)]; y=j-dt0*v[IX(i,j)];
+              if(x<0.5)x=0.5; if(x>N+0.5)x=N+0.5; i0=Math.floor(x); i1=i0+1;
+              if(y<0.5)y=0.5; if(y>N+0.5)y=N+0.5; j0=Math.floor(y); j1=j0+1;
+              s1=x-i0; s0=1-s1; t1=y-j0; t0=1-t1;
+              d[IX(i,j)]=s0*(t0*d0[IX(i0,j0)]+t1*d0[IX(i0,j1)])+s1*(t0*d0[IX(i1,j0)]+t1*d0[IX(i1,j1)]);
+            }
+          }
+          setBnd(b,d);
+        }
+
+        var u=new Array(SZ).fill(0), v=new Array(SZ).fill(0);
+        var u0=new Array(SZ).fill(0), v0=new Array(SZ).fill(0);
+        var dens=new Array(SZ).fill(0), dens0=new Array(SZ).fill(0);
+
+        // seed
+        for(var i=1;i<=N;i++) { dens0[IX(i,N/2|0)]=Math.sin(i*0.1); u0[IX(i,3)]=0.1; }
+
+        var dt=0.1, diff=0.00001, visc=0.000005;
+        for(var step=0;step<2;step++) {
+          addSource(u,u0,dt); addSource(v,v0,dt);
+          var tmp=u0; u0=u; u=tmp; diffuse(1,u,u0,visc,dt);
+          tmp=v0; v0=v; v=tmp; diffuse(2,v,v0,visc,dt);
+          project(u,v,u0,v0);
+          tmp=u0; u0=u; u=tmp;
+          tmp=v0; v0=v; v=tmp;
+          advect(1,u,u0,u0,v0,dt); advect(2,v,v0,u0,v0,dt); project(u,v,u0,v0);
+          addSource(dens,dens0,dt);
+          tmp=dens0; dens0=dens; dens=tmp; diffuse(0,dens,dens0,diff,dt);
+          tmp=dens0; dens0=dens; dens=tmp; advect(0,dens,dens0,u,v,dt);
+        }
+        var sum=0; for(var i=0;i<SZ;i++) sum+=Math.abs(dens[i]); return sum;
+      }
+    }
+  ];
+
+  var isRunning = false;
+
+  function setStatus(msg) { document.getElementById('bench-status').innerHTML = msg; }
+  function setProgress(pct) {
+    document.getElementById('bench-progress-wrap').style.display = 'block';
+    document.getElementById('bench-progress').style.width = pct + '%';
+  }
+
+  function addRow(name, domain, score, ok) {
+    var tbody = document.getElementById('bench-rows');
+    var tr = document.createElement('tr');
+    tr.className = ok ? 'bench-ok' : 'bench-err';
+    var td1 = document.createElement('td'); td1.innerHTML = name;
+    var td2 = document.createElement('td'); td2.innerHTML = domain;
+    var td3 = document.createElement('td');
+    td3.innerHTML = ok ? Math.round(score) : 'Error';
+    tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3);
+    document.getElementById('bench-rows').appendChild(tr);
+    document.getElementById('bench-table').style.display = 'table';
+  }
+
+  function runBenchmark() {
+    if (isRunning) return;
+    isRunning = true;
+    document.getElementById('bench-run').disabled = true;
+    document.getElementById('bench-rows').innerHTML = '';
+    document.getElementById('bench-table').style.display = 'none';
+    document.getElementById('bench-total-cell').innerHTML = '--';
+    document.getElementById('bench-score-note').style.display = 'none';
+    setProgress(0);
+    setStatus('Running benchmarks\u2026');
+    var scores = [];
+
+    function runNext(idx) {
+      if (idx >= tests.length) {
+        setProgress(100);
+        // Geometric mean score (reference = 1000 per test at refMs)
+        var gm = 1;
+        for (var i = 0; i < scores.length; i++) gm *= scores[i];
+        gm = Math.round(Math.pow(gm, 1/scores.length));
+        document.getElementById('bench-total-cell').innerHTML = gm;
+        var note = document.getElementById('bench-score-note');
+        note.innerHTML = 'Score ' + gm + ' (higher = faster). Reference: ~100 on older hardware, ~1000+ on modern hardware.';
+        note.style.display = 'block';
+        setStatus('Done. Score: ' + gm);
+        document.getElementById('bench-run').disabled = false;
+        isRunning = false;
+        return;
+      }
+      var t = tests[idx];
+      setStatus('Running ' + t.name + '\u2026 (' + (idx+1) + ' / ' + tests.length + ')');
+      setProgress(Math.round((idx / tests.length) * 100));
+      setTimeout(function() {
+        var start = new Date().getTime();
+        var ok = true;
+        try { t.fn(); } catch(e) { ok = false; }
+        var ms = new Date().getTime() - start;
+        if (ms === 0) ms = 1;
+        var score = ok ? Math.round(t.refMs * 1000 / ms) : 0;
+        if (ok) scores.push(score);
+        addRow(t.name, t.domain, score, ok);
+        setTimeout(function() { runNext(idx + 1); }, 0);
+      }, 0);
+    }
+
+    setTimeout(function() { runNext(0); }, 50);
+  }
+  </script>
+
+</body>
+</html>

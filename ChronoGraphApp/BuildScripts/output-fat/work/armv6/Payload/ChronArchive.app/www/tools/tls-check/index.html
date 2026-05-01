@@ -1,0 +1,220 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <title>TLS Check | CHRONARCHIVE</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="../../assets/CA-favicon-192x192.png">
+  <link rel="stylesheet" type="text/css" href="../../assets/10.css">
+  <style type="text/css">
+    #tool-run { font-size: 13px; padding: 6px 22px; cursor: pointer; margin-top: 8px; }
+    #tool-status { font-size: 12px; color: #888888; margin: 10px 0 4px; min-height: 16px; }
+    #tool-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #tool-table { width: 100%; min-width: 220px; border-collapse: collapse; margin-top: 10px; font-size: 12px; display: none; }
+    #tool-table th { background: #ddeeff; border: 1px solid #bbccdd; padding: 5px 10px; text-align: left; font-weight: bold; }
+    #tool-table td { border: 1px solid #dddddd; padding: 4px 10px; }
+    #tool-table td:first-child { font-weight: bold; color: #336; width: 100px; }
+    .status-ok  { color: #336600; font-weight: bold; }
+    .status-no  { color: #cc0000; font-weight: bold; }
+    .status-na  { color: #888888; }
+    .tool-note { font-size: 11px; color: #888888; margin-top: 10px; }
+    #proto-note { font-size: 12px; margin: 8px 0; }
+  </style>
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="../../assets/socialpreview10.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="../../assets/socialpreview10.png">
+</head>
+<body>
+
+  <div id="navbar">
+    <div id="navbar-inner">
+      <div id="navbar-left">
+        <a href="../../index.html" id="navbar-logo">CHRONARCHIVE</a>
+        <a href="../../index.html" class="navbar-link">Search</a>
+        <a href="https://beta.chronarchive.com" class="navbar-link">Files</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="wrapper">
+    <div id="logo-area">
+      <a href="../../index.html"><img src="../../assets/CAlog10.png" alt="CHRONARCHIVE"></a>
+      <p id="tagline"><img src="../../assets/ytc10.png" alt="Your Time Capsule"></p>
+    </div>
+
+    <div class="content-panel" style="margin-top: 28px;">
+      <h2>TLS Check</h2>
+      <div class="content-panel-body">
+        <p class="blog-post-meta">tests which TLS versions your browser can negotiate. hits badssl.com endpoints and shows what works.</p>
+
+        <button id="tool-run" onclick="runCheck()">Run TLS Check</button>
+        <div id="proto-note"></div>
+        <div id="tool-status">Press Run to check TLS support.</div>
+
+        <div id="tool-table-wrap"><table id="tool-table">
+          <tr><th>Version</th><th>Status</th><th>Notes</th></tr>
+          <tbody id="tool-rows"></tbody>
+        </table></div>
+
+        <p class="tool-note">* results depend on what your browser actually negotiates. Supported means XHR to a version-specific endpoint worked. endpoints: <a href="https://tls10.badssl.com/" target="_blank">badssl.com</a> (tls10, tls11, tls12, tls13). reflects what was negotiated at run time, not your OS/browser policy.</p>
+      </div>
+    </div>
+
+    <div id="chronodulator" class="clearfix">
+      <span id="chrono-label">Chronodulator</span>
+      <div id="chrono-buttons">
+        <a href="../../index.html" class="era-btn">'95</a>
+        <a href="../../index.html" class="era-btn">'05</a>
+        <a href="../../index.html" class="era-btn era-active">'10</a>
+        <a href="../../index.html" class="era-btn">Now</a>
+      </div>
+    </div>
+
+    <div id="footer">
+      &copy; 2026 CHRONARCHIVE &nbsp;&middot;&nbsp;
+      <a href="../../index.html">Home</a>
+    </div>
+  </div>
+
+<script type="text/javascript">
+/* ---------------------------------------------------------------
+ * TLS Check: uses badssl.com TLS-version subdomain endpoints.
+ * Each test makes a HEAD XHR request. Success = TLS version
+ * works in this browser. Failure (network error or CORS block) =
+ * not supported or blocked.
+ * ------------------------------------------------------------- */
+
+var TLS_TESTS = [
+  { label: 'TLS 1.0', url: 'https://tls10.badssl.com/', note: 'Legacy (disabled by most modern browsers)' },
+  { label: 'TLS 1.1', url: 'https://tls11.badssl.com/', note: 'Deprecated (disabled in most current browsers)' },
+  { label: 'TLS 1.2', url: 'https://tls12.badssl.com/', note: 'Current minimum recommended version' },
+  { label: 'TLS 1.3', url: 'https://tls13.badssl.com/', note: 'Latest (supported in modern browsers)' }
+];
+
+var isRunning = false;
+
+function setStatus(msg) { document.getElementById('tool-status').innerHTML = msg; }
+
+function makeXHR() {
+  if (typeof XMLHttpRequest !== 'undefined') return new XMLHttpRequest();
+  if (typeof ActiveXObject !== 'undefined') {
+    try { return new ActiveXObject('Msxml2.XMLHTTP.6.0'); } catch(e) {}
+    try { return new ActiveXObject('Msxml2.XMLHTTP.3.0'); } catch(e) {}
+    try { return new ActiveXObject('Microsoft.XMLHTTP'); } catch(e) {}
+  }
+  return null;
+}
+
+function testTLS(test, callback) {
+  var xhr = makeXHR();
+  if (!xhr) { callback('unknown', 'XHR not available'); return; }
+  var done = false;
+  var timer = setTimeout(function() {
+    if (!done) { done = true; try { xhr.abort(); } catch(e) {} callback('timeout', 'Request timed out (8s)'); }
+  }, 8000);
+
+  try {
+    xhr.open('HEAD', test.url, true);
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4 && !done) {
+        done = true;
+        clearTimeout(timer);
+        /* Any HTTP response (even 4xx/5xx) means the TLS handshake succeeded */
+        if (xhr.status > 0) {
+          callback('ok', 'HTTP ' + xhr.status);
+        } else {
+          /* status 0 = network error or CORS block, TLS negotiation unknown */
+          callback('blocked', 'Connection failed or CORS blocked');
+        }
+      }
+    };
+    xhr.onerror = function() {
+      if (!done) { done = true; clearTimeout(timer); callback('error', 'Network error'); }
+    };
+    xhr.send(null);
+  } catch(e) {
+    clearTimeout(timer);
+    callback('error', String(e.message || e));
+  }
+}
+
+function setRow(tbody, test, statusClass, statusText, note) {
+  var tr = document.createElement('tr');
+  var td1 = document.createElement('td'); td1.innerHTML = test.label;
+  var td2 = document.createElement('td'); td2.className = statusClass; td2.innerHTML = statusText;
+  var td3 = document.createElement('td'); td3.innerHTML = note || test.note;
+  tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3);
+  tbody.appendChild(tr);
+  return tr;
+}
+
+function updateRow(tr, statusClass, statusText, noteText) {
+  var tds = tr.getElementsByTagName('td');
+  tds[1].className = statusClass;
+  tds[1].innerHTML = statusText;
+  if (noteText) tds[2].innerHTML = noteText;
+}
+
+function runCheck() {
+  if (isRunning) return;
+  isRunning = true;
+  var btn = document.getElementById('tool-run');
+  btn.disabled = true;
+
+  /* Show current protocol */
+  var proto = window.location.protocol;
+  document.getElementById('proto-note').innerHTML =
+    'Current page protocol: <strong>' + proto + '</strong>' +
+    (proto === 'https:' ? ', encrypted.' : ', page loaded over HTTP not HTTPS.');
+
+  setStatus('Testing TLS versions\u2026');
+
+  var table = document.getElementById('tool-table');
+  var tbody = document.getElementById('tool-rows');
+  tbody.innerHTML = '';
+  table.style.display = 'table';
+
+  /* Pre-fill rows with "Testing..." */
+  var rows = [];
+  for (var i = 0; i < TLS_TESTS.length; i++) {
+    rows.push(setRow(tbody, TLS_TESTS[i], 'status-na', 'Testing\u2026', ''));
+  }
+
+  var completed = 0;
+
+  (function runTests(idx) {
+    if (idx >= TLS_TESTS.length) return;
+    var test = TLS_TESTS[idx];
+    var tr = rows[idx];
+
+    testTLS(test, function(result, detail) {
+      var sc, st, note;
+      if (result === 'ok') {
+        sc = 'status-ok'; st = 'Supported'; note = test.note + (detail ? ' (' + detail + ')' : '');
+      } else if (result === 'blocked') {
+        sc = 'status-na'; st = 'Uncertain'; note = 'CORS or firewall blocked, TLS status could not be confirmed';
+      } else if (result === 'timeout') {
+        sc = 'status-no'; st = 'Timeout'; note = 'No response in 8 seconds, likely not supported or blocked';
+      } else {
+        sc = 'status-no'; st = 'Not supported'; note = detail || test.note;
+      }
+      updateRow(tr, sc, st, note);
+      completed++;
+      setStatus('Testing TLS versions\u2026 (' + completed + ' / ' + TLS_TESTS.length + ')');
+      if (completed >= TLS_TESTS.length) {
+        setStatus('Done. Results may vary by browser, OS, and network security policy.');
+        btn.disabled = false;
+        isRunning = false;
+      }
+    });
+
+    /* Stagger requests slightly to avoid overwhelming old XHR stacks */
+    setTimeout(function() { runTests(idx + 1); }, 200);
+  }(0));
+}
+</script>
+
+</body>
+</html>

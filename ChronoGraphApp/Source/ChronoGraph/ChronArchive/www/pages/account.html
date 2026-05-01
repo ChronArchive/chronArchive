@@ -1,0 +1,923 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <title>Account | Chronograph</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style id="cg-theme-style"></style>
+  <style>
+    * { margin:0; padding:0; -webkit-box-sizing:border-box; box-sizing:border-box; }
+    html,body { width:100%; height:100%; overflow:hidden; background:#f2f2f7;
+      font-family:-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif;
+      -webkit-text-size-adjust:none; color:#1a1a1a; font-size:15px; }
+    /* ── Nav bar ── */
+    #hdr { position:fixed; top:0; left:0; right:0; z-index:100; height:44px;
+      background:-webkit-gradient(linear,left top,left bottom,from(#f0f0f0),to(#d8d8d8));
+      background:-webkit-linear-gradient(top,#f0f0f0 0%,#d8d8d8 100%);
+      background:linear-gradient(to bottom,#f0f0f0 0%,#d8d8d8 100%);
+      border-bottom:1px solid #b8b8b8;
+      -webkit-box-shadow:0 1px 3px rgba(0,0,0,0.15); box-shadow:0 1px 3px rgba(0,0,0,0.15);
+      display:-webkit-box; display:-webkit-flex; display:flex;
+      -webkit-box-align:center; -webkit-align-items:center; align-items:center; }
+    #hdr-title { font-size:17px; font-weight:bold; color:#1a1a1a;
+      position:absolute; left:0; right:0; top:0; height:44px;
+      line-height:44px; text-align:center; pointer-events:none; }
+    /* ── Scroll ── */
+    #scroll { position:fixed; top:44px; left:0; right:0; bottom:0;
+      overflow-y:scroll; -webkit-overflow-scrolling:touch; background:#f2f2f7; }
+    /* ── iOS Settings style ── */
+    .s-section { margin:18px 0 0; }
+    .s-header { padding:6px 16px 4px; font-size:12px; font-weight:bold;
+      color:#6d6d72; text-transform:uppercase; letter-spacing:0.4px; }
+    .s-group { background:#fff; border-top:1px solid #c8c8cb; border-bottom:1px solid #c8c8cb; }
+    .s-row { display:table; width:100%; border-bottom:1px solid #e8e8e8;
+      cursor:pointer; -webkit-tap-highlight-color:rgba(0,0,0,0.06); }
+    .s-row:last-child { border-bottom:none; }
+    .s-row:active { background:#e5e5ea; }
+    .s-icon { display:table-cell; vertical-align:middle; width:56px; padding:10px 0 10px 16px; }
+    .ic { width:30px; height:30px; -webkit-border-radius:8px; border-radius:8px;
+      text-align:center; line-height:30px; font-size:15px; display:inline-block; }
+    .ic-blue   { background:#0055cc; color:#fff; }
+    .ic-green  { background:#34a853; color:#fff; }
+    .ic-red    { background:#cc0000; color:#fff; }
+    .ic-gray   { background:#8e8e93; color:#fff; }
+    .ic-orange { background:#e07800; color:#fff; }
+    .ic-purple { background:#7b5ea7; color:#fff; }
+    .ic-av { width:30px; height:30px; -webkit-border-radius:8px; border-radius:8px;
+      background:#0055cc; text-align:center; line-height:30px; font-size:14px;
+      font-weight:bold; color:#fff; overflow:hidden; display:inline-block; }
+    .ic-av img { width:30px; height:30px; display:block; -webkit-border-radius:8px; border-radius:8px; }
+    .s-label { display:table-cell; vertical-align:middle; padding:10px 0; }
+    .row-title { font-size:16px; color:#1a1a1a; }
+    .row-sub { font-size:12px; color:#8e8e93; margin-top:1px; }
+    .s-arrow { display:table-cell; vertical-align:middle; width:36px;
+      text-align:right; padding-right:14px; font-size:18px; color:#c7c7cc; }
+    .s-val { display:table-cell; vertical-align:middle; width:auto;
+      text-align:right; padding-right:6px; font-size:15px; color:#8e8e93; white-space:nowrap; }
+    /* Toggle switch */
+    .s-toggle { display:table-cell; vertical-align:middle; width:60px; text-align:right; padding-right:12px; }
+    .toggle { position:relative; display:inline-block; width:44px; height:26px; }
+    .toggle input { display:none; }
+    .toggle-track { position:absolute; top:0; left:0; right:0; bottom:0;
+      background:#ccc; -webkit-border-radius:13px; border-radius:13px;
+      -webkit-transition:background 0.2s; transition:background 0.2s; }
+    .toggle input:checked + .toggle-track { background:#34c759; }
+    .toggle-thumb { position:absolute; top:2px; left:2px; width:22px; height:22px;
+      background:#fff; -webkit-border-radius:11px; border-radius:11px;
+      -webkit-box-shadow:0 1px 3px rgba(0,0,0,0.3); box-shadow:0 1px 3px rgba(0,0,0,0.3);
+      -webkit-transition:-webkit-transform 0.2s; transition:transform 0.2s; }
+    .toggle input:checked ~ .toggle-thumb { -webkit-transform:translateX(18px); transform:translateX(18px); }
+    /* ── Profile header card ── */
+    #prof-card { background:#fff; border-bottom:1px solid #e8e8e8; padding:20px 16px 16px; text-align:center; }
+    #pc-av { width:72px; height:72px; -webkit-border-radius:36px; border-radius:36px;
+      background:#0055cc; display:inline-block; text-align:center; line-height:72px;
+      font-size:30px; font-weight:bold; color:#fff; overflow:hidden; cursor:pointer; margin-bottom:8px; }
+    #pc-av img { width:72px; height:72px; display:block; -webkit-border-radius:36px; border-radius:36px; }
+    #pc-name { font-size:20px; font-weight:bold; color:#1a1a1a; margin-bottom:2px; }
+    #pc-bio { font-size:13px; color:#8e8e93; margin-bottom:10px; min-height:16px; }
+    #pc-edit-link { font-size:13px; color:#0055cc; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    /* ── Friend request badge ── */
+    .badge { display:inline-block; background:#cc0000; color:#fff;
+      -webkit-border-radius:9px; border-radius:9px; font-size:11px; font-weight:bold;
+      padding:1px 6px; margin-left:4px; }
+    /* ── Screens ── */
+    .subscreen { position:fixed; top:0; left:0; right:0; bottom:0; background:#f2f2f7; display:none; z-index:200; }
+    .subscreen.open { display:block; }
+    .sub-hdr { position:absolute; top:0; left:0; right:0; height:44px;
+      background:-webkit-linear-gradient(top,#f0f0f0 0%,#d8d8d8 100%);
+      background:linear-gradient(to bottom,#f0f0f0 0%,#d8d8d8 100%);
+      border-bottom:1px solid #b8b8b8;
+      -webkit-box-shadow:0 1px 3px rgba(0,0,0,0.12); box-shadow:0 1px 3px rgba(0,0,0,0.12);
+      text-align:center; line-height:44px; font-size:17px; font-weight:bold; color:#1a1a1a; }
+    .sub-back { position:absolute; left:0; top:0; height:44px; line-height:44px;
+      padding:0 14px; color:#0055cc; cursor:pointer; font-size:15px; -webkit-tap-highlight-color:transparent; }
+    .sub-right { position:absolute; right:0; top:0; height:44px; line-height:44px;
+      padding:0 14px; color:#0055cc; cursor:pointer; font-size:15px; font-weight:bold; -webkit-tap-highlight-color:transparent; }
+    .sub-body { position:absolute; top:44px; left:0; right:0; bottom:0;
+      overflow-y:scroll; -webkit-overflow-scrolling:touch; background:#f2f2f7; }
+    .sub-pad { padding:16px; }
+    /* ── Form fields ── */
+    .field { display:block; width:100%; padding:10px 12px; margin-bottom:10px;
+      background:#fff; border:1px solid #d0d0d0; -webkit-border-radius:8px; border-radius:8px;
+      color:#1a1a1a; font-size:15px; outline:none; -webkit-appearance:none; font-family:inherit; }
+    .field::-webkit-input-placeholder { color:#aaa; }
+    .flabel { font-size:12px; color:#8e8e93; text-transform:uppercase;
+      letter-spacing:0.4px; margin:14px 0 6px; font-weight:bold; }
+    .fbtn { display:block; width:100%; padding:13px; margin-bottom:10px;
+      background:-webkit-linear-gradient(top,#1a7ce8 0%,#0055cc 100%);
+      background:linear-gradient(to bottom,#1a7ce8 0%,#0055cc 100%);
+      border:1px solid #003ca0; -webkit-border-radius:8px; border-radius:8px;
+      color:#fff; font-size:15px; font-weight:bold; cursor:pointer;
+      -webkit-appearance:none; font-family:inherit; }
+    .fbtn:disabled { opacity:0.5; }
+    .fbtn-sec { background:#f2f2f2; border:1px solid #ddd; color:#333; font-weight:normal;
+      -webkit-box-shadow:none; box-shadow:none; }
+    .fbtn-red { background:#fff; border:1px solid #cc0000; color:#cc0000; font-weight:normal; }
+    .ferr { color:#cc0000; font-size:13px; margin-top:4px; display:none; text-align:center; }
+    /* ── Friends list ── */
+    .fr-row { display:table; width:100%; padding:10px 16px; border-bottom:1px solid #e8e8e8; background:#fff; }
+    .fr-av { display:table-cell; width:44px; vertical-align:middle; }
+    .fr-avc { width:38px; height:38px; -webkit-border-radius:19px; border-radius:19px;
+      background:#0055cc; text-align:center; line-height:38px; font-size:16px; font-weight:bold; color:#fff; overflow:hidden; }
+    .fr-avc img { width:38px; height:38px; display:block; -webkit-border-radius:19px; border-radius:19px; }
+    .fr-info { display:table-cell; vertical-align:middle; padding-left:10px; }
+    .fr-name { font-size:15px; font-weight:bold; color:#1a1a1a; }
+    .fr-status { font-size:12px; color:#8e8e93; margin-top:2px; }
+    .fr-acts { display:table-cell; vertical-align:middle; text-align:right; white-space:nowrap; }
+    .fr-btn { background:#fff; border:1px solid #d0d0d0; -webkit-border-radius:7px; border-radius:7px;
+      color:#0055cc; font-size:12px; padding:5px 9px; cursor:pointer; margin-left:4px;
+      -webkit-appearance:none; font-family:inherit; }
+    .fr-btn.red { color:#cc0000; border-color:#ffcccc; }
+    .fr-btn.green { color:#34a853; border-color:#b3e8c0; }
+    /* ── Device selector ── */
+    .dev-select { width:100%; padding:8px 10px; background:#fff; border:1px solid #d0d0d0;
+      -webkit-border-radius:8px; border-radius:8px; font-size:14px; color:#1a1a1a;
+      outline:none; -webkit-appearance:none; font-family:inherit; }
+    /* ── Collection items ── */
+    .col-row { display:table; width:100%; padding:10px 16px; border-bottom:1px solid #e8e8e8; background:#fff; }
+    .col-lbl { display:table-cell; vertical-align:middle; font-size:15px; color:#1a1a1a; }
+    .col-del { display:table-cell; vertical-align:middle; width:40px; text-align:right; }
+    .col-del-btn { background:none; border:none; color:#cc0000; font-size:20px; cursor:pointer;
+      -webkit-tap-highlight-color:transparent; padding:0; line-height:1; }
+    /* ── Auth screen ── */
+    .auth-wrap { padding:48px 24px 24px; }
+    .auth-tabs { display:table; width:100%; border-collapse:collapse; margin-bottom:20px; }
+    .auth-tab { display:table-cell; text-align:center; padding:10px 0; border-bottom:2px solid #ddd; color:#888; cursor:pointer; font-size:15px; }
+    .auth-tab.on { border-bottom-color:#0055cc; color:#0055cc; }
+  </style>
+</head>
+<body>
+  <div id="hdr">
+    <div id="hdr-title">Account</div>
+  </div>
+
+  <div id="scroll">
+
+    <!-- Signed-in view -->
+    <div id="view-signedin" style="display:none">
+
+      <!-- Profile card -->
+      <div id="prof-card">
+        <div id="pc-av" onclick="openEditProfile()"></div>
+        <div id="pc-name"></div>
+        <div id="pc-bio"></div>
+        <div id="pc-edit-link" onclick="openEditProfile()">Edit Profile</div>
+      </div>
+
+      <!-- Friends -->
+      <div class="s-section">
+        <div class="s-header">Social</div>
+        <div class="s-group">
+          <div class="s-row" onclick="openFriends()">
+            <div class="s-icon"><span class="ic ic-green">&#128101;</span></div>
+            <div class="s-label"><div class="row-title">Friends</div></div>
+            <div class="s-val" id="friends-badge-val"></div>
+            <div class="s-arrow">&#8250;</div>
+          </div>
+          <div class="s-row" onclick="openFriendCode()">
+            <div class="s-icon"><span class="ic ic-blue">#</span></div>
+            <div class="s-label">
+              <div class="row-title">Friend Code</div>
+              <div class="row-sub" id="my-friend-code-display">Loading&#8230;</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Collection & Device -->
+      <div class="s-section">
+        <div class="s-header">Devices</div>
+        <div class="s-group">
+          <div class="s-row" onclick="openCollection()">
+            <div class="s-icon"><span class="ic ic-purple">&#128241;</span></div>
+            <div class="s-label">
+              <div class="row-title">My Collection</div>
+              <div class="row-sub" id="collection-count-label">Devices you own</div>
+            </div>
+            <div class="s-arrow">&#8250;</div>
+          </div>
+          <div class="s-row" onclick="openDeviceSelect()">
+            <div class="s-icon"><span class="ic ic-orange">&#128196;</span></div>
+            <div class="s-label">
+              <div class="row-title">Posting Device</div>
+              <div class="row-sub" id="active-device-label">Not set</div>
+            </div>
+            <div class="s-arrow">&#8250;</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Privacy -->
+      <div class="s-section">
+        <div class="s-header">Privacy</div>
+        <div class="s-group">
+          <div class="s-row" style="cursor:default">
+            <div class="s-icon"><span class="ic ic-gray">&#128274;</span></div>
+            <div class="s-label"><div class="row-title">Private Account</div><div class="row-sub">Only friends see your posts</div></div>
+            <div class="s-toggle">
+              <label class="toggle">
+                <input type="checkbox" id="priv-toggle" onchange="savePrivacy()">
+                <span class="toggle-track"></span>
+                <span class="toggle-thumb"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Account actions -->
+      <div class="s-section">
+        <div class="s-header">Account</div>
+        <div class="s-group">
+          <div class="s-row" onclick="openChangePw()">
+            <div class="s-icon"><span class="ic ic-gray">&#128272;</span></div>
+            <div class="s-label"><div class="row-title">Change Password</div></div>
+            <div class="s-arrow">&#8250;</div>
+          </div>
+          <div class="s-row" onclick="doSignOut()">
+            <div class="s-icon"><span class="ic ic-red">&#10005;</span></div>
+            <div class="s-label"><div class="row-title" style="color:#cc0000">Sign Out</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:30px"></div>
+    </div><!-- /view-signedin -->
+
+    <!-- Signed-out view -->
+    <div id="view-signedout" style="display:none">
+      <div class="auth-wrap">
+        <div style="text-align:center;margin-bottom:24px;">
+          <img src="../assets/ChronoGraphLogo.png" style="height:40px;" alt="ChronoGraph">
+          <div style="font-size:13px;color:#8e8e93;margin-top:8px;">Sign in to access your account</div>
+        </div>
+        <div class="auth-tabs">
+          <div class="auth-tab on" id="at-login"    onclick="setAuthMode('login')">Sign In</div>
+          <div class="auth-tab"   id="at-register" onclick="setAuthMode('register')">Register</div>
+        </div>
+        <input type="text"     id="af-user" class="field" placeholder="Username" autocorrect="off" autocapitalize="off">
+        <input type="password" id="af-pass" class="field" placeholder="Password">
+        <div id="af-conf-row" style="display:none">
+          <input type="password" id="af-conf" class="field" placeholder="Confirm Password">
+        </div>
+        <input type="button" id="af-btn" class="fbtn" value="Sign In" onclick="doAuth()">
+        <div id="af-err" class="ferr"></div>
+      </div>
+    </div><!-- /view-signedout -->
+
+  </div><!-- /scroll -->
+
+  <!-- ── SUBSCREENS ── -->
+
+  <!-- Edit Profile -->
+  <div class="subscreen" id="ss-edit">
+    <div class="sub-hdr">Edit Profile
+      <span class="sub-back" onclick="closeSubscreen('ss-edit')">&#8249; Back</span>
+      <span class="sub-right" id="ep-save-btn" onclick="saveProfile()">Save</span>
+    </div>
+    <div class="sub-body">
+      <div class="sub-pad">
+        <div style="text-align:center;margin-bottom:16px">
+          <div id="ep-av" style="width:72px;height:72px;-webkit-border-radius:36px;border-radius:36px;background:#0055cc;display:inline-block;text-align:center;line-height:72px;font-size:30px;font-weight:bold;color:#fff;overflow:hidden;cursor:pointer;" onclick="pickAvatar()"></div>
+          <div style="margin-top:6px;font-size:13px;color:#0055cc;cursor:pointer;" onclick="pickAvatar()">Change Photo</div>
+          <input type="file" id="ep-av-inp" accept="image/*" style="display:none">
+        </div>
+        <div class="flabel">Username</div>
+        <div id="ep-uname" style="font-size:15px;color:#8e8e93;padding:4px 0 8px">—</div>
+        <div class="flabel">Bio</div>
+        <input type="text" id="ep-bio" class="field" placeholder="About yourself&#8230;" maxlength="160">
+        <div id="ep-err" class="ferr"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Password -->
+  <div class="subscreen" id="ss-changepw">
+    <div class="sub-hdr">Change Password
+      <span class="sub-back" onclick="closeSubscreen('ss-changepw')">&#8249; Back</span>
+    </div>
+    <div class="sub-body">
+      <div class="sub-pad">
+        <div class="flabel">Current Password</div>
+        <input type="password" id="pw-old" class="field" placeholder="Current password">
+        <div class="flabel">New Password</div>
+        <input type="password" id="pw-new" class="field" placeholder="New password (min 6 chars)">
+        <input type="password" id="pw-conf" class="field" placeholder="Confirm new password">
+        <input type="button" class="fbtn" value="Update Password" onclick="doChangePw()">
+        <div id="pw-err" class="ferr"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Friends -->
+  <div class="subscreen" id="ss-friends">
+    <div class="sub-hdr">Friends
+      <span class="sub-back" onclick="closeSubscreen('ss-friends')">&#8249; Back</span>
+    </div>
+    <div class="sub-body">
+      <div style="padding:8px 12px;background:#f0f0f2;border-bottom:1px solid #d8d8d8">
+        <input type="text" id="friend-search-inp" class="field" style="margin:0;background:#fff;" placeholder="Find people to add&#8230;" autocorrect="off" autocapitalize="off" oninput="searchUsers(this.value)">
+      </div>
+      <div id="user-search-results"></div>
+      <div id="friends-list-body"><div style="text-align:center;padding:20px;color:#aaa;font-size:14px">Loading&#8230;</div></div>
+    </div>
+  </div>
+
+  <!-- Friend Code -->
+  <div class="subscreen" id="ss-friendcode">
+    <div class="sub-hdr">Friend Code
+      <span class="sub-back" onclick="closeSubscreen('ss-friendcode')">&#8249; Back</span>
+    </div>
+    <div class="sub-body">
+      <div class="sub-pad">
+        <div style="text-align:center;margin:20px 0">
+          <div id="fc-display" style="font-size:32px;font-weight:bold;color:#0055cc;letter-spacing:6px;margin-bottom:12px">—</div>
+          <div style="font-size:13px;color:#8e8e93;margin-bottom:20px">Share this code with friends who have private accounts</div>
+          <input type="button" class="fbtn" value="Copy Code" onclick="copyCode()">
+        </div>
+        <div class="flabel">Add by Friend Code</div>
+        <input type="text" id="add-by-code-inp" class="field" placeholder="Enter friend code&#8230;" autocorrect="off" autocapitalize="off" style="text-transform:uppercase;letter-spacing:2px">
+        <input type="button" class="fbtn fbtn-sec" value="Add Friend by Code" onclick="addByCode()">
+        <div id="add-code-err" class="ferr"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- My Collection -->
+  <div class="subscreen" id="ss-collection">
+    <div class="sub-hdr">My Collection
+      <span class="sub-back" onclick="closeSubscreen('ss-collection')">&#8249; Back</span>
+    </div>
+    <div class="sub-body">
+      <div class="sub-pad">
+        <div class="flabel">Add a Device</div>
+        <select id="col-make" class="dev-select" onchange="onMakeChange()">
+          <option value="">Select Make&#8230;</option>
+        </select>
+        <select id="col-model" class="dev-select" style="margin-top:8px;display:none" onchange="onModelChange()">
+          <option value="">Select Model&#8230;</option>
+        </select>
+        <select id="col-version" class="dev-select" style="margin-top:8px;display:none">
+          <option value="">Select Version&#8230;</option>
+        </select>
+        <input type="button" class="fbtn fbtn-sec" style="margin-top:8px" value="Add to Collection" onclick="addToCollection()">
+      </div>
+      <div class="s-header" style="margin-top:10px">My Devices</div>
+      <div id="collection-list"></div>
+    </div>
+  </div>
+
+  <!-- Posting Device Select -->
+  <div class="subscreen" id="ss-devselect">
+    <div class="sub-hdr">Posting Device
+      <span class="sub-back" onclick="closeSubscreen('ss-devselect')">&#8249; Back</span>
+    </div>
+    <div class="sub-body">
+      <div class="sub-pad">
+        <div style="font-size:13px;color:#8e8e93;margin-bottom:12px">Choose which device posts show as. This is saved on this device only.</div>
+        <div id="devselect-list"></div>
+        <div style="margin-top:12px">
+          <input type="button" class="fbtn fbtn-sec" value="Clear (no device tag)" onclick="setActiveDevice(null)">
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script type="text/javascript">
+var API = 'https://chat.chronarchive.com';
+var _mem = {};
+var store = {
+  g:function(k){try{return localStorage.getItem(k);}catch(e){return _mem[k]||null;}},
+  s:function(k,v){try{localStorage.setItem(k,v);}catch(e){_mem[k]=v;}},
+  d:function(k){try{localStorage.removeItem(k);}catch(e){delete _mem[k];}}
+};
+var parseJSON = (window.JSON&&JSON.parse)?function(s){return JSON.parse(s);}:function(s){return eval('('+s+')');};
+
+var S = {
+  token:null, uid:null, uname:null, isAdmin:false, av:'',
+  friendCode:'', isPrivate:false, avData:null, authMode:'login',
+  pendingCount:0
+};
+S.token = store.g('cg_t')||store.g('hm_t');
+S.uid   = parseInt(store.g('cg_u')||store.g('hm_u')||'0',10)||null;
+S.uname = store.g('cg_n')||store.g('hm_n');
+S.av    = store.g('cg_av')||store.g('hm_av')||'';
+
+/* ── Device catalog ── */
+var CATALOG = [
+  {make:'Apple', model:'iPhone',     versions:['2G','3G','3GS','4','4S','5','5c','5s']},
+  {make:'Apple', model:'iPad',       versions:['1st gen','2','3rd gen','4th gen','mini','mini 2','Air']},
+  {make:'Apple', model:'iPod touch', versions:['1st gen','2nd gen','3rd gen','4th gen','5th gen']},
+  {make:'Apple', model:'Mac',        versions:['MacBook (2006)','MacBook (2008)','MacBook Pro','iMac','Mac mini','Mac Pro','MacBook Air']},
+  {make:'Samsung', model:'Galaxy S',    versions:['S','S2','S3','S4']},
+  {make:'Samsung', model:'Galaxy Note', versions:['Note','Note 2','Note 3']},
+  {make:'Samsung', model:'Galaxy Tab',  versions:['7.0','8.9','10.1','A10']},
+  {make:'Nokia',   model:'Lumia',       versions:['520','620','720','800','900','920','1020','1520']},
+  {make:'Nokia',   model:'N-series',    versions:['N8','N9','N95','N97']},
+  {make:'BlackBerry', model:'Bold',     versions:['9700','9780','9900']},
+  {make:'BlackBerry', model:'PlayBook', versions:['1st gen']},
+  {make:'BlackBerry', model:'Z-series', versions:['Z10','Z30']},
+  {make:'HTC',    model:'One',     versions:['X','S','V','M7','M8']},
+  {make:'HTC',    model:'Desire',  versions:['HD','S','Z','500']},
+  {make:'Sony',   model:'Xperia',  versions:['S','P','U','T','Z','Z1','Z2']},
+  {make:'Motorola', model:'RAZR',  versions:['V3','M','HD','MAXX HD']},
+  {make:'Motorola', model:'Moto',  versions:['G','X','E']},
+  {make:'LG',     model:'Optimus', versions:['G','2X','3D','Black','L5','L7']},
+  {make:'Google', model:'Nexus',   versions:['4','5','6','7','10']},
+  {make:'Microsoft', model:'Surface', versions:['RT','Pro','Pro 2','Pro 3']},
+  {make:'Palm',   model:'Pre',     versions:['Pre','Pre 2','Pre 3','Pre Plus']},
+  {make:'Palm',   model:'Pixi',    versions:['Pixi','Pixi Plus']},
+  {make:'Windows Phone', model:'HTC Windows Phone', versions:['7 Trophy','7 Mozart','8S','8X']},
+];
+
+function shortName(make, model, version) { return model + ' ' + version; }
+
+function esc(s){var d=document.createElement('div');d.appendChild(document.createTextNode(s||''));return d.innerHTML;}
+
+function req(m,path,body,cb){
+  var x;try{x=new XMLHttpRequest();}catch(e){try{x=new ActiveXObject('Microsoft.XMLHTTP');}catch(e2){return;}}
+  x.open(m,API+path,true);
+  x.setRequestHeader('Content-Type','application/json');
+  if(S.token) x.setRequestHeader('X-CG-Token',S.token);
+  x.onreadystatechange=function(){
+    if(x.readyState!==4)return;
+    var d;try{d=parseJSON(x.responseText);}catch(e){d={ok:false,error:'Bad response'};}
+    if(cb)cb(d,x.status>=400?(d.error||'Error'):null);
+  };
+  x.send(body?JSON.stringify(body):null);
+}
+
+function resizeImg(data,max,cb){
+  try{
+    var img=new Image();
+    img.onload=function(){
+      var w=img.width,h=img.height;
+      if(w<=max&&h<=max){cb(data);return;}
+      var sc=w>h?max/w:max/h;
+      var cv=document.createElement('canvas');
+      cv.width=Math.round(w*sc);cv.height=Math.round(h*sc);
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+      cb(cv.toDataURL('image/jpeg',0.80));
+    };
+    img.onerror=function(){cb(data);};
+    img.src=data;
+  }catch(e){cb(data);}
+}
+
+function mkAv(b64,name,sz){
+  sz=sz||38;
+  if(b64)return '<img src="'+esc(b64)+'" style="width:'+sz+'px;height:'+sz+'px;display:block;-webkit-border-radius:'+(sz/2)+'px;border-radius:'+(sz/2)+'px;" alt="">';
+  return esc((name||'?').charAt(0).toUpperCase());
+}
+
+/* ── Theme ── */
+(function(){
+  var THEMES={
+    light:{bg:'#f2f2f7',grp:'#fff',text:'#1a1a1a',sub:'#8e8e93',brd:'#c8c8cb',hdr:'#6d6d72'},
+    dark: {bg:'#1a1a1a',grp:'#2c2c2e',text:'#e8e8e8',sub:'#888', brd:'#3a3a3c',hdr:'#888'},
+    oled: {bg:'#000',   grp:'#111',   text:'#fff',   sub:'#666', brd:'#2a2a2a',hdr:'#666'}
+  };
+  var t=THEMES[store.g('cg-theme')||'light']||THEMES.light;
+  var s=document.getElementById('cg-theme-style');
+  if(s)s.innerHTML=
+    'html,body,#scroll,#hdr{background:'+t.bg+'!important}'
+    +'.s-group{background:'+t.grp+'!important;border-color:'+t.brd+'!important}'
+    +'.s-row{border-color:'+t.brd+'!important}'
+    +'.row-title,.sub-pad,.flabel{color:'+t.text+'!important}'
+    +'.row-sub,.s-header{color:'+t.hdr+'!important}'
+    +'.sub-hdr,.sub-back,.sub-right{background:-webkit-linear-gradient(top,'+t.grp+' 0%,'+t.bg+' 100%)!important;background:linear-gradient(to bottom,'+t.grp+' 0%,'+t.bg+' 100%)!important;border-color:'+t.brd+'!important;color:'+t.text+'!important}'
+    +'.sub-back,.sub-right{color:#0a84ff!important}'
+    +'.field{background:'+t.grp+'!important;border-color:'+t.brd+'!important;color:'+t.text+'!important}'
+    +'#prof-card{background:'+t.grp+'!important;border-color:'+t.brd+'!important}'
+    +'#pc-name{color:'+t.text+'!important}';
+})();
+
+/* ── UI state ── */
+function closeSubscreen(id){document.getElementById(id).className='subscreen';}
+function openSubscreen(id){document.getElementById(id).className='subscreen open';}
+
+/* ── Auth ── */
+function setAuthMode(m){
+  S.authMode=m;
+  document.getElementById('at-login').className='auth-tab'+(m==='login'?' on':'');
+  document.getElementById('at-register').className='auth-tab'+(m==='register'?' on':'');
+  document.getElementById('af-conf-row').style.display=m==='login'?'none':'block';
+  document.getElementById('af-btn').value=m==='login'?'Sign In':'Create Account';
+  hideErr('af-err');
+}
+function showErr(id,msg){var e=document.getElementById(id);if(e){e.style.display='block';e.textContent=msg;}}
+function hideErr(id){var e=document.getElementById(id);if(e)e.style.display='none';}
+
+function doAuth(){
+  var user=(document.getElementById('af-user').value||'').replace(/^\s+|\s+$/g,'');
+  var pass=document.getElementById('af-pass').value||'';
+  hideErr('af-err');
+  if(!user||!pass){showErr('af-err','Fill in all fields.');return;}
+  if(S.authMode==='register'){
+    var conf=document.getElementById('af-conf').value||'';
+    if(pass!==conf){showErr('af-err','Passwords do not match.');return;}
+    if(pass.length<6){showErr('af-err','Password must be at least 6 chars.');return;}
+  }
+  var btn=document.getElementById('af-btn');btn.disabled=true;
+  req('POST','/api/'+(S.authMode==='login'?'login':'register'),{username:user,password:pass},function(d,err){
+    btn.disabled=false;
+    if(err||!d.ok){showErr('af-err',d.error||'Authentication failed.');return;}
+    store.s('cg_t',d.token);store.s('cg_u',d.user_id+'');store.s('cg_n',d.username);
+    store.s('hm_t',d.token);store.s('hm_u',d.user_id+'');store.s('hm_n',d.username);
+    if(d.avatar_b64){store.s('cg_av',d.avatar_b64);store.s('hm_av',d.avatar_b64);}
+    S.token=d.token;S.uid=d.user_id;S.uname=d.username;S.av=d.avatar_b64||'';
+    afterLogin();
+  });
+}
+
+function afterLogin(){
+  req('GET','/api/me',null,function(d){
+    if(!d.ok){doSignOut();return;}
+    S.uid=d.id;S.uname=d.username;S.av=d.avatar_b64||'';
+    S.isPrivate=!!d.is_private;S.friendCode=d.friend_code||'';S.isAdmin=!!d.is_admin;
+    store.s('cg_n',d.username);store.s('cg_av',S.av);
+    store.s('hm_n',d.username);store.s('hm_av',S.av);
+    renderSignedIn();
+  });
+}
+
+function doSignOut(){
+  req('POST','/api/logout',null,function(){});
+  store.d('cg_t');store.d('cg_u');store.d('cg_n');store.d('cg_av');
+  store.d('hm_t');store.d('hm_u');store.d('hm_n');store.d('hm_av');
+  S.token=S.uid=S.uname=null;S.av='';S.isPrivate=false;S.friendCode='';
+  renderSignedOut();
+}
+
+function renderSignedIn(){
+  document.getElementById('view-signedout').style.display='none';
+  document.getElementById('view-signedin').style.display='block';
+  var av=document.getElementById('pc-av');
+  av.innerHTML=mkAv(S.av,S.uname,72);
+  document.getElementById('pc-name').textContent=S.uname||'';
+  document.getElementById('my-friend-code-display').textContent=S.friendCode||'—';
+  document.getElementById('fc-display').textContent=S.friendCode||'—';
+  document.getElementById('add-by-code-inp').value='';
+  // Privacy toggle
+  var pt=document.getElementById('priv-toggle');if(pt)pt.checked=S.isPrivate;
+  // Active posting device
+  updateActiveDeviceLabel();
+  // Collection count
+  updateCollectionLabel();
+  // Load bio and pending requests
+  req('GET','/api/me',null,function(d){
+    if(d.ok){document.getElementById('pc-bio').textContent=d.bio||'';}
+  });
+  req('GET','/api/friends',null,function(d){
+    if(!d||!d.ok)return;
+    var pending=0;
+    for(var i=0;i<(d.friends||[]).length;i++){
+      if(d.friends[i].status==='pending'&&d.friends[i].direction==='incoming')pending++;
+    }
+    S.pendingCount=pending;
+    var bv=document.getElementById('friends-badge-val');
+    if(bv)bv.textContent=pending?pending+' pending':'';
+  });
+}
+
+function renderSignedOut(){
+  document.getElementById('view-signedin').style.display='none';
+  document.getElementById('view-signedout').style.display='block';
+}
+
+/* ── Edit Profile ── */
+function openEditProfile(){
+  S.avData=null;
+  document.getElementById('ep-uname').textContent=S.uname||'';
+  document.getElementById('ep-av').innerHTML=mkAv(S.av,S.uname,72);
+  document.getElementById('ep-bio').value='';
+  hideErr('ep-err');
+  req('GET','/api/me',null,function(d){
+    if(d.ok)document.getElementById('ep-bio').value=d.bio||'';
+  });
+  openSubscreen('ss-edit');
+}
+function pickAvatar(){document.getElementById('ep-av-inp').click();}
+(function(){
+  var inp=document.getElementById('ep-av-inp');
+  function onch(){
+    var f=inp.files&&inp.files[0];if(!f)return;
+    if(f.size>1024*1024){alert('Avatar must be under 1 MB.');return;}
+    var r=new FileReader();
+    r.onload=function(e){
+      resizeImg(e.target.result,256,function(data){
+        S.avData=data;
+        document.getElementById('ep-av').innerHTML=mkAv(data,S.uname,72);
+      });
+    };
+    r.readAsDataURL(f);
+  }
+  if(inp.addEventListener)inp.addEventListener('change',onch,false);
+  else if(inp.attachEvent)inp.attachEvent('onchange',onch);
+})();
+function saveProfile(){
+  hideErr('ep-err');
+  var bio=(document.getElementById('ep-bio').value||'').replace(/^\s+|\s+$/g,'');
+  var body={bio:bio};
+  if(S.avData)body.avatar_b64=S.avData;
+  var btn=document.getElementById('ep-save-btn');btn.innerHTML='Saving&#8230;';
+  req('PUT','/api/me',body,function(d,err){
+    btn.innerHTML='Save';
+    if(err){showErr('ep-err',d.error||'Save failed.');return;}
+    if(S.avData){S.av=S.avData;store.s('cg_av',S.av);S.avData=null;}
+    document.getElementById('pc-av').innerHTML=mkAv(S.av,S.uname,72);
+    document.getElementById('pc-bio').textContent=bio;
+    closeSubscreen('ss-edit');
+  });
+}
+
+/* ── Privacy ── */
+function savePrivacy(){
+  var v=document.getElementById('priv-toggle').checked;
+  S.isPrivate=v;
+  req('PUT','/api/me',{is_private:v},function(d){
+    if(d.ok){
+      // Also update add-by-code visibility on friends screen
+    }
+  });
+}
+
+/* ── Change Password ── */
+function openChangePw(){
+  document.getElementById('pw-old').value='';
+  document.getElementById('pw-new').value='';
+  document.getElementById('pw-conf').value='';
+  hideErr('pw-err');
+  openSubscreen('ss-changepw');
+}
+function doChangePw(){
+  var o=document.getElementById('pw-old').value;
+  var n=document.getElementById('pw-new').value;
+  var c=document.getElementById('pw-conf').value;
+  hideErr('pw-err');
+  if(!o||!n){showErr('pw-err','Fill in all fields.');return;}
+  if(n!==c){showErr('pw-err','Passwords do not match.');return;}
+  if(n.length<6){showErr('pw-err','Password must be at least 6 chars.');return;}
+  req('POST','/api/me/password',{old_password:o,new_password:n},function(d,err){
+    if(err||!d.ok){showErr('pw-err',d.error||'Failed.');return;}
+    closeSubscreen('ss-changepw');
+    alert('Password updated.');
+  });
+}
+
+/* ── Friends ── */
+var _userSearchTimer=null;
+function openFriends(){
+  document.getElementById('friend-search-inp').value='';
+  document.getElementById('user-search-results').innerHTML='';
+  openSubscreen('ss-friends');
+  loadFriendsList();
+}
+function loadFriendsList(){
+  var body=document.getElementById('friends-list-body');
+  body.innerHTML='<div style="text-align:center;padding:20px;color:#aaa;font-size:13px">Loading&#8230;</div>';
+  req('GET','/api/friends',null,function(d,err){
+    if(err||!d||!d.ok){body.innerHTML='<div style="padding:20px;color:#aaa;text-align:center">Could not load.</div>';return;}
+    var pending=[],accepted=[];
+    for(var i=0;i<(d.friends||[]).length;i++){
+      if(d.friends[i].status==='accepted')accepted.push(d.friends[i]);
+      else pending.push(d.friends[i]);
+    }
+    var html='';
+    if(pending.length){
+      html+='<div class="s-header" style="margin-top:12px">Requests</div>';
+      for(var i=0;i<pending.length;i++){
+        var f=pending[i];
+        html+='<div class="fr-row"><div class="fr-av"><div class="fr-avc">'+mkAv(f.avatar_b64,f.username,38)+'</div></div>'+
+          '<div class="fr-info"><div class="fr-name">'+esc(f.username)+'</div>'+
+          '<div class="fr-status">'+(f.direction==='incoming'?'Wants to be friends':'Request sent')+'</div></div>'+
+          '<div class="fr-acts">'+
+          (f.direction==='incoming'?'<button class="fr-btn green" onclick="acceptFriend('+f.id+')">Accept</button>':'')+
+          '<button class="fr-btn red" onclick="removeFriend('+f.id+')">'+(f.direction==='incoming'?'Decline':'Cancel')+'</button>'+
+          '</div></div>';
+      }
+    }
+    if(accepted.length){
+      html+='<div class="s-header" style="margin-top:12px">Friends ('+accepted.length+')</div>';
+      for(var j=0;j<accepted.length;j++){
+        var f=accepted[j];
+        html+='<div class="fr-row"><div class="fr-av"><div class="fr-avc">'+mkAv(f.avatar_b64,f.username,38)+'</div></div>'+
+          '<div class="fr-info"><div class="fr-name">'+esc(f.username)+'</div></div>'+
+          '<div class="fr-acts">'+
+          '<button class="fr-btn red" onclick="removeFriend('+f.id+')">Remove</button>'+
+          '</div></div>';
+      }
+    }
+    if(!html)html='<div style="text-align:center;padding:40px 20px;color:#aaa;font-size:14px">No friends yet.<br>Search for people above.</div>';
+    body.innerHTML=html;
+  });
+}
+function searchUsers(q){
+  if(_userSearchTimer)clearTimeout(_userSearchTimer);
+  var res=document.getElementById('user-search-results');
+  q=(q||'').replace(/^\s+|\s+$/g,'');
+  if(!q){res.innerHTML='';return;}
+  _userSearchTimer=setTimeout(function(){
+    req('GET','/api/users?q='+encodeURIComponent(q),null,function(d){
+      if(!d||!d.ok||!(d.users||[]).length){res.innerHTML='<div style="padding:8px 16px;font-size:13px;color:#aaa">No users found.</div>';return;}
+      var html='<div class="s-header">Results</div>';
+      for(var i=0;i<d.users.length;i++){
+        var u=d.users[i];
+        if(u.id===S.uid)continue;
+        html+='<div class="fr-row"><div class="fr-av"><div class="fr-avc">'+mkAv(u.avatar_b64,u.username,38)+'</div></div>'+
+          '<div class="fr-info"><div class="fr-name">'+esc(u.username)+'</div>'+
+          (u.bio?'<div class="fr-status">'+esc(u.bio.substring(0,40))+'</div>':'')+
+          '</div><div class="fr-acts">'+
+          '<button class="fr-btn" onclick="addFriend('+u.id+',this)">Add</button>'+
+          '</div></div>';
+      }
+      res.innerHTML=html;
+    });
+  },300);
+}
+function addFriend(uid,btn){
+  if(btn)btn.disabled=true;
+  req('POST','/api/friends/'+uid,null,function(d,err){
+    if(btn)btn.innerHTML=(!err&&d&&d.ok)?'Sent':'Add';
+    if(!err&&d&&d.ok)loadFriendsList();
+  });
+}
+function acceptFriend(uid){req('POST','/api/friends/'+uid,null,function(){loadFriendsList();});}
+function removeFriend(uid){req('DELETE','/api/friends/'+uid,null,function(){loadFriendsList();});}
+
+/* ── Friend Code ── */
+function openFriendCode(){
+  document.getElementById('fc-display').textContent=S.friendCode||'—';
+  document.getElementById('add-by-code-inp').value='';
+  hideErr('add-code-err');
+  openSubscreen('ss-friendcode');
+}
+function copyCode(){
+  var code=S.friendCode||'';
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(code).then(function(){alert('Code copied!');});
+    } else {window.prompt('Your friend code:',code);}
+  }catch(e){window.prompt('Your friend code:',code);}
+}
+function addByCode(){
+  var code=(document.getElementById('add-by-code-inp').value||'').toUpperCase().replace(/^\s+|\s+$/g,'');
+  hideErr('add-code-err');
+  if(!code){showErr('add-code-err','Enter a code.');return;}
+  req('POST','/api/friends/by-code',{friend_code:code},function(d,err){
+    if(err||!d.ok){showErr('add-code-err',d.error||'Not found.');return;}
+    document.getElementById('add-by-code-inp').value='';
+    alert('Friend request sent!');
+  });
+}
+
+/* ── Device Collection (localStorage) ── */
+function getCollection(){
+  try{var c=localStorage.getItem('cg-collection');return c?parseJSON(c):[];}catch(e){return [];}
+}
+function saveCollection(arr){
+  try{localStorage.setItem('cg-collection',JSON.stringify(arr));}catch(e){}
+}
+function getActiveDevice(){
+  return store.g('cg-active-device')||'';
+}
+function setActiveDevice(tag){
+  if(tag){store.s('cg-active-device',tag);}else{store.d('cg-active-device');}
+  updateActiveDeviceLabel();
+  closeSubscreen('ss-devselect');
+}
+function updateActiveDeviceLabel(){
+  var lbl=document.getElementById('active-device-label');
+  var d=getActiveDevice();
+  if(lbl)lbl.textContent=d||'Not set';
+}
+function updateCollectionLabel(){
+  var c=getCollection();
+  var lbl=document.getElementById('collection-count-label');
+  if(lbl)lbl.textContent=c.length?c.length+' device'+(c.length===1?'':'s')+' owned':'Devices you own';
+}
+
+/* Collection UI */
+function openCollection(){
+  buildMakeSelect();
+  renderCollectionList();
+  openSubscreen('ss-collection');
+}
+function buildMakeSelect(){
+  var sel=document.getElementById('col-make');
+  sel.innerHTML='<option value="">Select Make&#8230;</option>';
+  var makes={};
+  for(var i=0;i<CATALOG.length;i++){if(!makes[CATALOG[i].make]){makes[CATALOG[i].make]=true;var o=document.createElement('option');o.value=CATALOG[i].make;o.textContent=CATALOG[i].make;sel.appendChild(o);}}
+  document.getElementById('col-model').style.display='none';
+  document.getElementById('col-version').style.display='none';
+}
+function onMakeChange(){
+  var make=document.getElementById('col-make').value;
+  var msel=document.getElementById('col-model');
+  msel.innerHTML='<option value="">Select Model&#8230;</option>';
+  if(!make){msel.style.display='none';document.getElementById('col-version').style.display='none';return;}
+  for(var i=0;i<CATALOG.length;i++){
+    if(CATALOG[i].make===make){
+      var o=document.createElement('option');o.value=CATALOG[i].model;o.textContent=CATALOG[i].model;msel.appendChild(o);
+    }
+  }
+  msel.style.display='block';
+  document.getElementById('col-version').style.display='none';
+}
+function onModelChange(){
+  var make=document.getElementById('col-make').value;
+  var model=document.getElementById('col-model').value;
+  var vsel=document.getElementById('col-version');
+  vsel.innerHTML='<option value="">Select Version&#8230;</option>';
+  if(!model){vsel.style.display='none';return;}
+  for(var i=0;i<CATALOG.length;i++){
+    if(CATALOG[i].make===make&&CATALOG[i].model===model){
+      for(var j=0;j<CATALOG[i].versions.length;j++){
+        var o=document.createElement('option');o.value=CATALOG[i].versions[j];o.textContent=CATALOG[i].versions[j];vsel.appendChild(o);
+      }
+      break;
+    }
+  }
+  vsel.style.display='block';
+}
+function addToCollection(){
+  var make=document.getElementById('col-make').value;
+  var model=document.getElementById('col-model').value;
+  var version=document.getElementById('col-version').value;
+  if(!make||!model||!version){alert('Select make, model, and version.');return;}
+  var tag=shortName(make,model,version);
+  var col=getCollection();
+  for(var i=0;i<col.length;i++){if(col[i]===tag){alert('Already in collection.');return;}}
+  col.push(tag);
+  saveCollection(col);
+  renderCollectionList();
+  updateCollectionLabel();
+}
+function removeFromCollection(tag){
+  var col=getCollection();
+  for(var i=0;i<col.length;i++){if(col[i]===tag){col.splice(i,1);break;}}
+  saveCollection(col);
+  if(getActiveDevice()===tag)setActiveDevice(null);
+  renderCollectionList();
+  updateCollectionLabel();
+  updateActiveDeviceLabel();
+}
+function renderCollectionList(){
+  var col=getCollection();
+  var box=document.getElementById('collection-list');
+  if(!col.length){box.innerHTML='<div style="padding:16px;font-size:13px;color:#aaa;text-align:center">No devices yet.</div>';return;}
+  var html='';
+  for(var i=0;i<col.length;i++){
+    var tag=col[i];
+    var active=getActiveDevice()===tag;
+    html+='<div class="col-row">'+
+      '<div class="col-lbl">'+esc(tag)+(active?' <span style="font-size:11px;color:#34a853">(active)</span>':'')+
+      '</div><div class="col-del"><button class="col-del-btn" onclick="removeFromCollection(\''+esc(tag)+'\')" title="Remove">&minus;</button></div></div>';
+  }
+  box.innerHTML=html;
+}
+
+/* Device select screen */
+function openDeviceSelect(){
+  var col=getCollection();
+  var active=getActiveDevice();
+  var box=document.getElementById('devselect-list');
+  if(!col.length){
+    box.innerHTML='<div style="padding:16px;font-size:13px;color:#aaa;text-align:center">Add devices to your Collection first.</div>';
+    openSubscreen('ss-devselect');return;
+  }
+  var html='';
+  var sel=document.createElement('select');
+  sel.className='dev-select';
+  sel.id='dev-pick';
+  var o0=document.createElement('option');o0.value='';o0.textContent='— None —';sel.appendChild(o0);
+  for(var i=0;i<col.length;i++){
+    var o=document.createElement('option');o.value=col[i];o.textContent=col[i];
+    if(col[i]===active)o.selected=true;
+    sel.appendChild(o);
+  }
+  box.innerHTML='';
+  box.appendChild(sel);
+  var btn=document.createElement('input');
+  btn.type='button';btn.className='fbtn';btn.style.marginTop='10px';btn.value='Set Posting Device';
+  btn.onclick=function(){
+    var v=document.getElementById('dev-pick').value;
+    setActiveDevice(v||null);
+    updateCollectionLabel();
+  };
+  box.appendChild(btn);
+  openSubscreen('ss-devselect');
+}
+
+/* ── Init ── */
+window.onload=function(){
+  if(S.token){
+    afterLogin();
+  } else {
+    renderSignedOut();
+  }
+};
+</script>
+</body>
+</html>
