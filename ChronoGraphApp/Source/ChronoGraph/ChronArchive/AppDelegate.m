@@ -73,7 +73,7 @@
         }
         /* iOS 7+ path: also set selectedImage to AlwaysOriginal. */
         if ([nav.tabBarItem respondsToSelector:@selector(setSelectedImage:)]) {
-            nav.tabBarItem.selectedImage = iconImg;
+            ((void(*)(id,SEL,id))objc_msgSend)(nav.tabBarItem, @selector(setSelectedImage:), iconImg);
         }
 
         [navControllers addObject:nav];
@@ -83,9 +83,14 @@
     tabs.viewControllers = navControllers;
     /* Do not set tabBar.tintColor — it reintroduces template/blue highlight behavior. */
     if ([tabs.tabBar respondsToSelector:@selector(setTranslucent:)])
-        tabs.tabBar.translucent = NO;
+        ((void(*)(id,SEL,BOOL))objc_msgSend)(tabs.tabBar, @selector(setTranslucent:), NO);
 
-    self.window.rootViewController = tabs;
+    if ([self.window respondsToSelector:@selector(setRootViewController:)]) {
+        self.window.rootViewController = tabs;
+    } else {
+        tabs.view.frame = self.window.bounds;
+        [self.window addSubview:tabs.view];
+    }
     [self.window makeKeyAndVisible];
     return YES;
 }

@@ -63,7 +63,7 @@
       font-size:16px; color:#1a1a1a; }
     .select-ctl { display:table-cell; vertical-align:middle; padding:8px 12px;
       text-align:right; }
-    #theme-select { -webkit-appearance:none; appearance:none;
+    #theme-select, #accent-select { -webkit-appearance:none; appearance:none;
       background:#f2f2f7; border:1px solid #c8c8cb;
       -webkit-border-radius:8px; border-radius:8px;
       padding:6px 10px; font-size:14px; color:#1a1a1a; outline:none;
@@ -79,21 +79,36 @@
       dark:  { bg:'#1a1a1a', group:'#2c2c2e', text:'#e8e8e8', sub:'#888', border:'#3a3a3c', header:'#888' },
       oled:  { bg:'#000',    group:'#111',    text:'#fff',    sub:'#666', border:'#2a2a2a', header:'#666' }
     };
+    function accentColorForName(name){
+      var colors={blue:'#8abdec',green:'#90e0ad',red:'#ff3b30',orange:'#ff9500',purple:'#5856d6',pink:'#ff2d55',teal:'#5ac8fa',gray:'#8e8e93'};
+      return colors[name]||colors.blue;
+    }
+    function accentName(){
+      try{return localStorage.getItem('cg-accent-color')||'blue';}catch(e){return 'blue';}
+    }
     function applyTheme(name){
       var t=THEMES[name]||THEMES.light;
+      var a=accentColorForName(accentName());
       var injectCSS=
         'html,body,#scroll,#hdr{background:'+t.bg+'!important}'
         +'.settings-group,.settings-select-row{background:'+t.group+'!important;border-color:'+t.border+'!important}'
         +'.settings-row{border-color:'+t.border+'!important}'
         +'.row-title,.select-label,#hdr-title{color:'+t.text+'!important}'
-        +'.row-subtitle,.settings-footer,#theme-select{color:'+t.sub+'!important}'
+        +'.row-subtitle,.settings-footer,#theme-select,#accent-select{color:'+t.sub+'!important}'
         +'.settings-header{color:'+t.header+'!important}'
-        +'#theme-select{background:'+t.bg+'!important;border-color:'+t.border+'!important}';
+        +'#theme-select,#accent-select{background:'+t.bg+'!important;border-color:'+t.border+'!important}'
+        +'#hdr{background:'+a+'!important;color:#fff!important}';
       var s=document.getElementById('cg-theme-style');
       if(s)s.innerHTML=injectCSS;
       var s2=document.getElementById('theme-style');
       if(s2)s2.innerHTML=injectCSS;
       try{localStorage.setItem('cg-theme',name);}catch(e){}
+    }
+    function applyAccentColor(name){
+      var allowed=['blue','green','red','orange','purple','pink','teal','gray'];
+      if(allowed.indexOf(name)===-1)name='blue';
+      try{localStorage.setItem('cg-accent-color',name);}catch(e){}
+      applyTheme(localStorage.getItem('cg-theme')||'light');
     }
     (function(){
       var saved='light';try{saved=localStorage.getItem('cg-theme')||'light';}catch(e){}
@@ -122,6 +137,21 @@
           <option value="light">Light</option>
           <option value="dark">Dark</option>
           <option value="oled">OLED Black</option>
+        </select>
+      </div>
+    </div>
+    <div class="settings-select-row">
+      <div class="select-label">Accent Color</div>
+      <div class="select-ctl">
+        <select id="accent-select" onchange="applyAccentColor(this.value)">
+          <option value="blue">Blue</option>
+          <option value="green">Green</option>
+          <option value="red">Red</option>
+          <option value="orange">Orange</option>
+          <option value="purple">Purple</option>
+          <option value="pink">Pink</option>
+          <option value="teal">Teal</option>
+          <option value="gray">Gray</option>
         </select>
       </div>
     </div>
@@ -271,6 +301,10 @@
   var saved='light';try{saved=localStorage.getItem('cg-theme')||'light';}catch(e){}
   var sel=document.getElementById('theme-select');
   if(sel)sel.value=saved;
+  var bubble='green';try{bubble=localStorage.getItem('cg-accent-color')||localStorage.getItem('cg-chat-bubble')||'green';}catch(e){}
+  var bub=document.getElementById('accent-select');
+  if(bub)bub.value=bubble;
+  window.onfocus = function(){ applyTheme(localStorage.getItem('cg-theme')||'light'); };
 })();
 </script>
 </body>

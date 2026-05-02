@@ -9,6 +9,7 @@
 # Override Xcode 4 path: XCODE4=/path/to/Xcode4.app bash build-armv6.sh
 
 set -e
+set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SRCDIR="$SCRIPT_DIR/../Source/ChronoGraph/ChronArchive"
@@ -50,7 +51,8 @@ for SRC in main.m AppDelegate.m ViewController.m; do
         -arch armv6 \
         -isysroot "$SDK" \
         -miphoneos-version-min=3.1 \
-        -fobjc-arc \
+        -fno-objc-arc \
+        -fobjc-runtime=ios-3.0 \
         -I"$SRCDIR" \
         -c "$SRCDIR/$SRC" -o "$OBJ"
     echo "  OK: $SRC"
@@ -63,6 +65,7 @@ arch -x86_64 "$CLANG" \
     -arch armv6 \
     -isysroot "$SDK" \
     -miphoneos-version-min=3.1 \
+    -fobjc-runtime=ios-3.0 \
     -framework UIKit \
     -framework Foundation \
     -framework CoreGraphics \
@@ -159,8 +162,15 @@ echo "  Wrote Info.plist (armv6, iOS 3.1)"
 # ── Step 4: Sign and package ──────────────────────────────────────────────────
 echo ""
 echo "[4/4] Ad-hoc signing and packaging..."
-xattr -cr "$APP_DIR" 2>/dev/null || true
-codesign -f -s - "$APP_DIR" 2>&1 | sed 's/^/  /'
+# Remove AppleDouble metadata files (._*) and clear xattrs before codesign.
+find "$OUTPUT_DIR/Payload" -name '._*' -type f -delete 2>/dev/null || true
+xattr -cr "$OUTPUT_DIR/Payload" 2>/dev/null || true
+
+if ! codesign -f -s - "$APP_DIR"; then
+    echo "ERROR: codesign failed for $APP_DIR"
+    echo "Hint: run 'xattr -cr $OUTPUT_DIR/Payload' and retry."
+    exit 1
+fi
 cd "$OUTPUT_DIR"
 zip -r ChronArchive-armv6.ipa Payload/ > /dev/null
 rm -rf Payload/ build/

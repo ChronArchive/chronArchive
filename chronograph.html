@@ -690,7 +690,7 @@ body { background:#eef1f6; }
 
 <script>
 /* ═══════════════════════ CONSTANTS ═══════════════════════ */
-var API = 'https://chat.chronarchive.com';
+var API = 'http://chat.chronarchive.com';
 
 /* ═══════════════════════ STATE ═══════════════════════ */
 var cgState = {
@@ -726,7 +726,7 @@ function avatarHtml(b64, name, size) {
   size = size || 40;
   var half = size / 2;
   if (b64) {
-    return '<img src="' + esc(b64) + '" style="width:' + size + 'px;height:' + size + 'px;border-radius:' + half + 'px;object-fit:cover;display:block">';
+    return '<span style="display:block;width:' + size + 'px;height:' + size + 'px;border-radius:' + half + 'px;overflow:hidden;background:#dfe5ee url(\'' + esc(b64) + '\') center center no-repeat;background-size:cover;"></span>';
   }
   var letter = (name || '?').charAt(0).toUpperCase();
   return '<span style="display:block;width:' + size + 'px;height:' + size + 'px;border-radius:' + half + 'px;background:#0055cc;color:#fff;font-size:' + Math.round(size * .42) + 'px;font-weight:700;text-align:center;line-height:' + size + 'px;">' + esc(letter) + '</span>';

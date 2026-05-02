@@ -304,6 +304,28 @@
   var bubble='green';try{bubble=localStorage.getItem('cg-accent-color')||localStorage.getItem('cg-chat-bubble')||'green';}catch(e){}
   var bub=document.getElementById('accent-select');
   if(bub)bub.value=bubble;
+  function legacyIOSMajor(){
+    var m=/OS\s(\d+)_/.exec(navigator.userAgent||'');
+    return m?parseInt(m[1],10):99;
+  }
+  function applyLegacyScrollFallback(){
+    if(legacyIOSMajor()>4)return;
+    document.documentElement.style.height='auto';
+    document.body.style.height='auto';
+    document.documentElement.style.overflow='auto';
+    document.body.style.overflow='auto';
+    var scroll=document.getElementById('scroll');
+    if(scroll){
+      scroll.style.position='relative';
+      scroll.style.top='0';
+      scroll.style.bottom='auto';
+      scroll.style.height='auto';
+      scroll.style.overflow='visible';
+      scroll.style.webkitOverflowScrolling='auto';
+      scroll.style.paddingTop='44px';
+    }
+  }
+  applyLegacyScrollFallback();
   window.onfocus = function(){ applyTheme(localStorage.getItem('cg-theme')||'light'); };
 })();
 </script>
