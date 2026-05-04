@@ -95,7 +95,7 @@ done
 echo "  Copied icons"
 
 # Launch images
-for LAUNCH in Default.png Default@2x.png Default-568h@2x.png Default-667h@2x.png Default-736h@3x.png; do
+for LAUNCH in Default.png Default@2x.png Default-568h@2x.png Default-667h@2x.png Default-736h@3x.png Default-812h@3x.png Default-844h@3x.png Default-852h@3x.png Default-874h@3x.png Default-896h@2x.png Default-896h@3x.png Default-912h@3x.png Default-926h@3x.png Default-932h@3x.png Default-956h@3x.png Default-960h@3x.png; do
     [[ -f "$SRCDIR/$LAUNCH" ]] && cp "$SRCDIR/$LAUNCH" "$APP_DIR/$LAUNCH"
 done
 echo "  Copied launch images"
@@ -121,9 +121,9 @@ cat > "$APP_DIR/Info.plist" << 'PLIST'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.9</string>
+    <string>1.0</string>
     <key>CFBundleVersion</key>
-    <string>9</string>
+    <string>10</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>MinimumOSVersion</key>
@@ -166,7 +166,10 @@ echo "[4/4] Ad-hoc signing and packaging..."
 find "$OUTPUT_DIR/Payload" -name '._*' -type f -delete 2>/dev/null || true
 xattr -cr "$OUTPUT_DIR/Payload" 2>/dev/null || true
 
-if ! codesign -f -s - "$APP_DIR"; then
+if command -v ldid &>/dev/null; then
+    ldid -S "$APP_DIR/ChronArchive"
+    echo "  ldid -S done"
+elif ! codesign -f -s - "$APP_DIR"; then
     echo "ERROR: codesign failed for $APP_DIR"
     echo "Hint: run 'xattr -cr $OUTPUT_DIR/Payload' and retry."
     exit 1

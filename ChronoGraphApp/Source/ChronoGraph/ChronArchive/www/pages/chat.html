@@ -4,7 +4,7 @@
 <head>
   <title>Chat | Chronograph</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <style id="cg-theme-style"></style>
   <style>
     * { margin:0; padding:0; -webkit-box-sizing:border-box; box-sizing:border-box; }
@@ -15,7 +15,9 @@
     .screen { position:absolute; top:0; left:0; right:0; bottom:0; background:#f2f2f7; display:none; }
     .screen.active { display:block; }
     /* Navigation bar — iOS 6 blue gradient */
-    .header { position:absolute; top:0; left:0; right:0; height:44px;
+    .header { position:absolute; top:0; left:0; right:0;
+      height:44px; height:calc(44px + env(safe-area-inset-top, 0px));
+      padding-top:env(safe-area-inset-top, 0px);
       background:-webkit-gradient(linear,left top,left bottom,from(#5d9de8),to(#2c69d0));
       background:-webkit-linear-gradient(top,#5d9de8 0%,#2c69d0 100%);
       background:linear-gradient(to bottom,#5d9de8 0%,#2c69d0 100%);
@@ -23,11 +25,11 @@
       -webkit-box-shadow:0 1px 3px rgba(0,0,0,0.25); box-shadow:0 1px 3px rgba(0,0,0,0.25);
       text-align:center; line-height:44px; font-size:17px; font-weight:bold; color:#fff;
       text-shadow:0 -1px 0 rgba(0,0,0,0.3); }
-    .hl { position:absolute; left:0; top:0; height:44px; line-height:44px; padding:0 14px; color:#fff; cursor:pointer; font-size:15px; -webkit-tap-highlight-color:transparent; text-shadow:0 -1px 0 rgba(0,0,0,0.2); }
+    .hl { position:absolute; left:0; top:0; top:env(safe-area-inset-top, 0px); height:44px; line-height:44px; padding:0 14px; color:#fff; cursor:pointer; font-size:15px; -webkit-tap-highlight-color:transparent; text-shadow:0 -1px 0 rgba(0,0,0,0.2); }
     /* Standard right text button */
-    .hr { position:absolute; right:0; top:0; height:44px; display:-webkit-flex; display:flex; -webkit-align-items:center; align-items:center; padding:0 14px; color:#fff; cursor:pointer; font-size:22px; -webkit-tap-highlight-color:transparent; text-shadow:0 -1px 0 rgba(0,0,0,0.2); }
-    .hr-text { position:absolute; right:0; top:0; height:44px; line-height:44px; padding:0 14px; color:#fff; cursor:pointer; font-size:15px; -webkit-tap-highlight-color:transparent; text-shadow:0 -1px 0 rgba(0,0,0,0.2); }
-    .sb { position:absolute; top:44px; left:0; right:0; bottom:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+    .hr { position:absolute; right:0; top:0; top:env(safe-area-inset-top, 0px); height:44px; display:-webkit-flex; display:flex; -webkit-align-items:center; align-items:center; padding:0 14px; color:#fff; cursor:pointer; font-size:22px; -webkit-tap-highlight-color:transparent; text-shadow:0 -1px 0 rgba(0,0,0,0.2); }
+    .hr-text { position:absolute; right:0; top:0; top:env(safe-area-inset-top, 0px); height:44px; line-height:44px; padding:0 14px; color:#fff; cursor:pointer; font-size:15px; -webkit-tap-highlight-color:transparent; text-shadow:0 -1px 0 rgba(0,0,0,0.2); }
+    .sb { position:absolute; top:44px; top:calc(44px + env(safe-area-inset-top, 0px)); left:0; right:0; bottom:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
     /* Auth */
     .auth-wrap { padding:48px 28px 28px; background:#f2f2f7; }
     .auth-logo { text-align:center; margin-bottom:32px; }
@@ -399,7 +401,30 @@ var S = {
   receiptInterval:null,
   upUserId:null, upFriendStatus:null, upDirection:null, upBlocked:false, upFromScreen:'users-screen'
 };
-function cgLog(kind,msg){try{if(window.console&&console.log)console.log('[CG]['+kind+'] '+msg);}catch(e){}}
+function cgLog(kind,msg){}
+
+function getSafeThemeName(){
+  var t='light';
+  try{ t=store.get('cg-theme')||'light'; }catch(e){}
+  t=String(t||'light').toLowerCase().replace(/^\s+|\s+$/g,'');
+  if(t!=='light'&&t!=='dark'&&t!=='oled'){
+    t='light';
+    try{store.set('cg-theme','light');}catch(e2){}
+  }
+  return t;
+}
+
+function getSafeAccentName(){
+  if(legacyIOSMajor()<=4) return 'blue';
+  var a='green';
+  try{ a=store.get('cg-accent-color')||store.get('cg-chat-bubble')||'green'; }catch(e){}
+  a=String(a||'green').toLowerCase().replace(/^\s+|\s+$/g,'');
+  if(a!=='green'&&a!=='blue'&&a!=='red'&&a!=='orange'&&a!=='purple'&&a!=='pink'&&a!=='teal'&&a!=='gray'){
+    a='green';
+    try{store.set('cg-accent-color','green');store.set('cg-chat-bubble','green');}catch(e2){}
+  }
+  return a;
+}
 
 function req(method, path, body, cb, timeout) {
   var x;
@@ -449,6 +474,7 @@ function legacyViewportHeight(){
   return window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight || 0;
 }
 function refreshLegacyScrollBox(box, topInset, bottomInset){
+  if(window.__cgNativeLegacyScroll)return;
   if(legacyIOSMajor()>4)return;
   if(typeof box==='string') box=document.getElementById(box);
   if(!box)return;
@@ -466,6 +492,7 @@ function refreshLegacyScrollBox(box, topInset, bottomInset){
   box.style.overflowY='scroll';
 }
 function queueLegacyScrollRefresh(activeId){
+  if(window.__cgNativeLegacyScroll)return;
   if(legacyIOSMajor()>4)return;
   function run(){
     var id=activeId;
@@ -625,7 +652,7 @@ function doChangePassword(){
 function setBubbleTheme(theme){
   if(legacyIOSMajor()<=4) theme='blue';
   if(theme!=='green'&&theme!=='blue')theme='green';
-  try{store.set('cg-accent-color',theme);}catch(e){}
+  try{store.set('cg-accent-color',theme);store.set('cg-chat-bubble',theme);}catch(e){}
   applyBubbleTheme(theme);
 }
 
@@ -638,6 +665,26 @@ function applyBubbleTheme(theme){
   if(!body)return;
   body.className = trimSpaces(body.className.replace(/\bbubble-theme-(green|blue)\b/g,'').replace(/\s+/g,' '));
   body.className = trimSpaces(body.className + ' bubble-theme-' + theme);
+  forceVisibleBubbleStyles();
+}
+
+function forceVisibleBubbleStyles(){
+  if(legacyIOSMajor()<=4) return;
+  var accentMap={blue:'#8abdec',green:'#90e0ad',red:'#ff3b30',orange:'#ff9500',purple:'#5856d6',pink:'#ff2d55',teal:'#5ac8fa',gray:'#8e8e93'};
+  var accent=accentMap[getSafeAccentName()]||accentMap.green;
+  var out=document.querySelectorAll?document.querySelectorAll('#thread-body .msg-out .msg-bubble'):[];
+  var i;
+  for(i=0;i<out.length;i++){
+    out[i].style.background=accent;
+    out[i].style.border='1px solid #5f8ea3';
+    out[i].style.color='#fff';
+  }
+  var inn=document.querySelectorAll?document.querySelectorAll('#thread-body .msg-in .msg-bubble'):[];
+  for(i=0;i<inn.length;i++){
+    inn[i].style.background='#e7e7ea';
+    inn[i].style.border='1px solid #c8c8c8';
+    inn[i].style.color='#1a1a1a';
+  }
 }
 
 function legacyBubbleStyleAttr(mine){
@@ -656,9 +703,13 @@ function applyLegacyComposerTheme(){
   var btn=document.getElementById('send-btn');
   if(btn){
     btn.style.background='#8abdec';
+    btn.style.backgroundColor='#8abdec';
     btn.style.backgroundImage='none';
     btn.style.border='1px solid #5a92c9';
+    btn.style.borderStyle='solid';
+    btn.style.borderColor='#5a92c9';
     btn.style.color='#fff';
+    btn.style.opacity='1';
     btn.style.webkitBoxShadow='0 1px 2px rgba(63,112,211,0.18)';
     btn.style.boxShadow='0 1px 2px rgba(63,112,211,0.18)';
   }
@@ -804,9 +855,17 @@ function openThread(uid,uname,avb64){
   document.getElementById('thread-body').innerHTML='<div class="loading">Loading\u2026</div>';
   document.getElementById('msg-input').value='';
   show('thread-screen');
+  enforceThreadComposerPin();
   req('GET','/api/messages?with='+uid+'&after_id=0',null,function(d){
     document.getElementById('thread-body').innerHTML='';
-    if(d&&d.messages&&d.messages.length){renderMsgs(d.messages);S.lastMsgId=d.messages[d.messages.length-1].id;scrollBot();}
+    if(d&&d.messages&&d.messages.length){
+      renderMsgs(d.messages);
+      S.lastMsgId=d.messages[d.messages.length-1].id;
+      scrollBot();
+      setTimeout(scrollBot,0);
+      setTimeout(scrollBot,120);
+      setTimeout(scrollBot,320);
+    }
     startPoll();startReceiptPoll();
     queueLegacyScrollRefresh('thread-screen');
   });
@@ -828,6 +887,8 @@ function renderMsgs(msgs){
     if(mine)addLongPress(div);
     body.appendChild(div);
   }
+  forceVisibleBubbleStyles();
+  enforceThreadComposerPin();
   queueLegacyScrollRefresh('thread-screen');
 }
 function addLongPress(row){
@@ -850,7 +911,62 @@ function deleteMsg(mid,btn){
     queueLegacyScrollRefresh('thread-screen');
   });
 }
-function scrollBot(){var b=document.getElementById('thread-body');b.scrollTop=b.scrollHeight+9999;}
+function usingNativeLegacyDocScroll(){
+  return !!window.__cgNativeLegacyScroll && legacyIOSMajor()<=4;
+}
+function enforceThreadComposerPin(){
+  if(!usingNativeLegacyDocScroll()) return;
+  var hdr=document.querySelector?document.querySelector('#thread-screen .header'):null;
+  if(hdr){
+    hdr.style.position='absolute';
+    hdr.style.left='0';
+    hdr.style.right='0';
+    hdr.style.zIndex='100';
+  }
+  var ib=document.querySelector?document.querySelector('#thread-screen .ibar'):null;
+  if(ib){
+    ib.style.position='absolute';
+    ib.style.left='0';
+    ib.style.right='0';
+    ib.style.bottom='6px';
+    ib.style.height='56px';
+    ib.style.paddingBottom='6px';
+    ib.style.zIndex='101';
+  }
+  var body=document.getElementById('thread-body');
+  if(body){
+    body.style.paddingTop='44px';
+    body.style.paddingBottom='68px';
+    body.style.overflow='visible';
+    body.style.overflowY='visible';
+  }
+  updateLegacyThreadChromePosition();
+}
+function updateLegacyThreadChromePosition(){
+  if(!usingNativeLegacyDocScroll()) return;
+  var y=window.pageYOffset||document.documentElement.scrollTop||document.body.scrollTop||0;
+  var vh=window.innerHeight||document.documentElement.clientHeight||document.body.clientHeight||431;
+  var hdr=document.querySelector?document.querySelector('#thread-screen .header'):null;
+  var ib=document.querySelector?document.querySelector('#thread-screen .ibar'):null;
+  if(hdr) hdr.style.top=y+'px';
+  if(ib) ib.style.top=(y+vh-62)+'px';
+}
+function scrollBot(){
+  var b=document.getElementById('thread-body');
+  if(usingNativeLegacyDocScroll()){
+    enforceThreadComposerPin();
+    var de=document.documentElement, db=document.body;
+    var sh=Math.max(de?de.scrollHeight:0, db?db.scrollHeight:0);
+    var wh=window.innerHeight || (de?de.clientHeight:0) || (db?db.clientHeight:0) || 0;
+    var max=sh-wh;
+    if(max<0)max=0;
+    if(typeof window.scrollTo==='function')window.scrollTo(0,max);
+    if(de)de.scrollTop=max;
+    if(db)db.scrollTop=max;
+    return;
+  }
+  if(b)b.scrollTop=b.scrollHeight+9999;
+}
 function sendMsg(){
   var input=document.getElementById('msg-input');
   var text=input.value.replace(/^\s+|\s+$/g,'');
@@ -878,6 +994,7 @@ function sendMsg(){
           nodes[i].innerHTML='<div class="msg-bubble"'+legacyBubbleStyleAttr(true)+'>'+escH(d.message.text)+'</div>'+
             '<div class="msg-meta">'+fmtTime(d.message.created_at)+'<span class="msg-sent" id="r'+d.message.id+'"> \u2713</span></div>';
           if(d.message.id>S.lastMsgId)S.lastMsgId=d.message.id;
+          forceVisibleBubbleStyles();
         } else {
           cgLog('THREAD','send failed');
           nodes[i].innerHTML='<div class="msg-bubble" style="background:#5a2020;">'+escH(text)+'</div>'+
@@ -895,6 +1012,10 @@ function sendMsg(){
   if(inp.addEventListener)inp.addEventListener('keydown',kd,false);
   else if(inp.attachEvent)inp.attachEvent('onkeydown',kd);
 })();
+if(window.addEventListener){
+  window.addEventListener('scroll',updateLegacyThreadChromePosition,false);
+  window.addEventListener('resize',updateLegacyThreadChromePosition,false);
+}
 
 /* LONG POLL */
 function startPoll(){cgLog('POLL','start threadUid='+(S.threadUid||0));if(S.polling)return;S.polling=true;doPoll();}
@@ -1091,7 +1212,7 @@ function saveAdminFilter(){
     dark: {bg:'#1a1a1a',grp:'#2c2c2e',brd:'#3a3a3c',text:'#e8e8e8'},
     oled: {bg:'#000',   grp:'#111',   brd:'#2a2a2a',text:'#fff'}
   };
-  var tName;try{tName=localStorage.getItem('cg-theme');}catch(e){}
+  var tName=getSafeThemeName();
   if(legacyIOSMajor()<=4) tName='light';
   var t=THEMES[tName||'light']||THEMES.light;
   var s=document.getElementById('cg-theme-style');
@@ -1110,7 +1231,7 @@ function saveAdminFilter(){
     var accentMap = {
       blue:'#8abdec',green:'#90e0ad',red:'#ff3b30',orange:'#ff9500',purple:'#5856d6',pink:'#ff2d55',teal:'#5ac8fa',gray:'#8e8e93'
     };
-    var accentName = (legacyIOSMajor()<=4)?'blue':(store.get('cg-accent-color')||store.get('cg-chat-bubble')||'green');
+    var accentName = getSafeAccentName();
     accent = accentMap[accentName]||accentMap.blue;
   }catch(e){}
   var isDark = (tName==='dark'||tName==='oled');
@@ -1130,18 +1251,35 @@ function saveAdminFilter(){
     +'.send-btn{background:'+accentBg+'!important;border-color:'+accentBorder+'!important}'
     +bubbleRule;
   var bName='green';
-  try{bName=(legacyIOSMajor()<=4)?'blue':(store.get('cg-accent-color')||store.get('cg-chat-bubble')||'green');}catch(e){}
+  try{bName=getSafeAccentName();}catch(e){}
   applyBubbleTheme(bName);
 })();
-window.onfocus = function(){ if(typeof applyBubbleTheme==='function'){ var bName='green'; try{bName=(legacyIOSMajor()<=4)?'blue':(store.get('cg-accent-color')||store.get('cg-chat-bubble')||'green');}catch(e){} applyBubbleTheme(bName);} };
+window.onfocus = function(){ if(typeof applyBubbleTheme==='function'){ var bName='green'; try{bName=getSafeAccentName();}catch(e){} applyBubbleTheme(bName);} };
 
 (function(){
   var t=store.get('cg_t')||store.get('hm_t'),u=store.get('cg_u')||store.get('hm_u'),n=store.get('cg_n')||store.get('hm_n'),a=store.get('cg_a');
   if(t&&u&&n){
     S.token=t;S.userId=parseInt(u,10);S.username=n;S.isAdmin=(a==='1');
-    if(!store.get('cg_t')){store.set('cg_t',t);store.set('cg_u',u);store.set('cg_n',n);}    
+    if(!store.get('cg_t')){store.set('cg_t',t);store.set('cg_u',u);store.set('cg_n',n);}
     updateChatPill();
+    /* Guard: prevent rescue block in ViewController.m from calling goConvos()
+       while this /api/me XHR is still in flight (causes double-load after force-quit). */
+    window.__cgBootStarted = 1;
+    /* Watchdog: if /api/me never calls back (XHR stalls on cold restart),
+       show auth screen after 12 s so the app isn't stuck blank. */
+    var _bootWatchdog = setTimeout(function(){
+      if(!window.__cgBootDone){
+        window.__cgBootStarted=0;
+        store.del('cg_t');store.del('cg_u');store.del('cg_n');store.del('cg_a');store.del('cg_av');
+        store.del('hm_t');store.del('hm_u');store.del('hm_n');
+        try{updateChatPill();}catch(e){}
+        show('auth-screen');
+      }
+    }, 12000);
     req('GET','/api/me',null,function(d,err){
+      clearTimeout(_bootWatchdog);
+      window.__cgBootDone = 1;
+      window.__cgBootStarted = 0;
       if(d&&d.ok){S.isAdmin=!!(d.is_admin);store.set('cg_a',S.isAdmin?'1':'0');if(d.avatar_b64){store.set('cg_av',d.avatar_b64);store.set('hm_av',d.avatar_b64);}updateChatPill();goConvos();}
       else{store.del('cg_t');store.del('cg_u');store.del('cg_n');store.del('cg_a');store.del('cg_av');updateChatPill();show('auth-screen');}
     });
@@ -1170,6 +1308,7 @@ function legacyIOSMajor(){
   return m?parseInt(m[1],10):99;
 }
 function applyLegacyScrollFallback(){
+  if(window.__cgNativeLegacyScroll)return;
   if(legacyIOSMajor()>4)return;
   cgLog('LEGACY','applyLegacyScrollFallback ios='+legacyIOSMajor());
   var style=document.getElementById('__cg-legacy-scroll-style');

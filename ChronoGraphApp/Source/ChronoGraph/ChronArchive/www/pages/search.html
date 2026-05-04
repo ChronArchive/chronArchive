@@ -4,7 +4,7 @@
 <head>
   <title>Search | Chronograph</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <style id="cg-theme-style"></style>
   <style>
     * { margin:0; padding:0; -webkit-box-sizing:border-box; box-sizing:border-box; }
@@ -18,7 +18,7 @@
       -webkit-flex-direction:column; flex-direction:column; overflow:hidden; }
     /* ── Search bar ── */
     #searchbar { -webkit-flex-shrink:0; flex-shrink:0;
-      padding:8px 10px; background:#f0f0f0;
+      padding-top:calc(8px + env(safe-area-inset-top, 0px)); padding-right:10px; padding-bottom:8px; padding-left:10px; background:#f0f0f0;
       border-bottom:1px solid #c0c0c0;
       -webkit-box-shadow:0 1px 3px rgba(0,0,0,0.1); box-shadow:0 1px 3px rgba(0,0,0,0.1); }
     #sb-inner { display:-webkit-box; display:-webkit-flex; display:flex;
@@ -195,6 +195,7 @@ function legacyViewportHeight(){
   return window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight || 0;
 }
 function refreshLegacyScrollBox(){
+  if(window.__cgNativeLegacyScroll)return;
   if(legacyIOSMajor()>4)return;
   var rw=document.getElementById('results-wrap');
   if(!rw)return;
@@ -213,6 +214,7 @@ function refreshLegacyScrollBox(){
   rw.style.overflowY='scroll';
 }
 function queueLegacyScrollRefresh(){
+  if(window.__cgNativeLegacyScroll)return;
   if(legacyIOSMajor()>4)return;
   setTimeout(refreshLegacyScrollBox,0);
   setTimeout(refreshLegacyScrollBox,120);
@@ -591,6 +593,7 @@ function legacyIOSMajor(){
   return m?parseInt(m[1],10):99;
 }
 function applyLegacyScrollFallback(){
+  if(window.__cgNativeLegacyScroll)return;
   if(legacyIOSMajor()>4)return;
   cgLog('LEGACY','applyLegacyScrollFallback ios='+legacyIOSMajor());
   var style=document.getElementById('__cg-legacy-scroll-style');

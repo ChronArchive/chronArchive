@@ -4,7 +4,7 @@
 <head>
   <title>Account | Chronograph</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <style id="cg-theme-style"></style>
   <style>
     * { margin:0; padding:0; -webkit-box-sizing:border-box; box-sizing:border-box; }
@@ -12,7 +12,9 @@
       font-family:-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif;
       -webkit-text-size-adjust:none; color:#1a1a1a; font-size:15px; }
     /* ── Nav bar ── */
-    #hdr { position:fixed; top:0; left:0; right:0; z-index:100; height:44px;
+    #hdr { position:fixed; top:0; left:0; right:0; z-index:100;
+      height:44px; height:calc(44px + env(safe-area-inset-top, 0px));
+      padding-top:env(safe-area-inset-top, 0px);
       background:-webkit-gradient(linear,left top,left bottom,from(#f0f0f0),to(#d8d8d8));
       background:-webkit-linear-gradient(top,#f0f0f0 0%,#d8d8d8 100%);
       background:linear-gradient(to bottom,#f0f0f0 0%,#d8d8d8 100%);
@@ -21,10 +23,10 @@
       display:-webkit-box; display:-webkit-flex; display:flex;
       -webkit-box-align:center; -webkit-align-items:center; align-items:center; }
     #hdr-title { font-size:17px; font-weight:bold; color:#1a1a1a;
-      position:absolute; left:0; right:0; top:0; height:44px;
+      position:absolute; left:0; right:0; top:env(safe-area-inset-top, 0px); height:44px;
       line-height:44px; text-align:center; pointer-events:none; }
     /* ── Scroll ── */
-    #scroll { position:fixed; top:44px; left:0; right:0; bottom:0;
+    #scroll { position:fixed; top:44px; top:calc(44px + env(safe-area-inset-top, 0px)); left:0; right:0; bottom:0;
       overflow-y:scroll; -webkit-overflow-scrolling:touch; background:#f2f2f7; }
     /* ── iOS Settings style ── */
     .s-section { margin:18px 0 0; }
@@ -385,7 +387,7 @@
   </div>
 
 <script type="text/javascript">
-var API = 'https://chat.chronarchive.com';
+var API = 'http://chat.chronarchive.com';
 var _mem = {};
 var store = {
   g:function(k){try{return localStorage.getItem(k);}catch(e){return _mem[k]||null;}},
@@ -393,6 +395,31 @@ var store = {
   d:function(k){try{localStorage.removeItem(k);}catch(e){delete _mem[k];}}
 };
 var parseJSON = (window.JSON&&JSON.parse)?function(s){return JSON.parse(s);}:function(s){return eval('('+s+')');};
+function stringifyJSON(v){
+  if(window.JSON&&JSON.stringify) return JSON.stringify(v);
+  var escMap={'\\':'\\\\','"':'\\"','\b':'\\b','\f':'\\f','\n':'\\n','\r':'\\r','\t':'\\t'};
+  function escStr(s){return '"'+(s+'').replace(/[\\"\b\f\n\r\t]/g,function(c){return escMap[c]||c;})+'"';}
+  function ser(x){
+    if(x===null) return 'null';
+    var t=typeof x;
+    if(t==='string') return escStr(x);
+    if(t==='number') return isFinite(x)?String(x):'null';
+    if(t==='boolean') return x?'true':'false';
+    if(t==='undefined'||t==='function') return 'null';
+    if(Object.prototype.toString.call(x)==='[object Array]'){
+      for(var i=0,a=[];i<x.length;i++) a.push(ser(x[i]));
+      return '['+a.join(',')+']';
+    }
+    var out=[];
+    for(var k in x){
+      if(!x.hasOwnProperty(k)) continue;
+      if(typeof x[k]==='undefined' || typeof x[k]==='function') continue;
+      out.push(escStr(k)+':'+ser(x[k]));
+    }
+    return '{'+out.join(',')+'}';
+  }
+  return ser(v);
+}
 
 var S = {
   token:null, uid:null, uname:null, isAdmin:false, av:'',
@@ -432,20 +459,66 @@ var CATALOG = [
 ];
 
 function shortName(make, model, version) { return model + ' ' + version; }
+function cgLog(kind,msg){try{if(window.console&&console.log)console.log('[CG]['+kind+'] '+msg);}catch(e){}}
+function legacyViewportHeight(){
+  return window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight || 0;
+}
+function refreshLegacyScrollBox(box, topInset){
+  if(window.__cgNativeLegacyScroll)return;
+  if(legacyIOSMajor()>4)return;
+  if(typeof box==='string') box=document.getElementById(box);
+  if(!box)return;
+  var viewport=legacyViewportHeight();
+  var top=topInset||0;
+  var height=viewport-top;
+  if(height<44) height=44;
+  box.style.top=top+'px';
+  box.style.bottom='auto';
+  box.style.height=height+'px';
+  box.style.minHeight='0';
+  box.style.overflowY='hidden';
+  box.offsetHeight;
+  box.style.overflowY='scroll';
+}
+function queueLegacyScrollRefresh(){
+  if(window.__cgNativeLegacyScroll)return;
+  if(legacyIOSMajor()>4)return;
+  function run(){
+    refreshLegacyScrollBox('scroll',44);
+    var subs=document.getElementsByClassName?document.getElementsByClassName('sub-body'):[];
+    for(var i=0;i<subs.length;i++) refreshLegacyScrollBox(subs[i],44);
+  }
+  setTimeout(run,0);
+  setTimeout(run,120);
+}
 
 function esc(s){var d=document.createElement('div');d.appendChild(document.createTextNode(s||''));return d.innerHTML;}
 
 function req(m,path,body,cb){
   var x;try{x=new XMLHttpRequest();}catch(e){try{x=new ActiveXObject('Microsoft.XMLHTTP');}catch(e2){return;}}
-  x.open(m,API+path,true);
-  x.setRequestHeader('Content-Type','application/json');
-  if(S.token) x.setRequestHeader('X-CG-Token',S.token);
+  try{x.open(m,API+path,true);}catch(eopen){cgLog('OPEN_FAIL',m+' '+path+' err='+(eopen&&eopen.message?eopen.message:eopen));if(cb)cb({ok:false,error:'Network error'},'Network error');return;}
+  x.timeout=15000;
+  if(body){try{x.setRequestHeader('Content-Type','application/json');}catch(eh1){}}
+  if(S.token){try{x.setRequestHeader('X-CG-Token',S.token);}catch(eh2){}}
   x.onreadystatechange=function(){
     if(x.readyState!==4)return;
+    cgLog('DONE',m+' '+path+' status='+x.status+' rs='+x.readyState+' len='+(x.responseText||'').length);
+    if(x.status===0){
+      if(x.responseText){
+        var d0;try{d0=parseJSON(x.responseText);}catch(e0){d0=null;}
+        if(d0&&cb){cgLog('STATUS0_WITH_BODY',m+' '+path+' ok='+(d0.ok?1:0)+' err='+(d0.error||''));cb(d0,d0.ok?null:(d0.error||'Error'));return;}
+      }
+      cgLog('FAIL',m+' '+path+' reason=status0 snippet='+(x.responseText||'').substring(0,180));
+      if(cb)cb({ok:false,error:'Network error'},'Network error');
+      return;
+    }
     var d;try{d=parseJSON(x.responseText);}catch(e){d={ok:false,error:'Bad response'};}
+    if(!d||!d.ok||x.status>=400){cgLog('API_ERR',m+' '+path+' status='+x.status+' err='+((d&&d.error)||'')+' snippet='+(x.responseText||'').substring(0,180));}
     if(cb)cb(d,x.status>=400?(d.error||'Error'):null);
   };
-  x.send(body?JSON.stringify(body):null);
+  x.onerror=function(){cgLog('ONERROR',m+' '+path+' status='+x.status+' rs='+x.readyState);if(cb)cb({ok:false,error:'Network error'},'Network error');};
+  x.ontimeout=function(){cgLog('TIMEOUT',m+' '+path+' timeout='+x.timeout);if(cb)cb({ok:false,error:'Request timed out'},'Request timed out');};
+  try{x.send(body?stringifyJSON(body):null);}catch(esend){cgLog('SEND_FAIL',m+' '+path+' err='+(esend&&esend.message?esend.message:esend));if(cb)cb({ok:false,error:'Network error'},'Network error');}
 }
 
 function resizeImg(data,max,cb){
@@ -467,6 +540,7 @@ function resizeImg(data,max,cb){
 
 function mkAv(b64,name,sz){
   sz=sz||38;
+  if(legacyIOSMajor()<=4 && b64 && b64.length>600000) b64='';
   if(b64)return '<img src="'+esc(b64)+'" style="width:'+sz+'px;height:'+sz+'px;display:block;-webkit-border-radius:'+(sz/2)+'px;border-radius:'+(sz/2)+'px;" alt="">';
   return esc((name||'?').charAt(0).toUpperCase());
 }
@@ -477,6 +551,7 @@ function accentColorForName(name){
   return colors[name]||colors.blue;
 }
 function accentName(){
+  if(legacyIOSMajor()<=4) return 'blue';
   try{return store.g('cg-accent-color')||store.g('cg-chat-bubble')||'blue';}catch(e){return 'blue';}
 }
 function applyTheme(){
@@ -485,7 +560,9 @@ function applyTheme(){
     dark: {bg:'#1a1a1a',grp:'#2c2c2e',text:'#e8e8e8',sub:'#888', brd:'#3a3a3c',hdr:'#888'},
     oled: {bg:'#000',   grp:'#111',   text:'#fff',   sub:'#666', brd:'#2a2a2a',hdr:'#666'}
   };
-  var t=THEMES[store.g('cg-theme')||'light']||THEMES.light;
+  var tName='light';
+  if(legacyIOSMajor()>4){ try{ tName=store.g('cg-theme')||'light'; }catch(e){} }
+  var t=THEMES[tName]||THEMES.light;
   var a=accentColorForName(accentName());
   var s=document.getElementById('cg-theme-style');
   if(s)s.innerHTML=
@@ -504,10 +581,11 @@ function applyTheme(){
 
 /* ── UI state ── */
 function closeSubscreen(id){document.getElementById(id).className='subscreen';}
-function openSubscreen(id){document.getElementById(id).className='subscreen open';}
+function openSubscreen(id){document.getElementById(id).className='subscreen open';queueLegacyScrollRefresh();}
 
 /* ── Auth ── */
 function setAuthMode(m){
+  cgLog('UI','setAuthMode from='+S.authMode+' to='+m);
   S.authMode=m;
   document.getElementById('at-login').className='auth-tab'+(m==='login'?' on':'');
   document.getElementById('at-register').className='auth-tab'+(m==='register'?' on':'');
@@ -521,6 +599,7 @@ function hideErr(id){var e=document.getElementById(id);if(e)e.style.display='non
 function doAuth(){
   var user=(document.getElementById('af-user').value||'').replace(/^\s+|\s+$/g,'');
   var pass=document.getElementById('af-pass').value||'';
+  cgLog('AUTH','submit mode='+S.authMode+' user='+user);
   hideErr('af-err');
   if(!user||!pass){showErr('af-err','Fill in all fields.');return;}
   if(S.authMode==='register'){
@@ -532,6 +611,7 @@ function doAuth(){
   req('POST','/api/'+(S.authMode==='login'?'login':'register'),{username:user,password:pass},function(d,err){
     btn.disabled=false;
     if(err||!d.ok){showErr('af-err',d.error||'Authentication failed.');return;}
+    cgLog('AUTH','success mode='+S.authMode+' uid='+(d.user_id||0));
     store.s('cg_t',d.token);store.s('cg_u',d.user_id+'');store.s('cg_n',d.username);
     store.s('hm_t',d.token);store.s('hm_u',d.user_id+'');store.s('hm_n',d.username);
     if(d.avatar_b64){store.s('cg_av',d.avatar_b64);store.s('hm_av',d.avatar_b64);}
@@ -541,8 +621,10 @@ function doAuth(){
 }
 
 function afterLogin(){
+  cgLog('AUTH','afterLogin /api/me');
   req('GET','/api/me',null,function(d){
     if(!d.ok){doSignOut();return;}
+    cgLog('AUTH','verified uid='+(d.id||0)+' uname='+(d.username||''));
     S.uid=d.id;S.uname=d.username;S.av=d.avatar_b64||'';
     S.isPrivate=!!d.is_private;S.friendCode=d.friend_code||'';S.isAdmin=!!d.is_admin;
     store.s('cg_n',d.username);store.s('cg_av',S.av);
@@ -552,6 +634,7 @@ function afterLogin(){
 }
 
 function doSignOut(){
+  cgLog('AUTH','logout');
   req('POST','/api/logout',null,function(){});
   store.d('cg_t');store.d('cg_u');store.d('cg_n');store.d('cg_av');
   store.d('hm_t');store.d('hm_u');store.d('hm_n');store.d('hm_av');
@@ -560,6 +643,7 @@ function doSignOut(){
 }
 
 function renderSignedIn(){
+  cgLog('VIEW','renderSignedIn uid='+(S.uid||0)+' uname='+(S.uname||''));
   document.getElementById('view-signedout').style.display='none';
   document.getElementById('view-signedin').style.display='block';
   var av=document.getElementById('pc-av');
@@ -587,16 +671,22 @@ function renderSignedIn(){
     S.pendingCount=pending;
     var bv=document.getElementById('friends-badge-val');
     if(bv)bv.textContent=pending?pending+' pending':'';
+    cgLog('FRIENDS','pending_count='+pending);
+    queueLegacyScrollRefresh();
   });
+  queueLegacyScrollRefresh();
 }
 
 function renderSignedOut(){
+  cgLog('VIEW','renderSignedOut');
   document.getElementById('view-signedin').style.display='none';
   document.getElementById('view-signedout').style.display='block';
+  queueLegacyScrollRefresh();
 }
 
 /* ── Edit Profile ── */
 function openEditProfile(){
+  cgLog('UI','openEditProfile');
   S.avData=null;
   document.getElementById('ep-uname').textContent=S.uname||'';
   document.getElementById('ep-av').innerHTML=mkAv(S.av,S.uname,72);
@@ -607,18 +697,39 @@ function openEditProfile(){
   });
   openSubscreen('ss-edit');
 }
-function pickAvatar(){document.getElementById('ep-av-inp').click();}
+function pickAvatar(){
+  var i=document.getElementById('ep-av-inp');
+  if(!i)return;
+  if(window.__cgNativeImagePicker){
+    try{window.location='cgpick://avatar';return;}catch(e){}
+  }
+  if(legacyIOSMajor()<=4){try{i.focus();}catch(e){}}
+  if(i.click)i.click();
+}
 (function(){
   var inp=document.getElementById('ep-av-inp');
+  function applyAvatarData(data){
+    resizeImg(data,256,function(out){
+      S.avData=out;
+      document.getElementById('ep-av').innerHTML=mkAv(out,S.uname,72);
+      hideErr('ep-err');
+    });
+  }
+  window.__cgNativeAvatarPicked=function(data){
+    if(!data)return;
+    applyAvatarData(data);
+    cgLog('PROFILE','nativeAvatarPicked len='+data.length);
+  };
   function onch(){
     var f=inp.files&&inp.files[0];if(!f)return;
     if(f.size>1024*1024){alert('Avatar must be under 1 MB.');return;}
+    if(typeof FileReader==='undefined'){
+      showErr('ep-err','This iOS version cannot read web uploads. Tap Change Photo to use native picker.');
+      return;
+    }
     var r=new FileReader();
     r.onload=function(e){
-      resizeImg(e.target.result,256,function(data){
-        S.avData=data;
-        document.getElementById('ep-av').innerHTML=mkAv(data,S.uname,72);
-      });
+      applyAvatarData(e.target.result);
     };
     r.readAsDataURL(f);
   }
@@ -626,6 +737,7 @@ function pickAvatar(){document.getElementById('ep-av-inp').click();}
   else if(inp.attachEvent)inp.attachEvent('onchange',onch);
 })();
 function saveProfile(){
+  cgLog('PROFILE','save start hasAvatar='+(S.avData?1:0));
   hideErr('ep-err');
   var bio=(document.getElementById('ep-bio').value||'').replace(/^\s+|\s+$/g,'');
   var body={bio:bio};
@@ -634,16 +746,19 @@ function saveProfile(){
   req('PUT','/api/me',body,function(d,err){
     btn.innerHTML='Save';
     if(err){showErr('ep-err',d.error||'Save failed.');return;}
+    cgLog('PROFILE','save success');
     if(S.avData){S.av=S.avData;store.s('cg_av',S.av);S.avData=null;}
     document.getElementById('pc-av').innerHTML=mkAv(S.av,S.uname,72);
     document.getElementById('pc-bio').textContent=bio;
     closeSubscreen('ss-edit');
+    queueLegacyScrollRefresh();
   });
 }
 
 /* ── Privacy ── */
 function savePrivacy(){
   var v=document.getElementById('priv-toggle').checked;
+  cgLog('PRIVACY','set is_private='+(v?1:0));
   S.isPrivate=v;
   req('PUT','/api/me',{is_private:v},function(d){
     if(d.ok){
@@ -654,6 +769,7 @@ function savePrivacy(){
 
 /* ── Change Password ── */
 function openChangePw(){
+  cgLog('UI','openChangePassword');
   document.getElementById('pw-old').value='';
   document.getElementById('pw-new').value='';
   document.getElementById('pw-conf').value='';
@@ -668,8 +784,10 @@ function doChangePw(){
   if(!o||!n){showErr('pw-err','Fill in all fields.');return;}
   if(n!==c){showErr('pw-err','Passwords do not match.');return;}
   if(n.length<6){showErr('pw-err','Password must be at least 6 chars.');return;}
+  cgLog('AUTH','changePassword submit');
   req('POST','/api/me/password',{old_password:o,new_password:n},function(d,err){
     if(err||!d.ok){showErr('pw-err',d.error||'Failed.');return;}
+    cgLog('AUTH','changePassword success');
     closeSubscreen('ss-changepw');
     alert('Password updated.');
   });
@@ -678,12 +796,14 @@ function doChangePw(){
 /* ── Friends ── */
 var _userSearchTimer=null;
 function openFriends(){
+  cgLog('UI','openFriends');
   document.getElementById('friend-search-inp').value='';
   document.getElementById('user-search-results').innerHTML='';
   openSubscreen('ss-friends');
   loadFriendsList();
 }
 function loadFriendsList(){
+  cgLog('FRIENDS','load list');
   var body=document.getElementById('friends-list-body');
   body.innerHTML='<div style="text-align:center;padding:20px;color:#aaa;font-size:13px">Loading&#8230;</div>';
   req('GET','/api/friends',null,function(d,err){
@@ -720,6 +840,8 @@ function loadFriendsList(){
     }
     if(!html)html='<div style="text-align:center;padding:40px 20px;color:#aaa;font-size:14px">No friends yet.<br>Search for people above.</div>';
     body.innerHTML=html;
+    cgLog('FRIENDS','loaded pending='+pending.length+' accepted='+accepted.length);
+    queueLegacyScrollRefresh();
   });
 }
 function searchUsers(q){
@@ -727,6 +849,7 @@ function searchUsers(q){
   var res=document.getElementById('user-search-results');
   q=(q||'').replace(/^\s+|\s+$/g,'');
   if(!q){res.innerHTML='';return;}
+  cgLog('FRIENDS','search q='+q);
   _userSearchTimer=setTimeout(function(){
     req('GET','/api/users?q='+encodeURIComponent(q),null,function(d){
       if(!d||!d.ok||!(d.users||[]).length){res.innerHTML='<div style="padding:8px 16px;font-size:13px;color:#aaa">No users found.</div>';return;}
@@ -742,27 +865,31 @@ function searchUsers(q){
           '</div></div>';
       }
       res.innerHTML=html;
+      queueLegacyScrollRefresh();
     });
   },300);
 }
 function addFriend(uid,btn){
+  cgLog('FRIENDS','add uid='+uid);
   if(btn)btn.disabled=true;
   req('POST','/api/friends/'+uid,null,function(d,err){
     if(btn)btn.innerHTML=(!err&&d&&d.ok)?'Sent':'Add';
     if(!err&&d&&d.ok)loadFriendsList();
   });
 }
-function acceptFriend(uid){req('POST','/api/friends/'+uid,null,function(){loadFriendsList();});}
-function removeFriend(uid){req('DELETE','/api/friends/'+uid,null,function(){loadFriendsList();});}
+function acceptFriend(uid){cgLog('FRIENDS','accept uid='+uid);req('POST','/api/friends/'+uid,null,function(){loadFriendsList();});}
+function removeFriend(uid){cgLog('FRIENDS','remove uid='+uid);req('DELETE','/api/friends/'+uid,null,function(){loadFriendsList();});}
 
 /* ── Friend Code ── */
 function openFriendCode(){
+  cgLog('UI','openFriendCode');
   document.getElementById('fc-display').textContent=S.friendCode||'—';
   document.getElementById('add-by-code-inp').value='';
   hideErr('add-code-err');
   openSubscreen('ss-friendcode');
 }
 function copyCode(){
+  cgLog('FRIENDS','copyCode hasCode='+(S.friendCode?1:0));
   var code=S.friendCode||'';
   try{
     if(navigator.clipboard&&navigator.clipboard.writeText){
@@ -772,6 +899,7 @@ function copyCode(){
 }
 function addByCode(){
   var code=(document.getElementById('add-by-code-inp').value||'').toUpperCase().replace(/^\s+|\s+$/g,'');
+  cgLog('FRIENDS','addByCode code='+code);
   hideErr('add-code-err');
   if(!code){showErr('add-code-err','Enter a code.');return;}
   req('POST','/api/friends/by-code',{friend_code:code},function(d,err){
@@ -786,12 +914,13 @@ function getCollection(){
   try{var c=localStorage.getItem('cg-collection');return c?parseJSON(c):[];}catch(e){return [];}
 }
 function saveCollection(arr){
-  try{localStorage.setItem('cg-collection',JSON.stringify(arr));}catch(e){}
+  try{localStorage.setItem('cg-collection',stringifyJSON(arr));}catch(e){}
 }
 function getActiveDevice(){
   return store.g('cg-active-device')||'';
 }
 function setActiveDevice(tag){
+  cgLog('DEVICE','setActive tag='+(tag||''));
   if(tag){store.s('cg-active-device',tag);}else{store.d('cg-active-device');}
   updateActiveDeviceLabel();
   closeSubscreen('ss-devselect');
@@ -809,6 +938,7 @@ function updateCollectionLabel(){
 
 /* Collection UI */
 function openCollection(){
+  cgLog('UI','openCollection');
   buildMakeSelect();
   renderCollectionList();
   openSubscreen('ss-collection');
@@ -856,6 +986,7 @@ function addToCollection(){
   var version=document.getElementById('col-version').value;
   if(!make||!model||!version){alert('Select make, model, and version.');return;}
   var tag=shortName(make,model,version);
+  cgLog('DEVICE','addCollection tag='+tag);
   var col=getCollection();
   for(var i=0;i<col.length;i++){if(col[i]===tag){alert('Already in collection.');return;}}
   col.push(tag);
@@ -864,6 +995,7 @@ function addToCollection(){
   updateCollectionLabel();
 }
 function removeFromCollection(tag){
+  cgLog('DEVICE','removeCollection tag='+tag);
   var col=getCollection();
   for(var i=0;i<col.length;i++){if(col[i]===tag){col.splice(i,1);break;}}
   saveCollection(col);
@@ -885,10 +1017,12 @@ function renderCollectionList(){
       '</div><div class="col-del"><button class="col-del-btn" onclick="removeFromCollection(\''+esc(tag)+'\')" title="Remove">&minus;</button></div></div>';
   }
   box.innerHTML=html;
+  queueLegacyScrollRefresh();
 }
 
 /* Device select screen */
 function openDeviceSelect(){
+  cgLog('UI','openDeviceSelect');
   var col=getCollection();
   var active=getActiveDevice();
   var box=document.getElementById('devselect-list');
@@ -917,11 +1051,89 @@ function openDeviceSelect(){
   };
   box.appendChild(btn);
   openSubscreen('ss-devselect');
+  queueLegacyScrollRefresh();
+}
+
+function legacyIOSMajor(){
+  var m=/OS\s(\d+)_/.exec(navigator.userAgent||'');
+  return m?parseInt(m[1],10):99;
+}
+function applyLegacyScrollFallback(){
+  if(window.__cgNativeLegacyScroll)return;
+  if(legacyIOSMajor()>4)return;
+  cgLog('LEGACY','applyLegacyScrollFallback ios='+legacyIOSMajor());
+  var style=document.getElementById('__cg-legacy-scroll-style');
+  if(!style){
+    style=document.createElement('style');
+    style.id='__cg-legacy-scroll-style';
+    (document.head||document.documentElement).appendChild(style);
+  }
+  style.innerHTML='html,body{height:100% !important;overflow:hidden !important;background:#f2f2f7 !important;color:#1a1a1a !important;}'
+    +'#hdr{position:fixed !important;top:0 !important;left:0 !important;right:0 !important;z-index:100 !important;}'
+    +'#scroll{display:block !important;position:fixed !important;top:44px !important;left:0 !important;right:0 !important;bottom:0 !important;height:auto !important;min-height:0 !important;overflow-y:scroll !important;overflow-x:hidden !important;-webkit-overflow-scrolling:touch !important;padding-top:0 !important;}'
+    +'.subscreen{position:fixed !important;top:0 !important;left:0 !important;right:0 !important;bottom:0 !important;min-height:0 !important;}'
+    +'.sub-hdr{position:fixed !important;top:0 !important;left:0 !important;right:0 !important;z-index:201 !important;}'
+    +'.sub-body{position:fixed !important;top:44px !important;left:0 !important;right:0 !important;bottom:0 !important;height:auto !important;overflow-y:scroll !important;overflow-x:hidden !important;-webkit-overflow-scrolling:touch !important;padding-top:0 !important;}';
+  document.documentElement.style.height='100%';
+  document.body.style.height='100%';
+  document.documentElement.style.overflow='hidden';
+  document.body.style.overflow='hidden';
+  document.body.style.color='#1a1a1a';
+  document.body.style.background='#f2f2f7';
+  var hdr=document.getElementById('hdr');
+  if(hdr){hdr.style.position='fixed';hdr.style.top='0';hdr.style.left='0';hdr.style.right='0';}
+  var scroll=document.getElementById('scroll');
+  if(scroll){
+    scroll.style.position='fixed';
+    scroll.style.top='44px';
+    scroll.style.left='0';
+    scroll.style.right='0';
+    scroll.style.bottom='0';
+    scroll.style.height='auto';
+    scroll.style.minHeight='0';
+    scroll.style.overflowY='scroll';
+    scroll.style.overflowX='hidden';
+    scroll.style.webkitOverflowScrolling='touch';
+    scroll.style.paddingTop='0';
+    scroll.style.display='block';
+  }
+  var screens=document.getElementsByClassName?document.getElementsByClassName('subscreen'):[];
+  var i;
+  for(i=0;i<screens.length;i++){
+    screens[i].style.position='fixed';
+    screens[i].style.top='0';
+    screens[i].style.left='0';
+    screens[i].style.right='0';
+    screens[i].style.bottom='0';
+    screens[i].style.minHeight='0';
+  }
+  var subs=document.getElementsByClassName?document.getElementsByClassName('sub-body'):[];
+  for(i=0;i<subs.length;i++){
+    subs[i].style.position='fixed';
+    subs[i].style.top='44px';
+    subs[i].style.left='0';
+    subs[i].style.right='0';
+    subs[i].style.bottom='0';
+    subs[i].style.height='auto';
+    subs[i].style.paddingTop='0';
+    subs[i].style.overflowY='scroll';
+    subs[i].style.overflowX='hidden';
+    subs[i].style.webkitOverflowScrolling='touch';
+  }
+}
+function enableLegacyAvatarInput(){
+  if(legacyIOSMajor()>4)return;
+  var inp=document.getElementById('ep-av-inp');
+  if(inp){inp.style.display='block';inp.style.width='100%';inp.style.marginTop='8px';}
 }
 
 /* ── Init ── */
 window.onload=function(){
+  cgLog('BOOT','account ua='+navigator.userAgent);
   applyTheme();
+  applyLegacyScrollFallback();
+  enableLegacyAvatarInput();
+  queueLegacyScrollRefresh();
   if(S.token){
     afterLogin();
   } else {

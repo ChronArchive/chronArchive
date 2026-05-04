@@ -86,7 +86,7 @@ cp -r "$APP_PATH" "$OUTPUT_DIR/Payload/"
 
 # Inject launch images
 SRCDIR="$PROJECT_DIR"
-for LAUNCH in Default.png Default@2x.png Default-568h@2x.png Default-667h@2x.png Default-736h@3x.png; do
+for LAUNCH in Default.png Default@2x.png Default-568h@2x.png Default-667h@2x.png Default-736h@3x.png Default-812h@3x.png Default-844h@3x.png Default-852h@3x.png Default-874h@3x.png Default-896h@2x.png Default-896h@3x.png Default-912h@3x.png Default-926h@3x.png Default-932h@3x.png Default-956h@3x.png Default-960h@3x.png; do
     [[ -f "$SRCDIR/$LAUNCH" ]] && cp "$SRCDIR/$LAUNCH" "$OUTPUT_DIR/Payload/ChronArchive.app/$LAUNCH"
 done
 echo "  Injected launch images"
@@ -94,15 +94,21 @@ echo "  Injected launch images"
 # Update Info.plist minimum version
 INFO="$OUTPUT_DIR/Payload/ChronArchive.app/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 7.0" "$INFO" 2>/dev/null || true
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 0.9" "$INFO" 2>/dev/null || true
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 9" "$INFO" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0" "$INFO" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 10" "$INFO" 2>/dev/null || true
 echo "  MinimumOSVersion → 7.0"
-echo "  Version → 0.9 (build 9)"
+echo "  Version → 1.0 (build 10)"
 
 echo "  Stripping extended attributes..."
 xattr -cr "$OUTPUT_DIR/Payload/ChronArchive.app"
-echo "  Ad-hoc signing..."
-codesign -f -s - "$OUTPUT_DIR/Payload/ChronArchive.app" 2>&1 | sed 's/^/    /'
+echo "  Signing with ldid (jailbreak-compatible)..."
+BINARY="$OUTPUT_DIR/Payload/ChronArchive.app/ChronArchive"
+if command -v ldid &>/dev/null; then
+    ldid -S "$BINARY"
+    echo "  ldid -S done"
+else
+    codesign -f -s - "$OUTPUT_DIR/Payload/ChronArchive.app" 2>&1 | sed 's/^/    /'
+fi
 
 cd "$OUTPUT_DIR"
 zip -r ChronArchive-arm64.ipa Payload/ > /dev/null

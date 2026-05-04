@@ -13,8 +13,9 @@
 #   bash build-armv6.sh    → output-armv6/ChronArchive-armv6.ipa
 #   bash build-arm64.sh    → output-arm64/ChronArchive-arm64.ipa
 #
-# Optional (add arm64e slice if available):
-#   bash build-arm64e.sh   → output-arm64e/ChronArchive-arm64e.ipa
+# Optional (control arm64e slice inclusion):
+#   INCLUDE_ARM64E=0 bash build-fat.sh   (exclude arm64e for legacy installer testing)
+#   bash build-arm64e.sh                 → output-arm64e/ChronArchive-arm64e.ipa
 #
 # Usage: cd ChronoGraphApp/BuildScripts && bash build-fat.sh
 
@@ -48,13 +49,18 @@ if [[ ! -f "$ARM64_IPA" ]]; then
     exit 1
 fi
 
-# arm64e is optional
+# arm64e is optional and enabled by default.
+INCLUDE_ARM64E="${INCLUDE_ARM64E:-1}"
 HAS_ARM64E=0
-if [[ -f "$ARM64E_IPA" ]]; then
-    HAS_ARM64E=1
-    echo "  Found arm64e IPA — will include in fat binary."
+if [[ "$INCLUDE_ARM64E" == "1" ]]; then
+    if [[ -f "$ARM64E_IPA" ]]; then
+        HAS_ARM64E=1
+        echo "  Found arm64e IPA — will include in fat binary (INCLUDE_ARM64E=1)."
+    else
+        echo "  INCLUDE_ARM64E=1 but $ARM64E_IPA is missing; continuing without arm64e."
+    fi
 else
-    echo "  No arm64e IPA found (optional — run build-arm64e.sh to add iPhone XS+ native slice)."
+    echo "  arm64e excluded (INCLUDE_ARM64E=0)."
 fi
 
 rm -rf "$WORK_DIR"
@@ -101,9 +107,8 @@ echo ""
 echo "[3/4] Updating Info.plist..."
 INFO="$FAT_APP/Info.plist"
 
-# Set minimum OS to 3.1 so armv6 devices can install the fat IPA.
-# iOS 3.x OTA installers may still reject the fat binary — in that case
-# use the dedicated output-armv6/ChronArchive-armv6.ipa instead.
+# Keep minimum OS at 3.1 so iPhone 4S/iOS 6 and older can install.
+# For iPhone 17 / iOS 26+, use the dedicated arm64e IPA instead.
 /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 3.1" "$INFO"
 
 # Remove arch capability restriction so all devices can install
@@ -113,13 +118,13 @@ INFO="$FAT_APP/Info.plist"
 /usr/libexec/PlistBuddy -c "Delete :CFBundleIconFile" "$INFO" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string Icon-60.png" "$INFO"
 
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 0.9" "$INFO"
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 9" "$INFO"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0" "$INFO"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 10" "$INFO"
 
 echo "  MinimumOSVersion → 3.1"
 echo "  UIRequiredDeviceCapabilities → removed"
 echo "  CFBundleIconFile → Icon-60.png"
-echo "  Version → 0.9 (build 9)"
+echo "  Version → 1.0 (build 10)"
 
 # ── Step 4: Inject latest www/, sign, and package ────────────────────────────
 echo ""
@@ -129,8 +134,19 @@ echo "  Injecting latest www/..."
 rm -rf "$FAT_APP/www"
 cp -r "$SCRIPT_DIR/../Source/ChronoGraph/ChronArchive/www" "$FAT_APP/www"
 
+# Inject launch images (needed for full-screen on iPhone 4.7", 5.5", etc.)
+SRCDIR="$SCRIPT_DIR/../Source/ChronoGraph/ChronArchive"
+for LAUNCH in Default.png Default@2x.png Default-568h@2x.png Default-667h@2x.png Default-736h@3x.png Default-812h@3x.png Default-844h@3x.png Default-852h@3x.png Default-874h@3x.png Default-896h@2x.png Default-896h@3x.png Default-912h@3x.png Default-926h@3x.png Default-932h@3x.png Default-956h@3x.png Default-960h@3x.png; do
+    [[ -f "$SRCDIR/$LAUNCH" ]] && cp "$SRCDIR/$LAUNCH" "$FAT_APP/$LAUNCH"
+done
+echo "  Injected launch images"
+
 xattr -cr "$FAT_APP"
-codesign -f -s - "$FAT_APP"
+if command -v ldid &>/dev/null; then
+    ldid -S "$FAT_APP/ChronArchive"
+else
+    codesign -f -s - "$FAT_APP"
+fi
 
 cd "$WORK_DIR"
 zip -qr "$FAT_DIR/chronograph.ipa" Payload/

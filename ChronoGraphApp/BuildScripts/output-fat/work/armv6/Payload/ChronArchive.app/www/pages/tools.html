@@ -4,7 +4,7 @@
 <head>
   <title>Tools | Chronograph</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <style id="cg-theme-style"></style>
   <style>
     * { margin:0; padding:0; -webkit-box-sizing:border-box; box-sizing:border-box; }
@@ -12,7 +12,9 @@
       font-family:-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif;
       -webkit-text-size-adjust:none; color:#1a1a1a; }
     /* ── Nav bar ── */
-    #hdr { position:fixed; top:0; left:0; right:0; z-index:100; height:44px;
+    #hdr { position:fixed; top:0; left:0; right:0; z-index:100;
+      height:44px; height:calc(44px + env(safe-area-inset-top, 0px));
+      padding-top:env(safe-area-inset-top, 0px);
       background:-webkit-gradient(linear,left top,left bottom,from(#f0f0f0),to(#d8d8d8));
       background:-webkit-linear-gradient(top,#f0f0f0 0%,#d8d8d8 100%);
       background:linear-gradient(to bottom,#f0f0f0 0%,#d8d8d8 100%);
@@ -23,11 +25,11 @@
       -webkit-justify-content:space-between; justify-content:space-between;
       padding:0 12px; }
     #hdr-title { font-size:17px; font-weight:bold; color:#1a1a1a;
-      position:absolute; left:50%; top:0; width:120px; margin-left:-60px;
+      position:absolute; left:50%; top:env(safe-area-inset-top, 0px); width:120px; margin-left:-60px;
       height:44px; line-height:44px; text-align:center; }
     #hdr-right { display:-webkit-flex; display:flex; -webkit-align-items:center; align-items:center; }
     /* ── Scroll ── */
-    #scroll { position:fixed; top:44px; left:0; right:0; bottom:0;
+    #scroll { position:fixed; top:44px; top:calc(44px + env(safe-area-inset-top, 0px)); left:0; right:0; bottom:0;
       overflow-y:scroll; -webkit-overflow-scrolling:touch; background:#f2f2f7; }
     /* ── iOS Settings panel ── */
     .settings-section { margin:18px 0 0; }
@@ -304,6 +306,28 @@
   var bubble='green';try{bubble=localStorage.getItem('cg-accent-color')||localStorage.getItem('cg-chat-bubble')||'green';}catch(e){}
   var bub=document.getElementById('accent-select');
   if(bub)bub.value=bubble;
+  function legacyIOSMajor(){
+    var m=/OS\s(\d+)_/.exec(navigator.userAgent||'');
+    return m?parseInt(m[1],10):99;
+  }
+  function applyLegacyScrollFallback(){
+    if(legacyIOSMajor()>4)return;
+    document.documentElement.style.height='auto';
+    document.body.style.height='auto';
+    document.documentElement.style.overflow='auto';
+    document.body.style.overflow='auto';
+    var scroll=document.getElementById('scroll');
+    if(scroll){
+      scroll.style.position='relative';
+      scroll.style.top='0';
+      scroll.style.bottom='auto';
+      scroll.style.height='auto';
+      scroll.style.overflow='visible';
+      scroll.style.webkitOverflowScrolling='auto';
+      scroll.style.paddingTop='44px';
+    }
+  }
+  applyLegacyScrollFallback();
   window.onfocus = function(){ applyTheme(localStorage.getItem('cg-theme')||'light'); };
 })();
 </script>

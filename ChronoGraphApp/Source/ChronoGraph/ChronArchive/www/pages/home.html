@@ -4,7 +4,7 @@
 <head>
   <title>Chronograph</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <style id="cg-theme-style"></style>
   <style>
     * { margin:0; padding:0; -webkit-box-sizing:border-box; box-sizing:border-box; }
@@ -17,7 +17,8 @@
       -webkit-flex-direction:column; flex-direction:column; overflow:hidden; }
 
     /* ── Navigation Bar ── */
-    #hdr { height:44px; -webkit-flex-shrink:0; flex-shrink:0;
+    #hdr { height:44px; height:calc(44px + env(safe-area-inset-top, 0px));
+      -webkit-flex-shrink:0; flex-shrink:0;
       background:-webkit-gradient(linear,left top,left bottom,from(#f0f0f0),to(#d8d8d8));
       background:-webkit-linear-gradient(top,#f0f0f0 0%,#d8d8d8 100%);
       background:linear-gradient(to bottom,#f0f0f0 0%,#d8d8d8 100%);
@@ -26,7 +27,7 @@
       display:-webkit-box; display:-webkit-flex; display:flex;
       -webkit-box-align:center; -webkit-align-items:center; align-items:center;
       -webkit-box-pack:justify; -webkit-justify-content:space-between; justify-content:space-between;
-      padding:0 10px; }
+      padding:env(safe-area-inset-top, 0px) 10px 0; }
     #hdr-logo { height:24px; display:block; }
     #hdr-right { display:-webkit-box; display:-webkit-flex; display:flex;
       -webkit-box-align:center; -webkit-align-items:center; align-items:center; }
@@ -81,12 +82,9 @@
     .post-desc  { font-size:13px; color:#555; margin-top:3px; line-height:1.5; }
     .post-tags  { margin-top:5px; }
     .post-tag   { display:inline-block; font-size:11px; color:#0055cc; margin-right:4px; }
-    .post-media { width:100%; position:relative; padding-top:100%; overflow:hidden; background:#000; cursor:pointer; }
-    /* Square media crop that preserves aspect ratio on old WebKit (no object-fit needed). */
-    .post-media img { position:absolute; top:50%; left:50%; width:auto; height:auto;
-      min-width:100%; min-height:100%;
-      -webkit-transform:translate(-50%,-50%); transform:translate(-50%,-50%);
-      display:block; }
+    .post-media { width:100%; background:#000; cursor:pointer; overflow:hidden; }
+    /* Show full image width in-feed (no forced square crop). */
+    .post-media img { width:100%; height:auto; max-height:520px; display:block; background:#000; }
     .post-media-video { width:100%; background:#000; overflow:hidden; }
     .post-media video { width:100%; max-height:260px; display:block; background:#000; }
     /* Actions */
@@ -140,17 +138,18 @@
     .modal-lt { text-align:left; }
     .modal-rt { text-align:right; font-weight:bold; }
     #compose-modal .modal-box { top:0; left:0; right:0; bottom:0; width:auto; height:auto; margin:0; -webkit-border-radius:0; border-radius:0; }
-    #compose-modal .modal-body { max-height: calc(100% - 44px); overflow-y:auto; }
+    #compose-modal .modal-body { max-height: calc(100% - 44px - env(safe-area-inset-top, 0px)); overflow-y:auto; }
     /* Compose header: fixed 44px bar with absolutely-pinned buttons */
-    #compose-modal .modal-hdr { position:relative; height:44px; padding:0; display:block; }
-    #compose-modal .modal-title { position:absolute; left:0; right:0; top:0;
+    #compose-modal .modal-hdr { position:relative; height:calc(44px + env(safe-area-inset-top, 0px));
+      padding-top:env(safe-area-inset-top, 0px); display:block; }
+    #compose-modal .modal-title { position:absolute; left:0; right:0; top:env(safe-area-inset-top, 0px);
       height:44px; line-height:44px; text-align:center;
       font-size:17px; font-weight:bold; color:#1a1a1a; pointer-events:none; }
-    #compose-modal .modal-lt { position:absolute; left:0; top:0;
+    #compose-modal .modal-lt { position:absolute; left:0; top:env(safe-area-inset-top, 0px);
       height:44px; line-height:44px; padding:0 14px;
       font-size:15px; color:#0055cc; background:none; border:none;
       cursor:pointer; font-family:inherit; -webkit-tap-highlight-color:transparent; }
-    #compose-modal .modal-rt { position:absolute; right:0; top:0;
+    #compose-modal .modal-rt { position:absolute; right:0; top:env(safe-area-inset-top, 0px);
       height:44px; line-height:44px; padding:0 14px;
       font-size:15px; font-weight:bold; color:#0055cc; background:none; border:none;
       cursor:pointer; font-family:inherit; -webkit-tap-highlight-color:transparent; }
@@ -269,11 +268,12 @@
         style="resize:none;font-size:16px;line-height:1.5"></textarea>
       <input type="text" id="cp-tags" class="mfield mfield-sm" placeholder="Tags: retro ios app" maxlength="200">
       <div class="ctoolbar">
-        <button class="ctool on" id="ct-photo" onclick="setCType('photo')">&#128247; Photo</button>
+        <button class="ctool on" id="ct-text"  onclick="setCType('text')">Aa Text</button>
+        <button class="ctool"    id="ct-photo" onclick="setCType('photo')">&#128247; Photo</button>
         <button class="ctool"    id="ct-video" onclick="setCType('video')">&#9654; Video URL</button>
       </div>
       <div id="cp-photo-wrap">
-        <label id="cp-drop" for="cp-file"
+        <label id="cp-drop" onclick="chooseCpPhoto()"
           style="display:block;border:2px dashed #ccc;-webkit-border-radius:8px;border-radius:8px;padding:20px;text-align:center;color:#aaa;font-size:13px;cursor:pointer;">
           Tap to choose a photo
         </label>
@@ -412,6 +412,22 @@ function resolveMedia(key,url){
   if(key && S.mediaMap && S.mediaMap[key]) return S.mediaMap[key];
   return url||'';
 }
+function normalizeMediaSrc(src){
+  if(!src) return '';
+  var s=(''+src).replace(/^\s+|\s+$/g,'');
+  if(!s) return '';
+  if(s.indexOf('//')===0){
+    s=(window.location&&window.location.protocol==='https:'?'https:':'http:')+s;
+  } else if(s.charAt(0)==='/'){
+    s=API+s;
+  } else if(s.indexOf('./')===0){
+    s=API+'/'+s.substring(2);
+  }
+  if(isLegacyIOS() && s.indexOf('https://')===0){
+    s='http://'+s.substring(8);
+  }
+  return s;
+}
 
 function esc(s){var d=document.createElement('div');d.appendChild(document.createTextNode(s||''));return d.innerHTML;}
 function openModal(id){document.getElementById(id).className='modal-bg open';}
@@ -520,6 +536,7 @@ function legacyViewportHeight(){
   return window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight || 0;
 }
 function refreshLegacyScrollBox(box, topInset, bottomInset){
+  if(window.__cgNativeLegacyScroll)return;
   if(legacyIOSMajor()>4)return;
   if(typeof box==='string') box=document.getElementById(box);
   if(!box)return;
@@ -538,6 +555,7 @@ function refreshLegacyScrollBox(box, topInset, bottomInset){
   if(box.scrollTop>0) box.scrollTop=box.scrollTop;
 }
 function queueLegacyScrollRefresh(){
+  if(window.__cgNativeLegacyScroll)return;
   if(legacyIOSMajor()>4)return;
   setTimeout(function(){refreshLegacyScrollBox('feed-wrap',44,0);},0);
   setTimeout(function(){refreshLegacyScrollBox('feed-wrap',44,0);},120);
@@ -558,6 +576,19 @@ function onFeedPostImgErr(img){
   var full = resolveMedia(img.getAttribute('data-full-key')||'', img.getAttribute('data-full-url')||'');
   if(full && img.src !== full){
     img.src = full;
+  }
+  queueLegacyScrollRefresh();
+}
+function onLegacyPostImgErr(img){
+  if(!img) return;
+  var full=img.getAttribute('data-full-url')||'';
+  if(full && img.src!==full){
+    img.src=full;
+    return;
+  }
+  var box=img.parentNode;
+  if(box){
+    box.innerHTML='<div style="display:-webkit-box;display:flex;-webkit-box-align:center;align-items:center;-webkit-box-pack:center;justify-content:center;color:#fff;font-size:12px;padding:20px;min-height:120px;">Tap to view full image</div>';
   }
   queueLegacyScrollRefresh();
 }
@@ -624,15 +655,15 @@ function renderPost(p){
   var tags='';
   if(p.tags){var ta=(p.tags+'').split(/[\s,]+/);for(var i=0;i<ta.length;i++){if(ta[i])tags+='<span class="post-tag">#'+esc(ta[i])+'</span> ';}}
   var media='';
-  var mediaFullSrc = p.media_url || p.media_data || '';
-  var mediaThumbSrc = p.media_thumb_url || mediaFullSrc;
+  var mediaFullSrc = normalizeMediaSrc(p.media_url || p.media_data || p.media_thumb_url || '');
+  var mediaThumbSrc = normalizeMediaSrc(p.media_thumb_url || mediaFullSrc);
   if(mediaThumbSrc){
     if(p.type==='video'){
       media='<div class="post-media-video">'+mkVid(mediaFullSrc)+'</div>';
     } else if(mediaThumbSrc.indexOf('data:')===0||mediaThumbSrc.indexOf('http')===0){
-      var mk=rememberMedia(mediaFullSrc);
-      if(isLegacyIOS() && mediaThumbSrc.indexOf('data:')===0 && mediaThumbSrc.length>120000){
-        media='<div class="post-media" onclick="openImageByKey(\''+mk+'\')" style="display:-webkit-box;display:flex;-webkit-box-align:center;align-items:center;-webkit-box-pack:center;justify-content:center;color:#fff;font-size:12px;">Tap to open image</div>';
+      var mk=rememberMedia(mediaFullSrc||mediaThumbSrc);
+      if(isLegacyIOS()){
+        media='<div class="post-media" onclick="openImageByKey(\''+mk+'\')"><img src="'+esc(mediaThumbSrc)+'" data-full-url="'+esc(mediaFullSrc||mediaThumbSrc)+'" alt="" onload="onFeedPostImgLoad(this)" onerror="onLegacyPostImgErr(this)"></div>';
       } else {
         media='<div class="post-media" onclick="openImageByKey(\''+mk+'\')"><img src="'+esc(mediaThumbSrc)+'" data-full-key="'+esc(mk)+'" data-full-url="'+esc(mediaFullSrc)+'" alt="" onload="onFeedPostImgLoad(this)" onerror="onFeedPostImgErr(this)"></div>';
       }
@@ -680,6 +711,28 @@ function openImageFull(src){
   var modal=document.getElementById('img-modal');
   var img=document.getElementById('img-modal-img');
   if(!modal||!img)return;
+  src=normalizeMediaSrc(src||'');
+  if(!src) return;
+  img.onerror=null;
+  if(isLegacyIOS()){
+    try{window.scrollTo(0,0);}catch(es){}
+    modal.style.position='fixed';
+    modal.style.top='0';
+    modal.style.left='0';
+    modal.style.right='0';
+    modal.style.bottom='0';
+    modal.style.minHeight='0';
+    img.onerror=function(){
+      if(this.__cgLegacyRetryDone) return;
+      this.__cgLegacyRetryDone=1;
+      if(src.indexOf('https://')===0){
+        this.src='http://'+src.substring(8);
+      }
+    };
+  } else {
+    img.__cgLegacyRetryDone=0;
+  }
+  img.__cgLegacyRetryDone=0;
   img.src=src;
   modal.className='modal-bg open';
 }
@@ -690,6 +743,14 @@ function closeImageFull(){
   var modal=document.getElementById('img-modal');
   var img=document.getElementById('img-modal-img');
   if(modal) modal.className='modal-bg';
+  if(modal&&isLegacyIOS()){
+    modal.style.position='fixed';
+    modal.style.top='0';
+    modal.style.left='0';
+    modal.style.right='0';
+    modal.style.bottom='0';
+    modal.style.minHeight='0';
+  }
   if(img) img.src='';
 }
 function mkVid(url){
@@ -917,16 +978,26 @@ function openCompose(){
   document.getElementById('cp-drop').style.display='block';
   S.cpImg=null;
   S.cpFile=null;
-  setCType('photo');
+  setCType('text');
   hideErr('cp-err');
   openModal('compose-modal');
 }
 function setCType(t){
   S.ctype=t;
+  document.getElementById('ct-text').className='ctool'+(t==='text'?' on':'');
   document.getElementById('ct-photo').className='ctool'+(t==='photo'?' on':'');
   document.getElementById('ct-video').className='ctool'+(t==='video'?' on':'');
   document.getElementById('cp-photo-wrap').style.display=t==='photo'?'block':'none';
   document.getElementById('cp-video-wrap').style.display=t==='video'?'block':'none';
+}
+function chooseCpPhoto(){
+  var i=document.getElementById('cp-file');
+  if(!i)return;
+  if(window.__cgNativeImagePicker){
+    try{window.location='cgpick://post';return;}catch(e){}
+  }
+  if(legacyIOSMajor()<=4){try{i.focus();}catch(e2){}}
+  if(i.click)i.click();
 }
 function onCpImg(){
   var f=document.getElementById('cp-file').files[0];
@@ -955,6 +1026,19 @@ function onCpImg(){
     document.getElementById('cp-drop').textContent='Photo selected';
   }
 }
+(function(){
+  window.__cgNativePostPicked=function(data){
+    if(!data)return;
+    S.cpFile=null;
+    S.cpImg=data;
+    var prev=document.getElementById('cp-preview');
+    if(prev){prev.src=data;prev.style.display='block';}
+    var drop=document.getElementById('cp-drop');
+    if(drop)drop.style.display='none';
+    hideErr('cp-err');
+    cgLog('POST','nativePostPicked len='+data.length);
+  };
+})();
 function submitPost(){
   cgLog('POST','submit start type='+S.ctype+' token='+(S.token?1:0));
   hideErr('cp-err');
@@ -963,7 +1047,10 @@ function submitPost(){
   var tags =(document.getElementById('cp-tags').value||'').replace(/^\s+|\s+$/g,'');
   if(!title&&!desc){showErr('cp-err','Write something first!');return;}
   var media='',type='image';
-  if(S.ctype==='photo'){
+  if(S.ctype==='text'){
+    media='';
+    type='text';
+  } else if(S.ctype==='photo'){
     if(S.cpFile && window.FormData){
       var deviceTag='';
       try{deviceTag=localStorage.getItem('cg-active-device')||'';}catch(e){}
@@ -1114,6 +1201,7 @@ function legacyIOSMajor(){
   return m ? parseInt(m[1],10) : 99;
 }
 function applyLegacyScrollFallback(){
+  if(window.__cgNativeLegacyScroll)return;
   if(legacyIOSMajor()>4)return;
   cgLog('LEGACY','applyLegacyScrollFallback ios='+legacyIOSMajor());
   var style=document.getElementById('__cg-legacy-scroll-style');

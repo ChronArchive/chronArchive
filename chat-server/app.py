@@ -1309,10 +1309,12 @@ def create_post():
 
     if not title:
         return jsonify({'ok': False, 'error': 'Title is required'}), 400
-    if type_ not in ('image', 'video'):
-        return jsonify({'ok': False, 'error': 'Type must be image or video'}), 400
-    if not media_data:
-        return jsonify({'ok': False, 'error': 'Media data is required'}), 400
+    if type_ not in ('image', 'video', 'text'):
+        return jsonify({'ok': False, 'error': 'Type must be image, video, or text'}), 400
+    if type_ in ('image', 'video') and not media_data:
+        return jsonify({'ok': False, 'error': 'Media data is required for image/video posts'}), 400
+    if type_ == 'text':
+        media_data = ''
     if type_ == 'image' and len(media_data) > 75_000_000:
         return jsonify({'ok': False, 'error': 'Image too large (max ~50 MB)'}), 413
 
