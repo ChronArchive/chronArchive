@@ -94,10 +94,10 @@ echo "  Injected launch images"
 # Update Info.plist minimum version
 INFO="$OUTPUT_DIR/Payload/ChronArchive.app/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 7.0" "$INFO" 2>/dev/null || true
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0" "$INFO" 2>/dev/null || true
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 10" "$INFO" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.1" "$INFO" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 11" "$INFO" 2>/dev/null || true
 echo "  MinimumOSVersion → 7.0"
-echo "  Version → 1.0 (build 10)"
+echo "  Version → 1.1 (build 11)"
 
 echo "  Stripping extended attributes..."
 xattr -cr "$OUTPUT_DIR/Payload/ChronArchive.app"

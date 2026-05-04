@@ -2,12 +2,13 @@
   "http://www.w3.org/TR/html4/loose.dtd">
 <html lang="en">
 <head>
-  <title>Chat | Chronograph</title>
+  <title>Chronograph</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <style id="cg-theme-style"></style>
   <style>
     * { margin:0; padding:0; -webkit-box-sizing:border-box; box-sizing:border-box; }
+    :root { --cg-safe-top:0px; }
     html,body { height:100%; overflow:hidden;
       font-family:-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif;
       font-size:15px; -webkit-text-size-adjust:none;
@@ -17,7 +18,9 @@
     /* Navigation bar — iOS 6 blue gradient */
     .header { position:absolute; top:0; left:0; right:0;
       height:44px; height:calc(44px + env(safe-area-inset-top, 0px));
+      height:calc(44px + var(--cg-safe-top, 0px));
       padding-top:env(safe-area-inset-top, 0px);
+      padding-top:var(--cg-safe-top, 0px);
       background:-webkit-gradient(linear,left top,left bottom,from(#5d9de8),to(#2c69d0));
       background:-webkit-linear-gradient(top,#5d9de8 0%,#2c69d0 100%);
       background:linear-gradient(to bottom,#5d9de8 0%,#2c69d0 100%);
@@ -30,10 +33,20 @@
     .hr { position:absolute; right:0; top:0; top:env(safe-area-inset-top, 0px); height:44px; display:-webkit-flex; display:flex; -webkit-align-items:center; align-items:center; padding:0 14px; color:#fff; cursor:pointer; font-size:22px; -webkit-tap-highlight-color:transparent; text-shadow:0 -1px 0 rgba(0,0,0,0.2); }
     .hr-text { position:absolute; right:0; top:0; top:env(safe-area-inset-top, 0px); height:44px; line-height:44px; padding:0 14px; color:#fff; cursor:pointer; font-size:15px; -webkit-tap-highlight-color:transparent; text-shadow:0 -1px 0 rgba(0,0,0,0.2); }
     .sb { position:absolute; top:44px; top:calc(44px + env(safe-area-inset-top, 0px)); left:0; right:0; bottom:0; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+    .hl, .hr, .hr-text { top:var(--cg-safe-top, 0px); }
+    .sb { top:calc(44px + var(--cg-safe-top, 0px)); }
+    #users-search-wrap { position:absolute; top:44px; top:calc(44px + env(safe-area-inset-top, 0px)); top:calc(44px + var(--cg-safe-top, 0px)); left:0; right:0; }
+    #users-body { top:92px; top:calc(92px + env(safe-area-inset-top, 0px)); top:calc(92px + var(--cg-safe-top, 0px)); }
     /* Auth */
     .auth-wrap { padding:48px 28px 28px; background:#f2f2f7; }
     .auth-logo { text-align:center; margin-bottom:32px; }
     .auth-logo img { height:44px; }
+    .onboard-title { font-size:26px; font-weight:bold; line-height:1.2; margin:20px 0 10px; color:#1a1a1a; }
+    .onboard-text { font-size:15px; color:#444; line-height:1.6; max-width:320px; margin:0 auto; }
+    .onboard-cta { position:absolute; right:12px; bottom:12px; z-index:10; }
+    .legal-box { background:#fff; border:1px solid #d8d8d8; border-radius:14px; padding:16px; margin-bottom:16px; color:#333; text-align:left; font-size:13px; line-height:1.6; }
+    .legal-checkbox { display:block; margin-top:16px; font-size:15px; color:#1a1a1a; cursor:pointer; }
+    .legal-checkbox input { margin-right:10px; vertical-align:middle; }
     .auth-tabs { display:table; width:100%; border-collapse:collapse; margin-bottom:24px; }
     .auth-tab { display:table-cell; text-align:center; padding:10px 0; border-bottom:2px solid #ddd; color:#888; cursor:pointer; font-size:15px; }
     .auth-tab.on { border-bottom-color:#0055cc; color:#0055cc; }
@@ -73,7 +86,7 @@
     .list-section { padding:6px 16px; background:#f2f2f7; font-size:12px; color:#888; font-weight:bold; letter-spacing:0.5px; text-transform:uppercase; border-bottom:1px solid #e1e1e1; }
     /* Thread / message bubbles — iOS 6 iMessage style */
     /* Keep thread viewport aligned to the composer height to avoid dead-space/overscroll. */
-    #thread-screen .sb { bottom:50px; background:#f2f2f7; }
+    #thread-screen .sb { bottom:50px; bottom:calc(50px + env(safe-area-inset-bottom, 0px)); background:#f2f2f7; }
     #thread-body { padding:12px 0 12px; }
     .msg-row { padding:3px 12px; }
     .msg-bubble { display:inline-block; max-width:74%; padding:8px 12px;
@@ -137,12 +150,14 @@
       cursor:pointer; -webkit-tap-highlight-color:transparent; font-family:inherit; padding:0 4px; }
     .msg-row.reveal .msg-del-btn { display:inline; }
     /* Input bar — iOS 6 style */
-    .ibar { position:absolute; bottom:0; left:0; right:0; height:50px;
+    .ibar { position:absolute; bottom:0; left:0; right:0; height:50px; height:calc(50px + env(safe-area-inset-bottom, 0px));
       background:-webkit-linear-gradient(top,#e8e8e8 0%,#d4d4d4 100%);
       background:linear-gradient(to bottom,#e8e8e8 0%,#d4d4d4 100%);
       border-top:1px solid #b0b0b0;
       -webkit-box-shadow:0 -1px 2px rgba(0,0,0,0.08); box-shadow:0 -1px 2px rgba(0,0,0,0.08);
-      padding:6px 8px; display:table; width:100%; }
+      padding:6px 8px;
+      padding-bottom:calc(6px + env(safe-area-inset-bottom, 0px));
+      display:table; width:100%; }
     .ifc { display:table-cell; vertical-align:middle; }
     .isc { display:table-cell; vertical-align:middle; width:62px; text-align:right; }
     .msg-input { width:100%; padding:8px 13px; background:#fff; border:1px solid #b8b8b8;
@@ -250,11 +265,12 @@
 <div id="users-screen" class="screen">
   <div class="header">New Message
     <span class="hl" onclick="goConvos()">&#8249; Back</span>
+    <span class="hr-text" onclick="closeUsersSearch()">Cancel</span>
   </div>
-  <div style="position:absolute;top:44px;left:0;right:0;">
+  <div id="users-search-wrap">
     <div class="search-bar"><input type="text" class="search-input" id="user-search" placeholder="Search users&#8230;" autocorrect="off" autocapitalize="off"></div>
   </div>
-  <div class="sb" style="top:92px;" id="users-body"><div class="loading">Loading&#8230;</div></div>
+  <div class="sb" id="users-body"><div class="loading">Loading&#8230;</div></div>
 </div>
 
 <!-- THREAD -->
@@ -330,7 +346,7 @@
       </div>
       <div id="up-username" class="profile-name"></div>
       <div id="up-bio" class="profile-bio"></div>
-      <button class="save-btn" onclick="openThreadFromProfile()">Send Message</button>
+      <button class="save-btn" id="up-send-btn" onclick="openThreadFromProfile()">Send Message</button>
       <div style="height:12px;"></div>
       <button class="profile-btn" id="up-friend-btn" onclick="toggleFriend()"></button>
       <button class="profile-btn red" id="up-block-btn" onclick="toggleBlock()"></button>
@@ -467,6 +483,7 @@ function show(id) {
     if (el) el.className = 'screen'+(ALL_SCREENS[i]===id?' active':'');
   }
   queueLegacyScrollRefresh(id);
+  if (id==='thread-screen') updateLegacyThreadChromePosition();
 }
 function escH(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtTime(ts){ var d=new Date(ts*1000),h=d.getHours(),m=d.getMinutes(),ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+(m<10?'0':'')+m+' '+ap; }
@@ -574,6 +591,7 @@ function afterLogin(d){
     if(S.isAdmin){store.set('cg_a','1');}
     updateChatPill();
     goConvos();
+    openUserProfileFromHash();
   });
 }
 function doLogout(){
@@ -718,7 +736,16 @@ function applyLegacyComposerTheme(){
 /* CONVERSATIONS */
 function goConvos(){
   cgLog('NAV','goConvos');
+  var userSearch=document.getElementById('user-search');
+  if(userSearch){
+    try{ userSearch.blur(); }catch(e){}
+    userSearch.value='';
+  }
   stopPoll();show('convos-screen');
+  if(!S.token){
+    document.getElementById('convos-body').innerHTML='<div class="empty"><p>Welcome to Chronograph. Sign in to load your conversations.</p></div>';
+    return;
+  }
   document.getElementById('convos-body').innerHTML='<div class="loading">Loading\u2026</div>';
   req('GET','/api/conversations',null,function(d,err){
     if(err||!d||!d.ok||!d.conversations||!d.conversations.length){
@@ -750,6 +777,10 @@ function goConvos(){
 
 /* USERS */
 var _usrTimer=null;
+function closeUsersSearch(){
+  cgLog('NAV','closeUsersSearch');
+  goConvos();
+}
 function goUsers(){
   cgLog('NAV','goUsers');
   show('users-screen');loadUsers('');
@@ -771,11 +802,31 @@ function loadUsers(q){
       if(legacyIOSMajor()<=4 && users.length>30) users=users.slice(0,30);
       for(var i=0;i<users.length;i++){
         var u=users[i];
-        html+='<div class="user-row" onclick="openUserProfile('+u.id+',\''+escH(u.username)+'\',\'users-screen\')">'+
+        html+='<div class="user-row" data-uid="'+u.id+'" data-uname="'+escH(u.username)+'" onclick="openUserProfile('+u.id+',\''+escH(u.username)+'\',\'users-screen\')">'+
           '<div class="ua"><div class="uc">'+mkAv(u.avatar_b64,u.username,36)+'</div></div>'+
           '<div class="un">'+escH(u.username)+(u.bio?'<span class="ubio">'+escH(u.bio)+'</span>':'')+'</div></div>';
       }
       document.getElementById('users-body').innerHTML=html;
+      /* On iOS 3/4 (iPhone 2G/3G) onclick on dynamically injected divs inside
+         overflow:scroll containers can silently drop — attach touchend as a fallback. */
+      if(legacyIOSMajor()<=4){
+        var rows=document.getElementById('users-body').getElementsByTagName('div');
+        var ri;
+        for(ri=0;ri<rows.length;ri++){
+          if((' '+(rows[ri].className||'')+' ').indexOf(' user-row ')>=0){
+            (function(row){
+              var tapped=false;
+              row.addEventListener('touchend',function(e){
+                if(tapped)return; tapped=true;
+                setTimeout(function(){tapped=false;},600);
+                var uid=parseInt(row.getAttribute('data-uid'),10);
+                var uname=row.getAttribute('data-uname')||'';
+                openUserProfile(uid,uname,'users-screen');
+              },false);
+            })(rows[ri]);
+          }
+        }
+      }
       cgLog('USERS','rendered count='+users.length);
       queueLegacyScrollRefresh('users-screen');
     }catch(er){
@@ -796,8 +847,15 @@ function openUserProfile(uid,uname,backScreen){
   var av=document.getElementById('up-av');
   av.innerHTML=escH((uname||'?').charAt(0).toUpperCase());
   show('user-profile-screen');
+  updateFriendBtn();
+  updateBlockBtn();
+  bindLegacyUserProfileActions();
   req('GET','/api/users/'+uid,null,function(d){
     if(!d||!d.ok)return;
+    if(d.user&&d.user.username){
+      document.getElementById('up-title').innerHTML=escH(d.user.username);
+      document.getElementById('up-username').innerHTML=escH(d.user.username);
+    }
     document.getElementById('up-bio').innerHTML=escH(d.user.bio||'');
     if(d.user.avatar_b64)av.innerHTML='<img src="'+escH(d.user.avatar_b64)+'" style="width:80px;height:80px;border-radius:40px;display:block;">';
     queueLegacyScrollRefresh('user-profile-screen');
@@ -815,6 +873,15 @@ function openUserProfile(uid,uname,backScreen){
     updateBlockBtn();
   });
 }
+function openUserProfileFromHash(hash){
+  hash = hash || (window.location.hash||'').replace(/^#/, '');
+  if(!S.token||!hash||hash.indexOf('user-')!==0) return;
+  var uid=parseInt(hash.substring(5),10);
+  if(uid>0) {
+    try{window.location.hash='';}catch(e){}
+    setTimeout(function(){ openUserProfile(uid,'','convos-screen'); }, 180);
+  }
+}
 function upGoBack(){show(S.upFromScreen||'users-screen');}
 function updateFriendBtn(){
   var btn=document.getElementById('up-friend-btn');if(!btn)return;
@@ -824,6 +891,25 @@ function updateFriendBtn(){
   else btn.innerHTML='Add Friend';
 }
 function updateBlockBtn(){var btn=document.getElementById('up-block-btn');if(btn)btn.innerHTML=S.upBlocked?'Unblock':'Block';}
+function bindLegacyTap(el, handler){
+  if(!el || legacyIOSMajor()>4 || el.__cgLegacyTapBound) return;
+  el.__cgLegacyTapBound = true;
+  var tapped = false;
+  el.addEventListener('touchend', function(e){
+    if(tapped) return;
+    tapped = true;
+    if(e && e.preventDefault) e.preventDefault();
+    setTimeout(function(){ tapped = false; }, 600);
+    handler();
+  }, false);
+}
+function bindLegacyUserProfileActions(){
+  if(legacyIOSMajor()>4) return;
+  bindLegacyTap(document.getElementById('up-send-btn'), function(){ openThreadFromProfile(); });
+  bindLegacyTap(document.getElementById('up-friend-btn'), function(){ toggleFriend(); });
+  bindLegacyTap(document.getElementById('up-block-btn'), function(){ toggleBlock(); });
+  bindLegacyTap(document.getElementById('up-back-btn'), function(){ upGoBack(); });
+}
 function toggleFriend(){
   cgLog('FRIENDS','toggle uid='+S.upUserId+' status='+(S.upFriendStatus||'none')+' dir='+(S.upDirection||''));
   if(S.upFriendStatus==='accepted'){
@@ -935,6 +1021,8 @@ function enforceThreadComposerPin(){
   }
   var body=document.getElementById('thread-body');
   if(body){
+    body.style.position='relative';
+    body.style.minHeight='0';
     body.style.paddingTop='44px';
     body.style.paddingBottom='68px';
     body.style.overflow='visible';
@@ -950,6 +1038,36 @@ function updateLegacyThreadChromePosition(){
   var ib=document.querySelector?document.querySelector('#thread-screen .ibar'):null;
   if(hdr) hdr.style.top=y+'px';
   if(ib) ib.style.top=(y+vh-62)+'px';
+}
+function updateThreadComposerPosition(){
+  if(usingNativeLegacyDocScroll()) return;
+  var threadScreen=document.getElementById('thread-screen');
+  if(!threadScreen || (' '+threadScreen.className+' ').indexOf(' active ')<0) return;
+  var ib=document.querySelector?document.querySelector('#thread-screen .ibar'):null;
+  var sb=document.querySelector?document.querySelector('#thread-screen .sb'):null;
+  if(!ib || !sb) return;
+  var vh=window.innerHeight||document.documentElement.clientHeight||document.body.clientHeight||0;
+  var height = ib.offsetHeight || 56;
+  var top=Math.max(0, vh-height);
+  ib.style.position='absolute';
+  ib.style.top=top+'px';
+  ib.style.bottom='auto';
+  sb.style.bottom=height+'px';
+  var body=document.getElementById('thread-body');
+  if(body){ body.style.bottom='0'; }
+}
+function syncThreadInputFocus(){
+  var inp=document.getElementById('msg-input');
+  if(!inp) return;
+  function onFocus(){ setTimeout(function(){ updateThreadComposerPosition(); scrollBot(); }, 250); }
+  function onBlur(){ setTimeout(updateThreadComposerPosition, 250); }
+  if(inp.addEventListener){
+    inp.addEventListener('focus',onFocus,false);
+    inp.addEventListener('blur',onBlur,false);
+  } else if(inp.attachEvent){
+    inp.attachEvent('onfocus',onFocus);
+    inp.attachEvent('onblur',onBlur);
+  }
 }
 function scrollBot(){
   var b=document.getElementById('thread-body');
@@ -1015,7 +1133,10 @@ function sendMsg(){
 if(window.addEventListener){
   window.addEventListener('scroll',updateLegacyThreadChromePosition,false);
   window.addEventListener('resize',updateLegacyThreadChromePosition,false);
+  window.addEventListener('resize',updateThreadComposerPosition,false);
 }
+syncThreadInputFocus();
+updateThreadComposerPosition();
 
 /* LONG POLL */
 function startPoll(){cgLog('POLL','start threadUid='+(S.threadUid||0));if(S.polling)return;S.polling=true;doPoll();}
@@ -1280,7 +1401,7 @@ window.onfocus = function(){ if(typeof applyBubbleTheme==='function'){ var bName
       clearTimeout(_bootWatchdog);
       window.__cgBootDone = 1;
       window.__cgBootStarted = 0;
-      if(d&&d.ok){S.isAdmin=!!(d.is_admin);store.set('cg_a',S.isAdmin?'1':'0');if(d.avatar_b64){store.set('cg_av',d.avatar_b64);store.set('hm_av',d.avatar_b64);}updateChatPill();goConvos();}
+      if(d&&d.ok){S.isAdmin=!!(d.is_admin);store.set('cg_a',S.isAdmin?'1':'0');if(d.avatar_b64){store.set('cg_av',d.avatar_b64);store.set('hm_av',d.avatar_b64);}updateChatPill();goConvos();openUserProfileFromHash();}
       else{store.del('cg_t');store.del('cg_u');store.del('cg_n');store.del('cg_a');store.del('cg_av');updateChatPill();show('auth-screen');}
     });
   } else { show('auth-screen'); }
@@ -1318,14 +1439,14 @@ function applyLegacyScrollFallback(){
     (document.head||document.documentElement).appendChild(style);
   }
   style.innerHTML='html,body{height:100% !important;overflow:hidden !important;background:#f2f2f7 !important;color:#1a1a1a !important;}'
-    +'.screen{position:fixed !important;top:0 !important;left:0 !important;right:0 !important;bottom:0 !important;min-height:0 !important;}'
+    +'.screen{position:absolute !important;position:fixed !important;top:0 !important;left:0 !important;right:0 !important;bottom:0 !important;min-height:0 !important;}'
     +'.screen.active{display:block !important;}'
-    +'.header{position:fixed !important;top:0 !important;left:0 !important;right:0 !important;z-index:100 !important;}'
-    +'.sb{position:fixed !important;top:44px !important;left:0 !important;right:0 !important;bottom:0 !important;height:auto !important;overflow-y:scroll !important;overflow-x:hidden !important;-webkit-overflow-scrolling:touch !important;padding-top:0 !important;}'
+    +'.header{position:absolute !important;position:fixed !important;top:0 !important;left:0 !important;right:0 !important;z-index:100 !important;}'
+    +'.sb{position:absolute !important;position:fixed !important;top:44px !important;left:0 !important;right:0 !important;bottom:0 !important;height:auto !important;overflow-y:scroll !important;overflow-x:hidden !important;-webkit-overflow-scrolling:touch !important;padding-top:0 !important;}'
     +'#auth-screen .sb{top:0 !important;}'
     +'#thread-body{bottom:50px !important;}'
     +'.ibar{position:fixed !important;left:0 !important;right:0 !important;bottom:0 !important;z-index:101 !important;}'
-    +'#users-screen .search-bar{position:fixed !important;top:44px !important;left:0 !important;right:0 !important;z-index:101 !important;}'
+    +'#users-screen .search-bar{position:absolute !important;position:fixed !important;top:44px !important;left:0 !important;right:0 !important;z-index:101 !important;}'
     +'#users-body{top:92px !important;}'
     +'#changepw-screen .sb{top:44px !important;}'
     +'.modal-overlay{position:fixed !important;}';
@@ -1373,6 +1494,19 @@ function applyLegacyScrollFallback(){
   var threadBody=document.getElementById('thread-body');
   if(threadBody){threadBody.style.bottom='50px';}
 }
+function applyModernSafeTopFallback(){
+  if(legacyIOSMajor()<=4)return;
+  var safeTop=0;
+  var ua=navigator.userAgent||'';
+  var isModernIPhone=/iPhone/.test(ua) && Math.max(screen.width,screen.height)>=812;
+  if(isModernIPhone) safeTop=16;
+  if(window.innerHeight && screen && screen.height){
+    var diff=screen.height-window.innerHeight;
+    if(diff>safeTop && diff<80) safeTop=diff;
+  }
+  if(safeTop<0) safeTop=0;
+  try{ document.documentElement.style.setProperty('--cg-safe-top', safeTop+'px'); }catch(e){}
+}
 function enableLegacyAvatarInput(){
   if(legacyIOSMajor()>4)return;
   var inp=document.getElementById('profile-av-input');
@@ -1380,6 +1514,7 @@ function enableLegacyAvatarInput(){
 }
 (function(){
   cgLog('BOOT','chat ua='+navigator.userAgent);
+  applyModernSafeTopFallback();
   applyLegacyScrollFallback();
   applyLegacyComposerTheme();
   enableLegacyAvatarInput();
@@ -1389,6 +1524,7 @@ function enableLegacyAvatarInput(){
     var cs=document.getElementById('convos-screen');
     if(cs&&cs.style.display!=='none')goConvos();
   });
+  if(window.location.hash) openUserProfileFromHash(window.location.hash.replace(/^#/,''));
 })();
 </script>
 </body>

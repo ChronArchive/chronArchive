@@ -12,9 +12,9 @@
       font-family:-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif;
       -webkit-text-size-adjust:none; color:#1a1a1a; font-size:15px; }
     /* ── Nav bar ── */
-    #hdr { position:fixed; top:0; left:0; right:0; z-index:100;
+    #hdr { position:absolute; position:fixed; top:0; left:0; right:0; z-index:100;
       height:44px; height:calc(44px + env(safe-area-inset-top, 0px));
-      padding-top:env(safe-area-inset-top, 0px);
+      padding-top:0; padding-top:env(safe-area-inset-top, 0px);
       background:-webkit-gradient(linear,left top,left bottom,from(#f0f0f0),to(#d8d8d8));
       background:-webkit-linear-gradient(top,#f0f0f0 0%,#d8d8d8 100%);
       background:linear-gradient(to bottom,#f0f0f0 0%,#d8d8d8 100%);
@@ -26,7 +26,7 @@
       position:absolute; left:0; right:0; top:env(safe-area-inset-top, 0px); height:44px;
       line-height:44px; text-align:center; pointer-events:none; }
     /* ── Scroll ── */
-    #scroll { position:fixed; top:44px; top:calc(44px + env(safe-area-inset-top, 0px)); left:0; right:0; bottom:0;
+    #scroll { position:absolute; position:fixed; top:44px; top:calc(44px + env(safe-area-inset-top, 0px)); left:0; right:0; bottom:0;
       overflow-y:scroll; -webkit-overflow-scrolling:touch; background:#f2f2f7; }
     /* ── iOS Settings style ── */
     .s-section { margin:18px 0 0; }
@@ -84,19 +84,19 @@
       -webkit-border-radius:9px; border-radius:9px; font-size:11px; font-weight:bold;
       padding:1px 6px; margin-left:4px; }
     /* ── Screens ── */
-    .subscreen { position:fixed; top:0; left:0; right:0; bottom:0; background:#f2f2f7; display:none; z-index:200; }
+    .subscreen { position:absolute; position:fixed; top:0; left:0; right:0; bottom:0; min-height:100%; background:#f2f2f7; display:none; z-index:210; overflow:hidden; }
     .subscreen.open { display:block; }
-    .sub-hdr { position:absolute; top:0; left:0; right:0; height:44px;
+    .sub-hdr { position:absolute; position:fixed; top:0; left:0; right:0; height:44px; height:calc(44px + env(safe-area-inset-top, 0px)); padding-top:0; padding-top:env(safe-area-inset-top, 0px);
       background:-webkit-linear-gradient(top,#f0f0f0 0%,#d8d8d8 100%);
       background:linear-gradient(to bottom,#f0f0f0 0%,#d8d8d8 100%);
       border-bottom:1px solid #b8b8b8;
       -webkit-box-shadow:0 1px 3px rgba(0,0,0,0.12); box-shadow:0 1px 3px rgba(0,0,0,0.12);
-      text-align:center; line-height:44px; font-size:17px; font-weight:bold; color:#1a1a1a; }
-    .sub-back { position:absolute; left:0; top:0; height:44px; line-height:44px;
+      text-align:center; line-height:44px; font-size:17px; font-weight:bold; color:#1a1a1a; z-index:220; }
+    .sub-back { position:absolute; left:0; top:0; top:env(safe-area-inset-top, 0px); height:44px; line-height:44px;
       padding:0 14px; color:#0055cc; cursor:pointer; font-size:15px; -webkit-tap-highlight-color:transparent; }
-    .sub-right { position:absolute; right:0; top:0; height:44px; line-height:44px;
+    .sub-right { position:absolute; right:0; top:0; top:env(safe-area-inset-top, 0px); height:44px; line-height:44px;
       padding:0 14px; color:#0055cc; cursor:pointer; font-size:15px; font-weight:bold; -webkit-tap-highlight-color:transparent; }
-    .sub-body { position:absolute; top:44px; left:0; right:0; bottom:0;
+    .sub-body { position:absolute; top:44px; top:calc(44px + env(safe-area-inset-top, 0px)); left:0; right:0; bottom:0;
       overflow-y:scroll; -webkit-overflow-scrolling:touch; background:#f2f2f7; }
     .sub-pad { padding:16px; }
     /* ── Form fields ── */
@@ -433,13 +433,19 @@ S.av    = store.g('cg_av')||store.g('hm_av')||'';
 
 /* ── Device catalog ── */
 var CATALOG = [
-  {make:'Apple', model:'iPhone',     versions:['2G','3G','3GS','4','4S','5','5c','5s']},
-  {make:'Apple', model:'iPad',       versions:['1st gen','2','3rd gen','4th gen','mini','mini 2','Air']},
-  {make:'Apple', model:'iPod touch', versions:['1st gen','2nd gen','3rd gen','4th gen','5th gen']},
-  {make:'Apple', model:'Mac',        versions:['MacBook (2006)','MacBook (2008)','MacBook Pro','iMac','Mac mini','Mac Pro','MacBook Air']},
-  {make:'Samsung', model:'Galaxy S',    versions:['S','S2','S3','S4']},
-  {make:'Samsung', model:'Galaxy Note', versions:['Note','Note 2','Note 3']},
-  {make:'Samsung', model:'Galaxy Tab',  versions:['7.0','8.9','10.1','A10']},
+  {make:'Apple', model:'iPhone',     versions:['2G','3G','3GS','4','4S','5','5c','5s','6','6 Plus','6S','6S Plus','SE (1st gen)','7','7 Plus','8','8 Plus','X','XR','XS','XS Max','11','11 Pro','11 Pro Max','12 mini','12','12 Pro','12 Pro Max','13 mini','13','13 Pro','13 Pro Max','14','14 Plus','14 Pro','14 Pro Max','15','15 Plus','15 Pro','15 Pro Max','16','16 Plus','16 Pro','16 Pro Max','17','Air','17 Pro','17 Pro Max']},
+  {make:'Apple', model:'iPad',       versions:['1st gen','2','3rd gen','4th gen','mini','mini 2','mini 3','mini 4','mini 5','mini 6','Air','Air 2','Air 3','Air 4','Air 5','Pro 9.7','Pro 10.5','Pro 11','Pro 12.9','Pro 12.9 (2nd gen)','Pro 12.9 (3rd gen)','Pro 12.9 (4th gen)','Pro 12.9 (5th gen)']},
+  {make:'Apple', model:'iPod touch', versions:['1st gen','2nd gen','3rd gen','4th gen','5th gen','6th gen','7th gen']},
+  {make:'Apple', model:'Mac',        versions:['MacBook (2006)','MacBook (2008)','MacBook Pro','iMac','Mac mini','Mac Pro','MacBook Air','MacBook Pro Retina','iMac Pro','MacBook Air M1','MacBook Pro M1','Mac mini M1','Mac Studio','Mac Pro (M-series)']},
+  {make:'Samsung', model:'Galaxy S',    versions:['S','S2','S3','S4','S5','S6','S6 Edge','S7','S7 Edge','S8','S8+','S9','S9+','S10','S10+','S10e','S20','S20+','S20 Ultra','S21','S21+','S21 Ultra','S22','S22+','S22 Ultra','S23','S23+','S23 Ultra','S24','S24+','S24 Ultra','S25','S25+','S25 Ultra']},
+  {make:'Samsung', model:'Galaxy Note', versions:['Note','Note 2','Note 3','Note 4','Note 5','Note 7','Note 8','Note 9','Note 10','Note 10+','Note 20','Note 20 Ultra']},
+  {make:'Samsung', model:'Galaxy Tab',  versions:['7.0','8.9','10.1','A10','S','S2','S3','S4','S5e','S6','S7','S7+','S8','S8+','S9','S9+']},
+  {make:'Samsung', model:'Galaxy Z',    versions:['Fold','Fold 2','Fold 3','Fold 4','Fold 5','Flip','Flip 3','Flip 4','Flip 5']},
+  {make:'Samsung', model:'SmartFridge', versions:['Family Hub']},
+  {make:'Google', model:'Nexus',   versions:['4','5','6','7','10']},
+  {make:'Google', model:'Pixel',   versions:['Pixel','Pixel 2','Pixel 3','Pixel 3a','Pixel 4','Pixel 4a','Pixel 5','Pixel 5a','Pixel 6','Pixel 6 Pro','Pixel 6a','Pixel 7','Pixel 7 Pro','Pixel 7a','Pixel 8','Pixel 8 Pro']},
+  {make:'Google', model:'Pixel Fold', versions:['Fold','Fold 2']},
+  {make:'OnePlus', model:'OnePlus', versions:['1','2','3','3T','5','5T','6','6T','7','7 Pro','7T','8','8 Pro','8T','9','9 Pro','10','10 Pro','11']},
   {make:'Nokia',   model:'Lumia',       versions:['520','620','720','800','900','920','1020','1520']},
   {make:'Nokia',   model:'N-series',    versions:['N8','N9','N95','N97']},
   {make:'BlackBerry', model:'Bold',     versions:['9700','9780','9900']},
@@ -451,7 +457,6 @@ var CATALOG = [
   {make:'Motorola', model:'RAZR',  versions:['V3','M','HD','MAXX HD']},
   {make:'Motorola', model:'Moto',  versions:['G','X','E']},
   {make:'LG',     model:'Optimus', versions:['G','2X','3D','Black','L5','L7']},
-  {make:'Google', model:'Nexus',   versions:['4','5','6','7','10']},
   {make:'Microsoft', model:'Surface', versions:['RT','Pro','Pro 2','Pro 3']},
   {make:'Palm',   model:'Pre',     versions:['Pre','Pre 2','Pre 3','Pre Plus']},
   {make:'Palm',   model:'Pixi',    versions:['Pixi','Pixi Plus']},
@@ -1069,11 +1074,11 @@ function applyLegacyScrollFallback(){
     (document.head||document.documentElement).appendChild(style);
   }
   style.innerHTML='html,body{height:100% !important;overflow:hidden !important;background:#f2f2f7 !important;color:#1a1a1a !important;}'
-    +'#hdr{position:fixed !important;top:0 !important;left:0 !important;right:0 !important;z-index:100 !important;}'
-    +'#scroll{display:block !important;position:fixed !important;top:44px !important;left:0 !important;right:0 !important;bottom:0 !important;height:auto !important;min-height:0 !important;overflow-y:scroll !important;overflow-x:hidden !important;-webkit-overflow-scrolling:touch !important;padding-top:0 !important;}'
-    +'.subscreen{position:fixed !important;top:0 !important;left:0 !important;right:0 !important;bottom:0 !important;min-height:0 !important;}'
-    +'.sub-hdr{position:fixed !important;top:0 !important;left:0 !important;right:0 !important;z-index:201 !important;}'
-    +'.sub-body{position:fixed !important;top:44px !important;left:0 !important;right:0 !important;bottom:0 !important;height:auto !important;overflow-y:scroll !important;overflow-x:hidden !important;-webkit-overflow-scrolling:touch !important;padding-top:0 !important;}';
+    +'#hdr{position:absolute !important;position:fixed !important;top:0 !important;left:0 !important;right:0 !important;z-index:100 !important;}'
+    +'#scroll{display:block !important;position:absolute !important;position:fixed !important;top:44px !important;left:0 !important;right:0 !important;bottom:0 !important;height:auto !important;min-height:0 !important;overflow-y:scroll !important;overflow-x:hidden !important;-webkit-overflow-scrolling:touch !important;padding-top:0 !important;}'
+    +'.subscreen{position:absolute !important;position:fixed !important;top:0 !important;left:0 !important;right:0 !important;bottom:0 !important;min-height:0 !important;}'
+    +'.sub-hdr{position:absolute !important;position:fixed !important;top:0 !important;left:0 !important;right:0 !important;z-index:201 !important;}'
+    +'.sub-body{position:absolute !important;position:fixed !important;top:44px !important;left:0 !important;right:0 !important;bottom:0 !important;height:auto !important;overflow-y:scroll !important;overflow-x:hidden !important;-webkit-overflow-scrolling:touch !important;padding-top:0 !important;}';
   document.documentElement.style.height='100%';
   document.body.style.height='100%';
   document.documentElement.style.overflow='hidden';
@@ -1081,10 +1086,10 @@ function applyLegacyScrollFallback(){
   document.body.style.color='#1a1a1a';
   document.body.style.background='#f2f2f7';
   var hdr=document.getElementById('hdr');
-  if(hdr){hdr.style.position='fixed';hdr.style.top='0';hdr.style.left='0';hdr.style.right='0';}
+  if(hdr){hdr.style.position='absolute';hdr.style.position='fixed';hdr.style.top='0';hdr.style.left='0';hdr.style.right='0';}
   var scroll=document.getElementById('scroll');
   if(scroll){
-    scroll.style.position='fixed';
+    scroll.style.position='absolute';scroll.style.position='fixed';
     scroll.style.top='44px';
     scroll.style.left='0';
     scroll.style.right='0';
@@ -1100,7 +1105,7 @@ function applyLegacyScrollFallback(){
   var screens=document.getElementsByClassName?document.getElementsByClassName('subscreen'):[];
   var i;
   for(i=0;i<screens.length;i++){
-    screens[i].style.position='fixed';
+    screens[i].style.position='absolute';screens[i].style.position='fixed';
     screens[i].style.top='0';
     screens[i].style.left='0';
     screens[i].style.right='0';
@@ -1109,7 +1114,7 @@ function applyLegacyScrollFallback(){
   }
   var subs=document.getElementsByClassName?document.getElementsByClassName('sub-body'):[];
   for(i=0;i<subs.length;i++){
-    subs[i].style.position='fixed';
+    subs[i].style.position='absolute';subs[i].style.position='fixed';
     subs[i].style.top='44px';
     subs[i].style.left='0';
     subs[i].style.right='0';

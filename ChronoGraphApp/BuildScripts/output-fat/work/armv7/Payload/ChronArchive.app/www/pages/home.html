@@ -205,6 +205,37 @@
       -webkit-transition:-webkit-transform 0.15s; transition:transform 0.15s; }
     .ptr-ind.ptr-ready:after { color:#0055cc;
       -webkit-transform:rotate(180deg); transform:rotate(180deg); }
+
+    /* Onboarding overlay */
+    .onboard-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+      background:#f2f2f7; z-index:600; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+    .onboard-screen { display:none; min-height:100%; position:relative; padding:24px 18px 96px; }
+    .onboard-screen.active { display:block; }
+    .onboard-title { font-size:26px; font-weight:bold; line-height:1.2; margin:20px 0 10px; color:#1a1a1a; }
+    .onboard-text { font-size:15px; color:#444; line-height:1.6; max-width:340px; margin:0 auto; }
+    .auth-logo { text-align:center; margin-bottom:14px; }
+    .auth-logo img { height:46px; width:auto; max-width:80%; }
+    .onboard-footer { position:fixed; left:0; right:0; bottom:0;
+      padding:12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+      background:#f2f2f7; border-top:1px solid #d8d8d8; }
+    .onboard-btn { display:block; width:100%; padding:13px;
+      background:-webkit-linear-gradient(top,#1a7ce8 0%,#0055cc 100%);
+      background:linear-gradient(to bottom,#1a7ce8 0%,#0055cc 100%);
+      border:1px solid #003ca0; -webkit-border-radius:8px; border-radius:8px;
+      color:#fff; font-size:15px; font-weight:bold; cursor:pointer;
+      -webkit-appearance:none; font-family:inherit; }
+    .onboard-btn:disabled { opacity:0.5; }
+    .onboard-skip { display:block; width:100%; margin-top:10px; padding:10px 0;
+      background:none; border:none; color:#0055cc; font-size:14px;
+      cursor:pointer; -webkit-appearance:none; font-family:inherit; }
+    .legal-box { background:#fff; border:1px solid #d8d8d8;
+      -webkit-border-radius:12px; border-radius:12px; padding:14px;
+      color:#333; text-align:left; font-size:13px; line-height:1.6; }
+    .legal-box p { margin-bottom:10px; }
+    .legal-box p:last-child { margin-bottom:0; }
+    .legal-checkbox { display:block; margin-top:14px; font-size:15px; color:#1a1a1a; }
+    .legal-checkbox input { margin-right:8px; vertical-align:middle; }
+    .oaf-fields { max-width:360px; margin:18px auto 0; }
   </style>
 </head>
 <body>
@@ -229,6 +260,49 @@
   </div>
 
 </div><!-- /shell -->
+
+<div id="onboard-overlay" class="onboard-overlay">
+  <div id="onboard-welcome-screen" class="onboard-screen active">
+    <div style="text-align:center; margin-top:72px;">
+      <div class="auth-logo"><img src="../assets/ChronoGraphLogo.png" alt="ChronoGraph"></div>
+      <div class="onboard-title">Chat, Post, Connect like it&#39;s 2010!</div>
+      <div class="onboard-text">Chronograph is a lightweight social hub built to work on both legacy devices and modern phones.</div>
+    </div>
+    <div class="onboard-footer"><button class="onboard-btn" onclick="goOnboardLegal()">Lets Go!</button></div>
+  </div>
+  <div id="onboard-legal-screen" class="onboard-screen">
+    <div style="text-align:center; margin-top:52px;">
+      <div class="onboard-title">Legal Stuff</div>
+      <div class="onboard-text">Read this before you continue.</div>
+    </div>
+    <div class="legal-box">
+      <p>By using the service you agree that you are over the age of 13, or whatever age is required legally by your state, country, or territory, and certify you are eligible to sign up for a &quot;social media&quot; service.</p>
+      <p>You also acknowledge that this service supports old devices which may have security issues, and should refrain from posting anything that you wouldn&#39;t want to be public, even in direct messages.</p>
+      <p>This is a small tool by a single developer, you are solely legally responsible for your actions. Your data will not be sold.</p>
+    </div>
+    <label class="legal-checkbox"><input type="checkbox" id="onboard-legal-accept" onchange="updateOnboardAgreeButton()"> I agree</label>
+    <div class="onboard-footer"><button id="onboard-legal-agree-btn" class="onboard-btn" onclick="onboardAgreeLegal()" disabled>I agree</button></div>
+  </div>
+  <div id="onboard-auth-screen" class="onboard-screen">
+    <div style="text-align:center; margin-top:56px;">
+      <div class="auth-logo"><img src="../assets/ChronoGraphLogo.png" alt="ChronoGraph"></div>
+      <div class="onboard-title">Sign In or Register</div>
+      <div class="onboard-text">Login now or skip to browse the feed as a guest.</div>
+    </div>
+    <div class="oaf-fields">
+      <div class="auth-tabs">
+        <div class="auth-tab on" id="oat-li" onclick="setOAMode('login')">Sign In</div>
+        <div class="auth-tab" id="oat-re" onclick="setOAMode('register')">Register</div>
+      </div>
+      <input type="text" id="oaf-user" class="mfield" placeholder="Username" autocorrect="off" autocapitalize="off">
+      <input type="password" id="oaf-pass" class="mfield" placeholder="Password">
+      <div id="oaf-conf-row" style="display:none"><input type="password" id="oaf-conf" class="mfield" placeholder="Confirm Password"></div>
+      <input type="button" id="oaf-btn" class="mbtn" value="Sign In" onclick="doAuth()">
+      <div id="oaf-err" class="merr"></div>
+      <button class="onboard-skip" onclick="skipLogin()">Skip for now</button>
+    </div>
+  </div>
+</div>
 
 <!-- AUTH MODAL -->
 <div class="modal-bg" id="auth-modal">
@@ -432,8 +506,44 @@ function normalizeMediaSrc(src){
 function esc(s){var d=document.createElement('div');d.appendChild(document.createTextNode(s||''));return d.innerHTML;}
 function openModal(id){document.getElementById(id).className='modal-bg open';}
 function closeModal(id){document.getElementById(id).className='modal-bg';}
+function isOnboardAuthActive(){
+  var ov=document.getElementById('onboard-overlay');
+  var sc=document.getElementById('onboard-auth-screen');
+  if(!ov||!sc) return false;
+  if(ov.style.display==='none') return false;
+  return (' '+sc.className+' ').indexOf(' active ')>=0;
+}
+function showAuthErr(msg){var e=authElem('af-err'); if(e){e.style.display='block'; e.textContent=msg; }}
+function hideAuthErr(){var e=authElem('af-err'); if(e){e.style.display='none'; e.textContent=''; }}
 function showErr(id,msg){var e=document.getElementById(id);if(e){e.style.display='block';e.textContent=msg;}}
-function hideErr(id){var e=document.getElementById(id);if(e){e.style.display='none';}}
+function hideErr(id){var e=document.getElementById(id);if(e){e.style.display='none';e.textContent='';}}
+function authElem(id){
+  var onboard=isOnboardAuthActive();
+  var primary=onboard?document.getElementById('o'+id):document.getElementById(id);
+  var fallback=onboard?document.getElementById(id):document.getElementById('o'+id);
+  return primary||fallback;
+}
+function authVal(id){var e=authElem(id); return e? (e.value||'') : '';} 
+function setOAMode(m){S.authMode=m; var li=document.getElementById('oat-li'), re=document.getElementById('oat-re'), row=document.getElementById('oaf-conf-row'), btn=document.getElementById('oaf-btn'); if(li) li.className='auth-tab'+(m==='login'?' on':''); if(re) re.className='auth-tab'+(m==='register'?' on':''); if(row) row.style.display=m==='login'?'none':'block'; if(btn) btn.value=m==='login'?'Sign In':'Create Account'; hideAuthErr(); }
+function showOnboard(id){
+  var overlay=document.getElementById('onboard-overlay');
+  if(overlay){
+    overlay.style.display='block';
+    try{overlay.scrollTop=0;}catch(e){}
+    try{window.scrollTo(0,0);}catch(e2){}
+  }
+  var screens=['onboard-welcome-screen','onboard-legal-screen','onboard-auth-screen'];
+  for(var i=0;i<screens.length;i++){
+    var el=document.getElementById(screens[i]);
+    if(el){el.className='onboard-screen'+(screens[i]===id?' active':'');}
+  }
+  if(id==='onboard-auth-screen') setOAMode('login');
+}
+function hideOnboard(){var overlay=document.getElementById('onboard-overlay'); if(overlay) overlay.style.display='none';}
+function goOnboardLegal(){showOnboard('onboard-legal-screen'); updateOnboardAgreeButton();}
+function updateOnboardAgreeButton(){var chk=document.getElementById('onboard-legal-accept'); var btn=document.getElementById('onboard-legal-agree-btn'); if(!btn) return; btn.disabled = !(chk && chk.checked);}
+function onboardAgreeLegal(){var chk=document.getElementById('onboard-legal-accept'); if(!chk||!chk.checked) return; try{store.s('cg_onboard_accepted','1');}catch(e){} showOnboard('onboard-auth-screen');}
+function skipLogin(){try{store.s('cg_onboard_accepted','1');}catch(e){} hideOnboard(); loadFeed(true); queueLegacyScrollRefresh();}
 
 function req(m,path,body,cb){
   var x; try{x=new XMLHttpRequest();}catch(e){try{x=new ActiveXObject('Microsoft.XMLHTTP');}catch(e2){return;}}
@@ -876,8 +986,8 @@ function sharePost(pid){
 
 /* ─── View user (opens chat with that user) ─── */
 function openProfOf(uid){
-  /* Navigate to the chat page which has full user profile support */
-  try{window.location.href='chat.html';}catch(e){}
+  /* Navigate to the chat tab and open the other user's profile. */
+  try{window.location.href='cgswitch://chat?uid='+encodeURIComponent(uid);}catch(e){}
 }
 
 /* ─── Report ─── */
@@ -914,20 +1024,20 @@ function setAMode(m){
   hideErr('af-err');
 }
 function doAuth(){
-  var user=(document.getElementById('af-user').value||'').replace(/^\s+|\s+$/g,'');
-  var pass=document.getElementById('af-pass').value||'';
+  var user=(authVal('af-user')||'').replace(/^\s+|\s+$/g,'');
+  var pass=authVal('af-pass')||'';
   cgLog('AUTH','submit mode='+S.authMode+' user='+user);
-  hideErr('af-err');
-  if(!user||!pass){showErr('af-err','Fill in all fields.');return;}
+  hideAuthErr();
+  if(!user||!pass){showAuthErr('Fill in all fields.');return;}
   if(S.authMode==='register'){
-    var conf=document.getElementById('af-conf').value||'';
-    if(pass!==conf){showErr('af-err','Passwords do not match.');return;}
-    if(pass.length<6){showErr('af-err','Password must be at least 6 characters.');return;}
+    var conf=authVal('af-conf')||'';
+    if(pass!==conf){showAuthErr('Passwords do not match.');return;}
+    if(pass.length<6){showAuthErr('Password must be at least 6 characters.');return;}
   }
-  var btn=document.getElementById('af-btn'); btn.disabled=true;
+  var btn=authElem('af-btn'); if(btn) btn.disabled=true;
   req('POST','/api/'+S.authMode,{username:user,password:pass},function(d,err){
     btn.disabled=false;
-    if(err||!d.ok){showErr('af-err',d.error||'Authentication failed.');return;}
+    if(err||!d.ok){ showAuthErr(d.error||'Authentication failed.'); return; }
     cgLog('AUTH','success mode='+S.authMode+' uid='+(d.user_id||0));
     S.token=d.token; S.uid=d.user_id; S.uname=d.username; S.av=d.avatar_b64||'';
     store.s('cg_t',d.token); store.s('cg_u',d.user_id+''); store.s('cg_n',d.username);
@@ -952,6 +1062,7 @@ function afterLogin(){
     store.s('cg_n',d.username); store.s('cg_av',S.av);
     store.s('hm_n',d.username); store.s('hm_av',S.av);
     closeModal('auth-modal');
+    hideOnboard();
     updatePill();
     loadFeed(true);
   });
@@ -1212,8 +1323,12 @@ function applyLegacyScrollFallback(){
   }
   style.innerHTML='html,body{height:100% !important;overflow:hidden !important;background:#f2f2f7 !important;color:#1a1a1a !important;}'
     +'#shell{display:block !important;height:100% !important;overflow:hidden !important;position:relative !important;top:0 !important;left:0 !important;right:0 !important;bottom:0 !important;}'
-    +'#hdr{position:fixed !important;top:0 !important;left:0 !important;right:0 !important;height:44px !important;z-index:100 !important;}'
-    +'#feed-wrap{display:block !important;position:fixed !important;top:44px !important;left:0 !important;right:0 !important;bottom:0 !important;height:auto !important;min-height:0 !important;overflow-y:scroll !important;overflow-x:hidden !important;-webkit-overflow-scrolling:touch !important;padding-top:0 !important;}';
+    +'#hdr{position:absolute !important;position:fixed !important;top:0 !important;left:0 !important;right:0 !important;height:44px !important;z-index:100 !important;}'
+    +'#feed-wrap{display:block !important;position:absolute !important;position:fixed !important;top:44px !important;left:0 !important;right:0 !important;bottom:0 !important;height:auto !important;min-height:0 !important;overflow-y:scroll !important;overflow-x:hidden !important;-webkit-overflow-scrolling:touch !important;padding-top:0 !important;}'
+    +'.onboard-overlay{position:absolute !important;top:0 !important;left:0 !important;right:0 !important;bottom:0 !important;overflow-y:scroll !important;-webkit-overflow-scrolling:touch !important;z-index:600 !important;}'
+    +'.onboard-screen{display:none !important;position:relative !important;min-height:100% !important;padding:20px 14px 90px !important;}'
+    +'.onboard-screen.active{display:block !important;}'
+    +'.onboard-footer{position:absolute !important;left:0 !important;right:0 !important;bottom:0 !important;padding:10px 12px !important;}';
   document.documentElement.style.height='100%';
   document.body.style.height='100%';
   document.documentElement.style.overflow='hidden';
@@ -1286,12 +1401,23 @@ window.onload=function(){
     store.s('hm_n',S.uname);
     store.s('hm_av',S.av);
   }
+  var onboardOk = store.g('cg_onboard_accepted')==='1';
+  if(!onboardOk){
+    showOnboard('onboard-welcome-screen');
+    return;
+  }
+  if(!S.token){
+    showOnboard('onboard-auth-screen');
+    return;
+  }
   if(S.token){
     req('GET','/api/me',null,function(d,err){
       if(err||!d.ok){S.token=null;store.d('hm_t');store.d('cg_t');S.uid=null;S.uname=null;}
       else{S.uid=d.id||d.user_id;S.uname=d.username;S.av=d.avatar_b64||'';store.s('hm_n',d.username);store.s('hm_av',S.av);store.s('cg_n',d.username);store.s('cg_av',S.av);store.s('cg_t',S.token);store.s('cg_u',S.uid+'');if(legacyIOSMajor()<=4)scheduleLegacyFeedRetry();}
     });
   }
+  var tog=document.getElementById('hdr-feed-toggle');
+  if(tog) tog.className = (S.feedMode==='friends'?'friends':'');
   loadFeed(true);
   scheduleLegacyFeedRetry();
   queueLegacyScrollRefresh();

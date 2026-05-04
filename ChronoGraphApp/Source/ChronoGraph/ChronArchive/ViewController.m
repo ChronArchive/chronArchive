@@ -47,6 +47,7 @@ static NSString *CGBase64FromData(NSData *data) {
 @property (nonatomic, copy) NSString *imagePickerTarget;
 @property (nonatomic, assign) BOOL webViewInitPending;
 #endif
+- (void)openChatProfileWithUID:(NSString *)uid;
 @end
 
 @implementation ViewController
@@ -58,7 +59,9 @@ static NSString *CGBase64FromData(NSData *data) {
 
 - (BOOL)shouldUseSingleWebViewMode {
     NSInteger major = (NSInteger)[[[UIDevice currentDevice] systemVersion] intValue];
-    return (major >= 13);
+    /* iOS 26+ is more stable with persistent per-tab webviews.
+       Single-webview recycling can cause full tab reloads and blank states there. */
+    return (major >= 13 && major < 26);
 }
 
 - (void)teardownWebViewPreservingURL:(BOOL)preserveURL {
@@ -92,18 +95,24 @@ static NSString *CGBase64FromData(NSData *data) {
 - (void)ensureWebViewCreated {
     NSInteger legacyMajor;
 
-    if (self.webView) return;
+    if (self.webView) {
+        /* Recovery: if a webview exists but has no main request, reload tab root. */
+        if (!self.webView.request.URL && self.initialURL) {
+            NSLog(@"[CGNATIVE] recover loadRequest %@", self.initialURL.absoluteString);
+            [self.webView loadRequest:[NSURLRequest requestWithURL:self.initialURL]];
+        }
+        return;
+    }
 
     if ([self shouldUseSingleWebViewMode]) {
         [[NSNotificationCenter defaultCenter] postNotificationName:CGReleaseInactiveWebViewsNotification object:self];
     }
 
     if (![self canCreateWebViewNow]) {
-        if (!self.webViewInitPending) {
-            self.webViewInitPending = YES;
-            [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(ensureWebViewCreated) object:nil];
-            [self performSelector:@selector(ensureWebViewCreated) withObject:nil afterDelay:0.25];
-        }
+        /* Allow repeated retries — on iOS 26 the app state may not be .active yet
+           when viewDidAppear fires; keep polling until the state settles. */
+        [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(ensureWebViewCreated) object:nil];
+        [self performSelector:@selector(ensureWebViewCreated) withObject:nil afterDelay:0.25];
         return;
     }
 
@@ -182,7 +191,10 @@ static NSString *CGBase64FromData(NSData *data) {
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
     [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(ensureWebViewCreated) object:nil];
-    [self performSelector:@selector(ensureWebViewCreated) withObject:nil afterDelay:0.08];
+    /* Call immediately — the user just tapped this tab so the app is guaranteed active.
+       A zero-delay deferred call previously caused a race on iOS 26 where applicationState
+       had not yet transitioned to UIApplicationStateActive. */
+    [self ensureWebViewCreated];
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
@@ -433,6 +445,43 @@ static NSString *CGBase64FromData(NSData *data) {
     NSURL      *url    = request.URL;
     NSString   *scheme = url.scheme.lowercaseString;
 
+    if ([scheme isEqualToString:@"cgswitch"]) {
+        NSString *host = [[url host] lowercaseString];
+        NSString *uid = nil;
+        NSString *query = [url query];
+        if (query) {
+            NSArray *pairs = [query componentsSeparatedByString:@"&"];
+            for (NSString *pair in pairs) {
+                NSArray *parts = [pair componentsSeparatedByString:@"="];
+                if ([parts count] == 2 && [[parts objectAtIndex:0] isEqualToString:@"uid"]) {
+                    uid = [parts objectAtIndex:1];
+                    break;
+                }
+            }
+        }
+        if ([host isEqualToString:@"chat"]) {
+            UITabBarController *tabs = self.navigationController.tabBarController;
+            if (tabs && [tabs.viewControllers count] > 2) {
+                tabs.selectedIndex = 2;
+                UIViewController *tabNav = [tabs.viewControllers objectAtIndex:2];
+                if ([tabNav isKindOfClass:[UINavigationController class]]) {
+                    UINavigationController *nav = (UINavigationController *)tabNav;
+                    if ([nav.viewControllers count] > 0) {
+                        UIViewController *root = [nav.viewControllers objectAtIndex:0];
+                        if ([root isKindOfClass:[ViewController class]]) {
+                            ViewController *vc = (ViewController *)root;
+                            if (uid && [uid length] > 0) {
+                                [vc openChatProfileWithUID:uid];
+                            }
+                        }
+                    }
+                }
+            }
+            return NO;
+        }
+        return NO;
+    }
+
     if ([scheme isEqualToString:@"cgpick"]) {
         NSString *host = [[url host] lowercaseString];
         if ([host isEqualToString:@"avatar"]) {
@@ -449,7 +498,36 @@ static NSString *CGBase64FromData(NSData *data) {
     if ([scheme isEqualToString:@"about"] ||
         [scheme isEqualToString:@"javascript"]) return YES;
 
-    /* Non-http(s) / non-file schemes (itms-services:, mailto:, tel:, etc.) — hand to system */
+    /* cgopen:// — JS-side explicit external URL open (search results, web search fallback).
+       The URL to open is the encoded URL-path/query of the cgopen:// request.
+       e.g.  window.location.href = 'cgopen://open?u=' + encodeURIComponent(targetURL); */
+    if ([scheme isEqualToString:@"cgopen"]) {
+        NSString *query = [url query];
+        NSString *target = nil;
+        if (query) {
+            NSArray *pairs = [query componentsSeparatedByString:@"&"];
+            for (NSString *pair in pairs) {
+                NSArray *parts = [pair componentsSeparatedByString:@"="];
+                if ([parts count] >= 2 && [[parts objectAtIndex:0] isEqualToString:@"u"]) {
+                    /* Re-join remaining parts in case the value itself contained '=' */
+                    NSMutableArray *valParts = [parts mutableCopy];
+                    [valParts removeObjectAtIndex:0];
+                    NSString *encoded = [valParts componentsJoinedByString:@"="];
+                    target = [encoded stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+                    break;
+                }
+            }
+        }
+        if (target && [target length] > 0) {
+            NSURL *extURL = [NSURL URLWithString:target];
+            if (extURL && [[UIApplication sharedApplication] canOpenURL:extURL]) {
+                [[UIApplication sharedApplication] openURL:extURL];
+            }
+        }
+        return NO;
+    }
+
+    /* Non-file / non-http(s) schemes (itms-services:, mailto:, tel:, etc.) — hand to system */
     if (![scheme isEqualToString:@"file"] &&
         ![scheme isEqualToString:@"http"]  &&
         ![scheme isEqualToString:@"https"]) {
@@ -460,7 +538,8 @@ static NSString *CGBase64FromData(NSData *data) {
     }
 
     /* User-initiated navigations (link tap or form submit) open in a pushed VC so the
-       native back button works.  Sub-resource loads (images, scripts, XHR) fall through. */
+       native back button works.  Sub-resource loads (images, scripts, XHR, iframes)
+       fall through with return YES. */
     BOOL isUserNav = (navigationType == UIWebViewNavigationTypeLinkClicked ||
                       navigationType == UIWebViewNavigationTypeFormSubmitted);
     if (isUserNav) {
@@ -487,6 +566,22 @@ static NSString *CGBase64FromData(NSData *data) {
     }
 
     return YES;
+}
+
+- (void)openChatProfileWithUID:(NSString *)uid {
+    if (!uid || [uid length] == 0) return;
+    NSString *js = [NSString stringWithFormat:@"try{openUserProfile(%@,'','home-screen');}catch(e){}", uid];
+    if (self.webView) {
+        NSURL *cur = self.webView.request.URL;
+        if (!cur || [cur.absoluteString rangeOfString:self.rootURL.absoluteString].location == NSNotFound) {
+            NSURL *target = [NSURL URLWithString:[NSString stringWithFormat:@"%@#user-%@", self.rootURL.absoluteString, uid]];
+            [self.webView loadRequest:[NSURLRequest requestWithURL:target]];
+        } else {
+            [self.webView stringByEvaluatingJavaScriptFromString:js];
+        }
+    } else {
+        self.initialURL = [NSURL URLWithString:[NSString stringWithFormat:@"%@#user-%@", self.rootURL.absoluteString, uid]];
+    }
 }
 
 - (void)presentImagePickerForTarget:(NSString *)target {

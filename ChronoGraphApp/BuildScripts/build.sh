@@ -94,9 +94,9 @@ done
 echo "  Injected launch images"
 
 INFO="$OUTPUT_DIR/Payload/ChronArchive.app/Info.plist"
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0" "$INFO" 2>/dev/null || true
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 10" "$INFO" 2>/dev/null || true
-echo "  Version → 1.0 (build 10)"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.1" "$INFO" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 11" "$INFO" 2>/dev/null || true
+echo "  Version → 1.1 (build 11)"
 
 # Ad-hoc sign the app so the Mach-O loader accepts it on the device.
 # AppSync Unified / ipainstaller bypass the signature *check*, but the

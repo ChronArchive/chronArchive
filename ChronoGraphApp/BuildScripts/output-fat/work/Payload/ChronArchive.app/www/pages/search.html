@@ -504,16 +504,29 @@ function renderPerson(u){
 function searchWeb(q){
   cgLog('SEARCH','web start q='+q);
   var body=document.getElementById('results-body');
+  if(isLegacyIOS()){
+    cgLog('SEARCH','web legacy fallback q='+q);
+    body.innerHTML='<div class="res-load">Opening web search&#8230;</div>';
+    goWeb(q);
+    return;
+  }
   /* Try SearXNG first; fall back to Bing redirect */
   var url=SEARXNG+'/search?q='+encodeURIComponent(q)+'&format=json&language=en';
-  var x;try{x=new XMLHttpRequest();}catch(e){goWeb(q);return;}
+  var x;
+  try{x=new XMLHttpRequest();}catch(e){goWeb(q);return;}
+  var timedOut=false;
+  var timeoutId=setTimeout(function(){
+    timedOut=true;
+    cgLog('SEARCH','web timeout q='+q);
+    goWeb(q);
+  },5000);
   x.open('GET',url,true);
-  x.timeout=5000;
-  x.ontimeout=function(){goWeb(q);};
   x.onreadystatechange=function(){
-    if(x.readyState!==4)return;
+    if(timedOut||x.readyState!==4) return;
+    clearTimeout(timeoutId);
     if(x.status===0){goWeb(q);return;}
-    var d;try{d=parseJSON(x.responseText);}catch(e){goWeb(q);return;}
+    var d;
+    try{d=parseJSON(x.responseText);}catch(e){goWeb(q);return;}
     var results=d.results||[];
     if(!results.length){body.innerHTML='<div class="res-empty">No web results. <span style="color:#0055cc;cursor:pointer" onclick="goWeb(\''+esc(q).replace(/'/g,"&#39;")+'\')" >Open in browser</span></div>';return;}
     var html='';
@@ -531,30 +544,42 @@ function searchWeb(q){
     body.innerHTML=html;
     queueLegacyScrollRefresh();
   };
-  x.send(null);
+  x.onerror=function(){
+    if(timedOut) return;
+    clearTimeout(timeoutId);
+    cgLog('SEARCH','web error q='+q);
+    goWeb(q);
+  };
+  x.ontimeout=function(){
+    if(timedOut) return;
+    clearTimeout(timeoutId);
+    cgLog('SEARCH','web timeout q='+q);
+    goWeb(q);
+  };
+  try{x.send(null);}catch(e){
+    if(!timedOut){
+      clearTimeout(timeoutId);
+      goWeb(q);
+    }
+  }
 }
 function safeOpenUrl(u){
+  /* Use the native cgopen:// scheme so Safari opens the URL instead of UIWebView.
+     This avoids UIWebView loading external http/https pages (crashes on iOS 26,
+     and pollutes the app tab on older devices). */
   try{
-    var w=window.open(u,'_blank');
-    if(w&&typeof w.focus==='function'){w.focus();return true;}
-  }catch(e){}
-  try{
-    var a=document.createElement('a');
-    a.href=u; a.target='_blank'; a.rel='noreferrer noopener';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    window.location.href='cgopen://open?u='+encodeURIComponent(u);
     return true;
   }catch(e){}
   return false;
 }
 function goWeb(q){
   cgLog('SEARCH','web fallback open q='+q);
-  if(!safeOpenUrl('https://m.bing.com/search?q='+encodeURIComponent(q))){window.location.href='https://m.bing.com/search?q='+encodeURIComponent(q);}
+  window.location.href='cgopen://open?u='+encodeURIComponent('https://m.bing.com/search?q='+encodeURIComponent(q));
 }
 function openUrl(u){
   cgLog('SEARCH','openUrl '+u);
-  if(!safeOpenUrl(u)){
-    window.location.href=u;
-  }
+  window.location.href='cgopen://open?u='+encodeURIComponent(u);
 }
 
 /* ── Theme ── */

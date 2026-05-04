@@ -39,4 +39,8 @@ old-chronograph-files-outdated/
 ChronoGraphApp/Bundles/
 ChronoGraphApp/Source/ChronoGraph/build/
 
+# Local crash logs for device diagnostics
+local-crash-logs/
+
 /chat-server
+/ChronoGraph-Appstore

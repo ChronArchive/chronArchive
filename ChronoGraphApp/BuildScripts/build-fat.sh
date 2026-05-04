@@ -118,13 +118,13 @@ INFO="$FAT_APP/Info.plist"
 /usr/libexec/PlistBuddy -c "Delete :CFBundleIconFile" "$INFO" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string Icon-60.png" "$INFO"
 
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0" "$INFO"
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 10" "$INFO"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.1" "$INFO"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 11" "$INFO"
 
 echo "  MinimumOSVersion → 3.1"
 echo "  UIRequiredDeviceCapabilities → removed"
 echo "  CFBundleIconFile → Icon-60.png"
-echo "  Version → 1.0 (build 10)"
+echo "  Version → 1.1 (build 11)"
 
 # ── Step 4: Inject latest www/, sign, and package ────────────────────────────
 echo ""
