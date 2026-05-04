@@ -8,6 +8,7 @@
   <style id="cg-theme-style"></style>
   <style>
     * { margin:0; padding:0; -webkit-box-sizing:border-box; box-sizing:border-box; }
+    :root { --cg-safe-top:0px; }
     html,body { width:100%; height:100%; overflow:hidden; background:#f2f2f7;
       font-family:-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif;
       -webkit-text-size-adjust:none; color:#1a1a1a; font-size:15px; }
@@ -18,7 +19,9 @@
       -webkit-flex-direction:column; flex-direction:column; overflow:hidden; }
     /* ── Search bar ── */
     #searchbar { -webkit-flex-shrink:0; flex-shrink:0;
-      padding-top:calc(8px + env(safe-area-inset-top, 0px)); padding-right:10px; padding-bottom:8px; padding-left:10px; background:#f0f0f0;
+      padding-top:calc(12px + env(safe-area-inset-top, 0px));
+      padding-top:calc(12px + var(--cg-safe-top, 0px));
+      padding-right:10px; padding-bottom:8px; padding-left:10px; background:#f0f0f0;
       border-bottom:1px solid #c0c0c0;
       -webkit-box-shadow:0 1px 3px rgba(0,0,0,0.1); box-shadow:0 1px 3px rgba(0,0,0,0.1); }
     #sb-inner { display:-webkit-box; display:-webkit-flex; display:flex;
@@ -587,6 +590,10 @@ function accentColorForName(name){
   var colors={blue:'#8abdec',green:'#90e0ad',red:'#ff3b30',orange:'#ff9500',purple:'#5856d6',pink:'#ff2d55',teal:'#5ac8fa',gray:'#8e8e93'};
   return colors[name]||colors.blue;
 }
+function accentTextColorForName(name){
+  var darkText={green:1,teal:1,orange:1,pink:1};
+  return darkText[name] ? '#102018' : '#ffffff';
+}
 function accentName(){
   if(legacyIOSMajor()<=4) return 'blue';
   try{return store.g('cg-accent-color')||store.g('cg-chat-bubble')||'blue';}catch(e){return 'blue';}
@@ -594,24 +601,51 @@ function accentName(){
 function applyTheme(){
   var THEMES={
     light:{bg:'#f2f2f7',bar:'#f0f0f0',grp:'#fff',brd:'#d8d8d8',text:'#1a1a1a',sub:'#8e8e93'},
-    dark: {bg:'#1a1a1a',bar:'#2c2c2e',grp:'#2c2c2e',brd:'#3a3a3c',text:'#e8e8e8',sub:'#888'},
+    dark: {bg:'#1a1a1a',bar:'#2c2c2e',grp:'#2c2c2e',brd:'#3a3a3c',text:'#f0f0f0',sub:'#b7b7bf'},
     oled: {bg:'#000',   bar:'#111',   grp:'#111',   brd:'#2a2a2a',text:'#fff',   sub:'#666'}
   };
   var tName='light';
   if(legacyIOSMajor()>4){ try{ tName=store.g('cg-theme')||'light'; }catch(e){} }
   var t=THEMES[tName]||THEMES.light;
-  var a=accentColorForName(accentName());
+  var accent=accentName();
+  var a=accentColorForName(accent);
+  var at=accentTextColorForName(accent);
   var s=document.getElementById('cg-theme-style');
   if(s)s.innerHTML=
     'html,body,#results-wrap{background:'+t.bg+'!important}'
-    +'#searchbar{background:'+a+'!important;border-color:'+a+'!important;color:#fff!important}'
+    +'#searchbar{background:'+a+'!important;border-color:'+a+'!important;color:'+at+'!important}'
     +'#sb-inner{background:'+t.grp+'!important;border-color:'+t.brd+'!important}'
     +'#sb-inp{color:'+t.text+'!important}'
+    +'#sb-icon,#sb-clear{color:'+at+'!important}'
     +'#cat-tabs{background:'+t.bar+'!important;border-color:'+t.brd+'!important}'
     +'.ctab{color:'+t.sub+'!important}'
-    +'.ctab.on{color:#fff!important;border-bottom-color:'+a+'!important}'
+    +'.ctab.on{color:'+at+'!important;border-bottom-color:'+a+'!important}'
     +'.res-post,.res-person,.res-web,.sug-row{background:'+t.grp+'!important;border-color:'+t.brd+'!important}'
     +'.rp-body,.rpe-name,.sug-text{color:'+t.text+'!important}';
+}
+function applyModernSafeTopFallback(){
+  // iOS <7: UIWebView is positioned below the status bar by the OS — no padding needed.
+  // iOS 7+: WebView renders full-screen under the 20px status bar; notch/DI handled by env().
+  if(legacyIOSMajor()<7)return;
+  var safeTop=0;
+  try{
+    var probe=document.getElementById('__cg-safe-top-probe');
+    if(!probe){
+      probe=document.createElement('div');
+      probe.id='__cg-safe-top-probe';
+      probe.style.cssText='position:fixed;top:0;left:0;width:0;height:0;padding-top:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none;z-index:-1;';
+      (document.body||document.documentElement).appendChild(probe);
+    }
+    var cssTop=parseFloat((window.getComputedStyle?getComputedStyle(probe).paddingTop:'0')||'0');
+    if(cssTop>safeTop) safeTop=cssTop;
+  }catch(e){}
+  if(window.innerHeight && screen && screen.height){
+    var diff=screen.height-window.innerHeight;
+    if(diff>safeTop && diff<80) safeTop=diff;
+  }
+  if(legacyIOSMajor()>=7 && legacyIOSMajor()<11 && safeTop<20) safeTop=20;
+  if(safeTop<0) safeTop=0;
+  try{ document.documentElement.style.setProperty('--cg-safe-top', safeTop+'px'); }catch(e2){}
 }
 function legacyIOSMajor(){
   var m=/OS\s(\d+)_/.exec(navigator.userAgent||'');
@@ -699,6 +733,7 @@ function initPTR(el,cb){
 }
 window.onload=function(){
   cgLog('BOOT','search ua='+navigator.userAgent);
+  applyModernSafeTopFallback();
   applyTheme();
   applyLegacyScrollFallback();
   if(!restoreSearchState()) showSuggestions();
@@ -710,6 +745,7 @@ window.onload=function(){
   });
 };
 window.onfocus=applyTheme;
+window.onresize=function(){ applyModernSafeTopFallback(); queueLegacyScrollRefresh(); };
 window.onhashchange=function(){ restoreSearchState(); };
 </script>
 </body>

@@ -352,6 +352,15 @@
             </label>
           </div>
         </div>
+        <div class="profile-toggle-row">
+          <div class="profile-toggle-text">Friend Requests<span class="profile-toggle-sub">Notify when someone sends a friend request</span></div>
+          <div class="profile-toggle-cell">
+            <label class="toggle">
+              <input type="checkbox" id="notify-friend-requests-toggle" onchange="saveNotificationPrefs()">
+              <span class="toggle-track"></span><span class="toggle-thumb"></span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <div class="profile-label">Account</div>
@@ -468,6 +477,7 @@ var S = {
   lastMsgId:0, pollXhr:null, polling:false,
   receiptInterval:null,
   notifyDm:true, notifyFriendPosts:true, notifyLikes:true, notifyComments:true,
+  notifyFriendRequests:true,
   upUserId:null, upFriendStatus:null, upDirection:null, upBlocked:false, upFromScreen:'users-screen'
 };
 function cgLog(kind,msg){}
@@ -661,6 +671,7 @@ function afterLogin(d){
     S.notifyFriendPosts=(d2.notify_friend_posts!==false);
     S.notifyLikes=(d2.notify_likes!==false);
     S.notifyComments=(d2.notify_comments!==false);
+    S.notifyFriendRequests=(d2.notify_friend_requests!==false);
     S.av=d2.avatar_b64||S.av;
     store.set('cg_n',S.username);store.set('cg_av',S.av);
     store.set('hm_n',S.username);store.set('hm_av',S.av);
@@ -692,10 +703,12 @@ function goProfile(){
     S.notifyFriendPosts=(d.notify_friend_posts!==false);
     S.notifyLikes=(d.notify_likes!==false);
     S.notifyComments=(d.notify_comments!==false);
+    S.notifyFriendRequests=(d.notify_friend_requests!==false);
     var ndm=document.getElementById('notify-dm-toggle');if(ndm)ndm.checked=!!S.notifyDm;
     var nfp=document.getElementById('notify-friend-posts-toggle');if(nfp)nfp.checked=!!S.notifyFriendPosts;
     var nlk=document.getElementById('notify-likes-toggle');if(nlk)nlk.checked=!!S.notifyLikes;
     var ncm=document.getElementById('notify-comments-toggle');if(ncm)ncm.checked=!!S.notifyComments;
+    var nfr=document.getElementById('notify-friend-requests-toggle');if(nfr)nfr.checked=!!S.notifyFriendRequests;
     var av=document.getElementById('profile-av-display');
     if(d.avatar_b64){av.innerHTML='<img src="'+escH(d.avatar_b64)+'" style="width:80px;height:80px;border-radius:40px;display:block;">';}
     else av.innerHTML=escH(d.username.charAt(0).toUpperCase());
@@ -743,12 +756,14 @@ function saveNotificationPrefs(){
     notify_dm: !!(document.getElementById('notify-dm-toggle')&&document.getElementById('notify-dm-toggle').checked),
     notify_friend_posts: !!(document.getElementById('notify-friend-posts-toggle')&&document.getElementById('notify-friend-posts-toggle').checked),
     notify_likes: !!(document.getElementById('notify-likes-toggle')&&document.getElementById('notify-likes-toggle').checked),
-    notify_comments: !!(document.getElementById('notify-comments-toggle')&&document.getElementById('notify-comments-toggle').checked)
+    notify_comments: !!(document.getElementById('notify-comments-toggle')&&document.getElementById('notify-comments-toggle').checked),
+    notify_friend_requests: !!(document.getElementById('notify-friend-requests-toggle')&&document.getElementById('notify-friend-requests-toggle').checked)
   };
   S.notifyDm=body.notify_dm;
   S.notifyFriendPosts=body.notify_friend_posts;
   S.notifyLikes=body.notify_likes;
   S.notifyComments=body.notify_comments;
+  S.notifyFriendRequests=body.notify_friend_requests;
   req('PUT','/api/me',body,function(){});
 }
 function goChangePassword(){show('changepw-screen');}
@@ -1472,12 +1487,14 @@ function saveAdminFilter(){
     return '#'+('0'+r.toString(16)).slice(-2)+('0'+g.toString(16)).slice(-2)+('0'+b.toString(16)).slice(-2);
   }
   var accent = '#8abdec';
+  var accentText = '#ffffff';
   try{
     var accentMap = {
       blue:'#8abdec',green:'#90e0ad',red:'#ff3b30',orange:'#ff9500',purple:'#5856d6',pink:'#ff2d55',teal:'#5ac8fa',gray:'#8e8e93'
     };
     var accentName = getSafeAccentName();
     accent = accentMap[accentName]||accentMap.blue;
+    if(accentName==='green'||accentName==='teal'||accentName==='orange'||accentName==='pink') accentText='#102018';
   }catch(e){}
   var isDark = (tName==='dark'||tName==='oled');
   var accentBg = isDark ? shadeColor(accent,-30) : accent;
@@ -1493,6 +1510,7 @@ function saveAdminFilter(){
     +'.auth-field,.search-input,.msg-input,.profile-field{background:'+t.grp+'!important;border-color:'+t.brd+'!important;color:'+t.text+'!important}'
     +'.auth-field::-webkit-input-placeholder,.search-input::-webkit-input-placeholder,.msg-input::-webkit-input-placeholder,.profile-field::-webkit-input-placeholder{color:'+placeholderColor+'!important}'
     +'.header{background:'+accentBg+'!important;border-color:'+accentBorder+'!important}'
+    +'.header,.hl,.hr,.hr-text,.send-btn{color:'+accentText+'!important;text-shadow:none!important}'
     +'.send-btn{background:'+accentBg+'!important;border-color:'+accentBorder+'!important}'
     +'.ibar{background:'+t.grp+'!important;border-top-color:'+t.brd+'!important}'
     +'.convo-row,.user-row,.friend-row,.admin-row,.stat-row{border-color:'+t.brd+'!important}'
@@ -1621,7 +1639,9 @@ function applyLegacyScrollFallback(){
   if(threadBody){threadBody.style.bottom='50px';}
 }
 function applyModernSafeTopFallback(){
-  if(legacyIOSMajor()<=4)return;
+  // iOS <7: UIWebView is positioned below the status bar by the OS — no padding needed.
+  // iOS 7+: WebView renders full-screen under the 20px status bar; notch/DI handled by env().
+  if(legacyIOSMajor()<7)return;
   var safeTop=0;
   try{
     // Measure env(safe-area-inset-top) directly — reliable on WKWebView with viewport-fit=cover
@@ -1636,6 +1656,8 @@ function applyModernSafeTopFallback(){
     var isModernIPhone=/iPhone/.test(ua)&&Math.max(screen.width,screen.height)>=812;
     safeTop=isModernIPhone?44:0;
   }
+  // iOS 7–10 UIWebView: env() unsupported, returns 0, but WebView IS full-screen under the 20px status bar.
+  if(legacyIOSMajor()>=7 && legacyIOSMajor()<11 && safeTop<20) safeTop=20;
   if(safeTop<0) safeTop=0;
   try{ document.documentElement.style.setProperty('--cg-safe-top', safeTop+'px'); }catch(e){}
 }

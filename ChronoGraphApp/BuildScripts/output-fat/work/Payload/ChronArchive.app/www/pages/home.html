@@ -8,6 +8,7 @@
   <style id="cg-theme-style"></style>
   <style>
     * { margin:0; padding:0; -webkit-box-sizing:border-box; box-sizing:border-box; }
+    :root { --cg-safe-top:0px; }
     html,body { width:100%; height:100%; overflow:hidden; background:#f2f2f7;
       font-family:-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif;
       -webkit-text-size-adjust:none; color:#1a1a1a; }
@@ -18,6 +19,7 @@
 
     /* ── Navigation Bar ── */
     #hdr { height:44px; height:calc(44px + env(safe-area-inset-top, 0px));
+      height:calc(44px + var(--cg-safe-top, 0px));
       -webkit-flex-shrink:0; flex-shrink:0;
       background:-webkit-gradient(linear,left top,left bottom,from(#f0f0f0),to(#d8d8d8));
       background:-webkit-linear-gradient(top,#f0f0f0 0%,#d8d8d8 100%);
@@ -27,7 +29,8 @@
       display:-webkit-box; display:-webkit-flex; display:flex;
       -webkit-box-align:center; -webkit-align-items:center; align-items:center;
       -webkit-box-pack:justify; -webkit-justify-content:space-between; justify-content:space-between;
-      padding:env(safe-area-inset-top, 0px) 10px 0; }
+      padding:env(safe-area-inset-top, 0px) 10px 0;
+      padding:var(--cg-safe-top, 0px) 10px 0; }
     #hdr-logo { height:24px; display:block; }
     #hdr-right { display:-webkit-box; display:-webkit-flex; display:flex;
       -webkit-box-align:center; -webkit-align-items:center; align-items:center; }
@@ -1274,9 +1277,37 @@ function accentColorForName(name){
   var colors={blue:'#8abdec',green:'#90e0ad',red:'#ff3b30',orange:'#ff9500',purple:'#5856d6',pink:'#ff2d55',teal:'#5ac8fa',gray:'#8e8e93'};
   return colors[name]||colors.blue;
 }
+function accentTextColorForName(name){
+  var darkText={green:1,teal:1,orange:1,pink:1};
+  return darkText[name] ? '#102018' : '#ffffff';
+}
 function accentName(){
   if(legacyIOSMajor()<=4) return 'blue';
   try{return store.g('cg-accent-color')||store.g('cg-chat-bubble')||'blue';}catch(e){return 'blue';}
+}
+function applyModernSafeTopFallback(){
+  // iOS <7: UIWebView is positioned below the status bar by the OS — no padding needed.
+  // iOS 7+: WebView renders full-screen under the 20px status bar; notch/DI handled by env().
+  if(legacyIOSMajor()<7)return;
+  var safeTop=0;
+  try{
+    var probe=document.getElementById('__cg-safe-top-probe');
+    if(!probe){
+      probe=document.createElement('div');
+      probe.id='__cg-safe-top-probe';
+      probe.style.cssText='position:fixed;top:0;left:0;width:0;height:0;padding-top:env(safe-area-inset-top,0px);visibility:hidden;pointer-events:none;z-index:-1;';
+      (document.body||document.documentElement).appendChild(probe);
+    }
+    var cssTop=parseFloat((window.getComputedStyle?getComputedStyle(probe).paddingTop:'0')||'0');
+    if(cssTop>safeTop) safeTop=cssTop;
+  }catch(e){}
+  if(window.innerHeight && screen && screen.height){
+    var diff=screen.height-window.innerHeight;
+    if(diff>safeTop && diff<80) safeTop=diff;
+  }
+  if(legacyIOSMajor()>=7 && legacyIOSMajor()<11 && safeTop<20) safeTop=20;
+  if(safeTop<0) safeTop=0;
+  try{ document.documentElement.style.setProperty('--cg-safe-top', safeTop+'px'); }catch(e2){}
 }
 function applyTheme(){
   var THEMES={
@@ -1287,7 +1318,9 @@ function applyTheme(){
   var tName='light';
   if(legacyIOSMajor()>4){ try{ tName=store.g('cg-theme')||'light'; }catch(e){} }
   var t=THEMES[tName]||THEMES.light;
-  var a=accentColorForName(accentName());
+  var an=accentName();
+  var a=accentColorForName(an);
+  var at=accentTextColorForName(an);
   var s=document.getElementById('cg-theme-style');
   if(s)s.innerHTML=
     'html,body,#shell,#feed-wrap{background:'+t.bg+'!important}'
@@ -1300,10 +1333,10 @@ function applyTheme(){
     +'.mfield,.ctool{background:'+t.grp+'!important;border-color:'+t.brd+'!important;color:'+t.text+'!important}'
     +'.auth-tab{border-bottom-color:'+t.brd+'!important;color:'+t.sub+'!important}'
     +'.auth-tab.on{color:'+a+'!important;border-bottom-color:'+a+'!important}'
-    +'#hdr{background:'+a+'!important;color:#fff!important}'
+    +'#hdr{background:'+a+'!important;color:'+at+'!important}'
     +'#hdr-feed-toggle{background:'+t.grp+'!important;border-color:'+t.brd+'!important}'
     +'.feed-toggle-btn{color:'+t.sub+'!important;background:transparent!important;border-color:transparent!important}'
-    +'.feed-toggle-btn.on{background:'+a+'!important;color:#fff!important}'
+    +'.feed-toggle-btn.on{background:'+a+'!important;color:'+at+'!important}'
     +'.post-action .act-btn.liked,.act-btn.liked{color:'+a+'!important}'
     +'.post-media{background:'+t.grp+'!important}';
 }
@@ -1387,6 +1420,7 @@ function scheduleLegacyFeedRetry(){
 }
 window.onload=function(){
   cgLog('BOOT','home ua='+navigator.userAgent);
+  applyModernSafeTopFallback();
   applyTheme();
   applyLegacyScrollFallback();
   enableLegacyFileInputs();
@@ -1443,6 +1477,7 @@ function initPTR(el,cb){
   },false);
 }
 window.onfocus = applyTheme;
+window.onresize = function(){ applyModernSafeTopFallback(); queueLegacyScrollRefresh(); };
 window.onpageshow = applyTheme;
 window.addEventListener('visibilitychange', function(){ if(!document.hidden) applyTheme(); });
 window.addEventListener('storage', function(e){ if(e.key==='cg-theme'||e.key==='cg-accent-color'||e.key==='cg-chat-bubble') applyTheme(); });
