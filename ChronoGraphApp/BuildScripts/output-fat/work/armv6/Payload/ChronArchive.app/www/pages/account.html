@@ -232,9 +232,19 @@
       <div class="s-section">
         <div class="s-header">Account</div>
         <div class="s-group">
+          <div class="s-row" onclick="openPrivacyPolicy()">
+            <div class="s-icon"><span class="ic ic-blue">&#9432;</span></div>
+            <div class="s-label"><div class="row-title">Privacy Policy</div><div class="row-sub">How Chronograph handles your account and content</div></div>
+            <div class="s-arrow">&#8250;</div>
+          </div>
           <div class="s-row" onclick="openChangePw()">
             <div class="s-icon"><span class="ic ic-gray">&#128272;</span></div>
             <div class="s-label"><div class="row-title">Change Password</div></div>
+            <div class="s-arrow">&#8250;</div>
+          </div>
+          <div class="s-row" onclick="openDeleteAccount()">
+            <div class="s-icon"><span class="ic ic-red">!</span></div>
+            <div class="s-label"><div class="row-title" style="color:#cc0000">Delete Account</div><div class="row-sub">Permanently remove your profile, posts, and messages</div></div>
             <div class="s-arrow">&#8250;</div>
           </div>
           <div class="s-row" onclick="doSignOut()">
@@ -257,6 +267,9 @@
         <div class="auth-tabs">
           <div class="auth-tab on" id="at-login"    onclick="setAuthMode('login')">Sign In</div>
           <div class="auth-tab"   id="at-register" onclick="setAuthMode('register')">Register</div>
+        </div>
+        <div style="text-align:center;margin:-4px 0 18px;">
+          <span style="font-size:13px;color:#0055cc;cursor:pointer;-webkit-tap-highlight-color:transparent;" onclick="openPrivacyPolicy()">Privacy Policy</span>
         </div>
         <input type="text"     id="af-user" class="field" placeholder="Username" autocorrect="off" autocapitalize="off">
         <input type="password" id="af-pass" class="field" placeholder="Password">
@@ -308,6 +321,55 @@
         <input type="password" id="pw-conf" class="field" placeholder="Confirm new password">
         <input type="button" class="fbtn" value="Update Password" onclick="doChangePw()">
         <div id="pw-err" class="ferr"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Privacy Policy -->
+  <div class="subscreen" id="ss-privacy">
+    <div class="sub-hdr">Privacy Policy
+      <span class="sub-back" onclick="closeSubscreen('ss-privacy')">&#8249; Back</span>
+    </div>
+    <div class="sub-body">
+      <div class="sub-pad">
+        <div class="flabel">Overview</div>
+        <div style="font-size:14px;line-height:1.6;color:#333;">
+          Chronograph stores the account information you provide, including your username, password hash, profile bio, avatar image, friend relationships, private-account setting, posts, comments, likes, reports, and direct messages, so the service can function.
+        </div>
+        <div class="flabel">How Data Is Used</div>
+        <div style="font-size:14px;line-height:1.6;color:#333;">
+          Your data is used to authenticate your account, display your profile and content, deliver chat and social features, moderate abuse reports, and operate the ChronArchive service. The app stores a session token and basic profile cache on-device so you stay signed in.
+        </div>
+        <div class="flabel">Sharing</div>
+        <div style="font-size:14px;line-height:1.6;color:#333;">
+          Chronograph does not sell your personal data. Your profile, posts, and messages are shared only as needed to provide the social features you use and to respond to moderation, abuse, or legal requests.
+        </div>
+        <div class="flabel">Retention &amp; Deletion</div>
+        <div style="font-size:14px;line-height:1.6;color:#333;">
+          You can delete your account from inside the app at any time. Deleting your account permanently removes your profile, sessions, friendships, posts, comments, likes, messages, and uploaded post media from the Chronograph service.
+        </div>
+        <div class="flabel">Contact</div>
+        <div style="font-size:14px;line-height:1.6;color:#333;">
+          Questions or requests about privacy can be sent to contact@chronarchive.com.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Account -->
+  <div class="subscreen" id="ss-deleteacct">
+    <div class="sub-hdr">Delete Account
+      <span class="sub-back" onclick="closeSubscreen('ss-deleteacct')">&#8249; Back</span>
+    </div>
+    <div class="sub-body">
+      <div class="sub-pad">
+        <div style="font-size:14px;line-height:1.6;color:#333;margin-bottom:14px;">
+          This permanently deletes your Chronograph account and removes your profile, posts, comments, likes, direct messages, and active sessions. This action cannot be undone.
+        </div>
+        <div class="flabel">Current Password</div>
+        <input type="password" id="del-pass" class="field" placeholder="Enter current password">
+        <input type="button" id="del-btn" class="fbtn fbtn-red" value="Delete My Account" onclick="doDeleteAccount()">
+        <div id="del-err" class="ferr"></div>
       </div>
     </div>
   </div>
@@ -687,6 +749,38 @@ function renderSignedOut(){
   document.getElementById('view-signedin').style.display='none';
   document.getElementById('view-signedout').style.display='block';
   queueLegacyScrollRefresh();
+}
+
+function openPrivacyPolicy(){
+  cgLog('UI','openPrivacyPolicy');
+  openSubscreen('ss-privacy');
+}
+
+function openDeleteAccount(){
+  cgLog('UI','openDeleteAccount');
+  document.getElementById('del-pass').value='';
+  hideErr('del-err');
+  var btn=document.getElementById('del-btn');
+  if(btn)btn.value='Delete My Account';
+  openSubscreen('ss-deleteacct');
+}
+
+function doDeleteAccount(){
+  hideErr('del-err');
+  var password=document.getElementById('del-pass').value||'';
+  if(!password){showErr('del-err','Enter your current password.');return;}
+  var btn=document.getElementById('del-btn');
+  if(btn)btn.value='Deleting\u2026';
+  req('DELETE','/api/me',{password:password},function(d,err){
+    if(btn)btn.value='Delete My Account';
+    if(err||!d||!d.ok){showErr('del-err',(d&&d.error)||'Could not delete account.');return;}
+    store.d('cg_t');store.d('cg_u');store.d('cg_n');store.d('cg_av');
+    store.d('hm_t');store.d('hm_u');store.d('hm_n');store.d('hm_av');
+    S.token=S.uid=S.uname=null;S.av='';S.isPrivate=false;S.friendCode='';
+    closeSubscreen('ss-deleteacct');
+    renderSignedOut();
+    alert('Your account has been deleted.');
+  });
 }
 
 /* ── Edit Profile ── */

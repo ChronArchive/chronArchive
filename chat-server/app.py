@@ -555,6 +555,62 @@ def update_me():
     return jsonify({'ok': True})
 
 
+@app.route('/api/me', methods=['DELETE'])
+def delete_me():
+    uid, err = require_auth(request)
+    if err: return err
+    data = request.get_json(force=True, silent=True) or {}
+    password = data.get('password') or ''
+
+    if not password:
+        return jsonify({'ok': False, 'error': 'Current password required'}), 400
+
+    conn = get_db()
+    row = conn.execute('SELECT password_hash FROM users WHERE id=?', (uid,)).fetchone()
+    if not row or not verify_password(password, row['password_hash']):
+        conn.close()
+        return jsonify({'ok': False, 'error': 'Current password incorrect'}), 401
+
+    uploads = []
+    try:
+        upload_rows = conn.execute(
+            'SELECT media_url, media_thumb_url FROM posts WHERE user_id=?',
+            (uid,)
+        ).fetchall()
+        for upload_row in upload_rows:
+            for field in ('media_url', 'media_thumb_url'):
+                val = upload_row[field] or ''
+                if val.startswith('/uploads/'):
+                    uploads.append(os.path.join(UPLOADS_DIR, os.path.basename(val)))
+
+        conn.execute('DELETE FROM sessions WHERE user_id=?', (uid,))
+        conn.execute('DELETE FROM push_subscriptions WHERE user_id=?', (uid,))
+        conn.execute('DELETE FROM post_likes WHERE user_id=?', (uid,))
+        conn.execute('DELETE FROM post_likes WHERE post_id IN (SELECT id FROM posts WHERE user_id=?)', (uid,))
+        conn.execute('DELETE FROM post_comments WHERE user_id=?', (uid,))
+        conn.execute('DELETE FROM post_comments WHERE post_id IN (SELECT id FROM posts WHERE user_id=?)', (uid,))
+        conn.execute('DELETE FROM posts WHERE user_id=?', (uid,))
+        conn.execute('DELETE FROM messages WHERE from_user_id=? OR to_user_id=?', (uid, uid))
+        conn.execute('DELETE FROM friends WHERE from_user_id=? OR to_user_id=?', (uid, uid))
+        conn.execute('DELETE FROM blocks WHERE blocker_id=? OR blocked_id=?', (uid, uid))
+        conn.execute('DELETE FROM reports WHERE reporter_id=?', (uid,))
+        conn.execute("DELETE FROM users WHERE id=? AND username NOT LIKE 'ChronoGraph' COLLATE NOCASE", (uid,))
+        conn.commit()
+    finally:
+        conn.close()
+
+    for upload in uploads:
+        try:
+            if os.path.isfile(upload):
+                os.remove(upload)
+        except Exception:
+            pass
+
+    resp = jsonify({'ok': True})
+    resp.delete_cookie('cg_session')
+    return resp
+
+
 @app.route('/api/me/password', methods=['POST'])
 def change_password():
     uid, err = require_auth(request)
