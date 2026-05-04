@@ -729,9 +729,12 @@ function applyTheme(){
 function applyModernSafeTopFallback(){
   // iOS <7: UIWebView is positioned below the status bar by the OS — no padding needed.
   // iOS 7+: WebView renders full-screen under the 20px status bar; notch/DI handled by env().
-  if(legacyIOSMajor()<7) return;
+  var major=legacyIOSMajor();
+  if(major<7) return;
   var safeTop=0;
-  try{
+  if(major>=7 && major<11){
+    safeTop=20;
+  }else try{
     var probe=document.getElementById('__cg-safe-top-probe');
     if(!probe){
       probe=document.createElement('div');
@@ -742,13 +745,26 @@ function applyModernSafeTopFallback(){
     var cssTop=parseFloat((window.getComputedStyle?getComputedStyle(probe).paddingTop:'0')||'0');
     if(cssTop>safeTop) safeTop=cssTop;
   }catch(e){}
-  if(window.innerHeight && screen && screen.height){
-    var diff=screen.height-window.innerHeight;
-    if(diff>safeTop && diff<80) safeTop=diff;
-  }
-  if(legacyIOSMajor()>=7 && legacyIOSMajor()<11 && safeTop<20) safeTop=20;
   if(safeTop<0) safeTop=0;
   try{ document.documentElement.style.setProperty('--cg-safe-top', safeTop+'px'); }catch(e2){}
+  var supportsVars=false;
+  try{ supportsVars=!!(window.CSS&&CSS.supports&&CSS.supports('--cg-safe-top: 0px')); }catch(e3){}
+  if(!supportsVars){
+    var hdr=document.getElementById('hdr');
+    if(hdr){ hdr.style.height=(44+safeTop)+'px'; hdr.style.paddingTop=safeTop+'px'; }
+    var htitle=document.getElementById('hdr-title');
+    if(htitle){ htitle.style.top=safeTop+'px'; }
+    var scroll=document.getElementById('scroll');
+    if(scroll){ scroll.style.top=(44+safeTop)+'px'; }
+    var subHdrs=document.getElementsByClassName?document.getElementsByClassName('sub-hdr'):[];
+    for(var i=0;i<subHdrs.length;i++){ subHdrs[i].style.height=(44+safeTop)+'px'; subHdrs[i].style.paddingTop=safeTop+'px'; }
+    var subBacks=document.getElementsByClassName?document.getElementsByClassName('sub-back'):[];
+    for(var j=0;j<subBacks.length;j++){ subBacks[j].style.top=safeTop+'px'; }
+    var subRights=document.getElementsByClassName?document.getElementsByClassName('sub-right'):[];
+    for(var k=0;k<subRights.length;k++){ subRights[k].style.top=safeTop+'px'; }
+    var subBodies=document.getElementsByClassName?document.getElementsByClassName('sub-body'):[];
+    for(var m=0;m<subBodies.length;m++){ subBodies[m].style.top=(44+safeTop)+'px'; }
+  }
 }
 
 /* ── UI state ── */

@@ -1641,9 +1641,12 @@ function applyLegacyScrollFallback(){
 function applyModernSafeTopFallback(){
   // iOS <7: UIWebView is positioned below the status bar by the OS — no padding needed.
   // iOS 7+: WebView renders full-screen under the 20px status bar; notch/DI handled by env().
-  if(legacyIOSMajor()<7)return;
+  var major=legacyIOSMajor();
+  if(major<7)return;
   var safeTop=0;
-  try{
+  if(major>=7 && major<11){
+    safeTop=20;
+  }else try{
     // Measure env(safe-area-inset-top) directly — reliable on WKWebView with viewport-fit=cover
     var tmp=document.createElement('div');
     tmp.style.cssText='position:fixed;top:env(safe-area-inset-top,0px);left:0;width:0;height:0;visibility:hidden;pointer-events:none;';
@@ -1651,15 +1654,33 @@ function applyModernSafeTopFallback(){
     safeTop=tmp.getBoundingClientRect().top||0;
     document.documentElement.removeChild(tmp);
   }catch(e){
-    // Fallback for older WebKit that can't measure env()
     var ua=navigator.userAgent||'';
     var isModernIPhone=/iPhone/.test(ua)&&Math.max(screen.width,screen.height)>=812;
     safeTop=isModernIPhone?44:0;
   }
-  // iOS 7–10 UIWebView: env() unsupported, returns 0, but WebView IS full-screen under the 20px status bar.
-  if(legacyIOSMajor()>=7 && legacyIOSMajor()<11 && safeTop<20) safeTop=20;
   if(safeTop<0) safeTop=0;
   try{ document.documentElement.style.setProperty('--cg-safe-top', safeTop+'px'); }catch(e){}
+  var supportsVars=false;
+  try{ supportsVars=!!(window.CSS&&CSS.supports&&CSS.supports('--cg-safe-top: 0px')); }catch(e3){}
+  if(!supportsVars){
+    var headers=document.getElementsByClassName?document.getElementsByClassName('header'):[];
+    for(var i=0;i<headers.length;i++){
+      headers[i].style.height=(44+safeTop)+'px';
+      headers[i].style.paddingTop=safeTop+'px';
+    }
+    var leftBtns=document.getElementsByClassName?document.getElementsByClassName('hl'):[];
+    for(var j=0;j<leftBtns.length;j++){ leftBtns[j].style.top=safeTop+'px'; }
+    var rightBtns=document.getElementsByClassName?document.getElementsByClassName('hr'):[];
+    for(var k=0;k<rightBtns.length;k++){ rightBtns[k].style.top=safeTop+'px'; }
+    var rightTextBtns=document.getElementsByClassName?document.getElementsByClassName('hr-text'):[];
+    for(var m=0;m<rightTextBtns.length;m++){ rightTextBtns[m].style.top=safeTop+'px'; }
+    var panes=document.getElementsByClassName?document.getElementsByClassName('sb'):[];
+    for(var n=0;n<panes.length;n++){ panes[n].style.top=(44+safeTop)+'px'; }
+    var us=document.getElementById('users-search-wrap');
+    if(us){ us.style.top=(44+safeTop)+'px'; }
+    var ub=document.getElementById('users-body');
+    if(ub){ ub.style.top=(92+safeTop)+'px'; }
+  }
 }
 function enableLegacyAvatarInput(){
   if(legacyIOSMajor()>4)return;

@@ -102,9 +102,12 @@
       // iOS <7: UIWebView is below the status bar; no padding needed.
       // iOS 7+: WebView is full-screen under the 20px status bar; notch/DI via env().
       var _m=/OS\s(\d+)_/.exec(navigator.userAgent||'');
-      if(_m && parseInt(_m[1],10)<7) return;
+      var major=_m?parseInt(_m[1],10):99;
+      if(major<7) return;
       var safeTop=0;
-      try{
+      if(major>=7 && major<11){
+        safeTop=20;
+      }else try{
         var probe=document.getElementById('__cg-safe-top-probe');
         if(!probe){
           probe=document.createElement('div');
@@ -115,13 +118,18 @@
         var cssTop=parseFloat((window.getComputedStyle?getComputedStyle(probe).paddingTop:'0')||'0');
         if(cssTop>safeTop) safeTop=cssTop;
       }catch(e){}
-      if(window.innerHeight && screen && screen.height){
-        var diff=screen.height-window.innerHeight;
-        if(diff>safeTop && diff<80) safeTop=diff;
-      }
-      if(legacyIOSMajor()>=7 && legacyIOSMajor()<11 && safeTop<20) safeTop=20;
       if(safeTop<0) safeTop=0;
       try{ document.documentElement.style.setProperty('--cg-safe-top', safeTop+'px'); }catch(e2){}
+      var supportsVars=false;
+      try{ supportsVars=!!(window.CSS&&CSS.supports&&CSS.supports('--cg-safe-top: 0px')); }catch(e3){}
+      if(!supportsVars){
+        var hdr=document.getElementById('hdr');
+        if(hdr){ hdr.style.height=(44+safeTop)+'px'; hdr.style.paddingTop=safeTop+'px'; }
+        var title=document.getElementById('hdr-title');
+        if(title){ title.style.top=safeTop+'px'; }
+        var scroll=document.getElementById('scroll');
+        if(scroll){ scroll.style.top=(44+safeTop)+'px'; }
+      }
     }
     function applyTheme(name){
       var t=THEMES[name]||THEMES.light;
@@ -151,7 +159,8 @@
     }
     (function(){
       var saved='light';try{saved=localStorage.getItem('cg-theme')||'light';}catch(e){}
-      applyModernSafeTopFallback();
+      if(document.body) applyModernSafeTopFallback();
+      else if(document.addEventListener) document.addEventListener('DOMContentLoaded', applyModernSafeTopFallback, false);
       applyTheme(saved);
     })();
   </script>
