@@ -17,6 +17,11 @@ UPLOADS_DIR  = os.environ.get('UPLOADS_DIR',  '/opt/chronograph-chat/uploads')
 SITE_BASE    = os.environ.get('SITE_BASE',    'https://chat.chronarchive.com')
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
+APNS_TEAM_ID = os.environ.get('APNS_TEAM_ID', '')
+APNS_KEY_ID = os.environ.get('APNS_KEY_ID', '')
+APNS_BUNDLE_ID = os.environ.get('APNS_BUNDLE_ID', '')
+APNS_AUTH_KEY_PATH = os.environ.get('APNS_AUTH_KEY_PATH', '')
+
 # Cap request body to 3 MB to prevent memory exhaustion
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024
 
@@ -144,6 +149,17 @@ def init_db():
             created_at INTEGER DEFAULT (strftime('%s','now')),
             UNIQUE(user_id, endpoint)
         );
+        CREATE TABLE IF NOT EXISTS apns_devices (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id      INTEGER NOT NULL,
+            device_token TEXT NOT NULL,
+            session_token TEXT,
+            environment  TEXT NOT NULL DEFAULT 'production',
+            platform     TEXT NOT NULL DEFAULT 'ios',
+            created_at   INTEGER DEFAULT (strftime('%s','now')),
+            updated_at   INTEGER DEFAULT (strftime('%s','now')),
+            UNIQUE(user_id, device_token)
+        );
         CREATE TABLE IF NOT EXISTS posts (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id     INTEGER NOT NULL,
@@ -212,6 +228,38 @@ def init_db():
     # Safe migration: add friend_code column if absent (no UNIQUE in ALTER TABLE — SQLite restriction)
     try:
         conn.execute('ALTER TABLE users ADD COLUMN friend_code TEXT')
+        conn.commit()
+    except Exception:
+        pass
+    # Notification preference columns (default enabled)
+    try:
+        conn.execute('ALTER TABLE users ADD COLUMN notify_dm INTEGER DEFAULT 1')
+        conn.commit()
+    except Exception:
+        pass
+    try:
+        conn.execute('ALTER TABLE users ADD COLUMN notify_friend_posts INTEGER DEFAULT 1')
+        conn.commit()
+    except Exception:
+        pass
+    try:
+        conn.execute('ALTER TABLE users ADD COLUMN notify_likes INTEGER DEFAULT 1')
+        conn.commit()
+    except Exception:
+        pass
+    try:
+        conn.execute('ALTER TABLE users ADD COLUMN notify_comments INTEGER DEFAULT 1')
+        conn.commit()
+    except Exception:
+        pass
+    # Safe migration: add session_token to apns_devices for logout scoping
+    try:
+        conn.execute('ALTER TABLE apns_devices ADD COLUMN session_token TEXT')
+        conn.commit()
+    except Exception:
+        pass
+    try:
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_apns_user ON apns_devices(user_id)')
         conn.commit()
     except Exception:
         pass
@@ -346,6 +394,13 @@ def require_auth(req):
         return None, (jsonify({'ok': False, 'error': 'Session expired'}), 401)
     return row['user_id'], None
 
+
+def current_session_token(req):
+    token = req.headers.get('X-CG-Token') or req.cookies.get('cg_session')
+    if not token and req.method in ('POST', 'PUT', 'DELETE'):
+        token = req.form.get('cg_token') or req.form.get('token')
+    return token or ''
+
 def require_admin(req):
     uid, err = require_auth(req)
     if err: return None, err
@@ -371,7 +426,7 @@ ALLOWED_ORIGINS = {
 
 def add_cors(resp):
     origin = request.headers.get('Origin', '')
-    if origin in ALLOWED_ORIGINS or not origin:
+    if origin in ALLOWED_ORIGINS or not origin or origin == 'null':
         resp.headers['Access-Control-Allow-Origin']      = origin or '*'
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
     resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
@@ -508,6 +563,7 @@ def logout():
     if token:
         conn = get_db()
         conn.execute('DELETE FROM sessions WHERE token=?', (token,))
+        conn.execute('DELETE FROM apns_devices WHERE session_token=?', (token,))
         conn.commit()
         conn.close()
     resp = jsonify({'ok': True})
@@ -521,14 +577,23 @@ def me():
     if err: return err
     conn = get_db()
     row  = conn.execute(
-        'SELECT id, username, bio, avatar_b64, is_admin, friend_code, is_private FROM users WHERE id=?', (uid,)
+        'SELECT id, username, bio, avatar_b64, is_admin, friend_code, is_private, '
+        'COALESCE(notify_dm,1) AS notify_dm, '
+        'COALESCE(notify_friend_posts,1) AS notify_friend_posts, '
+        'COALESCE(notify_likes,1) AS notify_likes, '
+        'COALESCE(notify_comments,1) AS notify_comments '
+        'FROM users WHERE id=?', (uid,)
     ).fetchone()
     conn.close()
     return jsonify({'ok': True, 'id': row['id'], 'username': row['username'],
                     'bio': row['bio'] or '', 'avatar_b64': row['avatar_b64'] or '',
                     'is_admin': bool(row['is_admin']),
                     'friend_code': row['friend_code'] or '',
-                    'is_private': bool(row['is_private'])})
+                    'is_private': bool(row['is_private']),
+                    'notify_dm': bool(row['notify_dm']),
+                    'notify_friend_posts': bool(row['notify_friend_posts']),
+                    'notify_likes': bool(row['notify_likes']),
+                    'notify_comments': bool(row['notify_comments'])})
 
 
 @app.route('/api/me', methods=['PUT'])
@@ -537,19 +602,41 @@ def update_me():
     if err: return err
     data = request.get_json(force=True, silent=True) or {}
 
-    bio        = (data.get('bio') or '')[:160]
-    avatar_b64 = (data.get('avatar_b64') or '')
-    is_private = 1 if data.get('is_private') else 0
+    conn = get_db()
+    cur = conn.execute(
+        'SELECT bio, avatar_b64, is_private, '
+        'COALESCE(notify_dm,1) AS notify_dm, '
+        'COALESCE(notify_friend_posts,1) AS notify_friend_posts, '
+        'COALESCE(notify_likes,1) AS notify_likes, '
+        'COALESCE(notify_comments,1) AS notify_comments '
+        'FROM users WHERE id=?',
+        (uid,)
+    ).fetchone()
+    if not cur:
+        conn.close()
+        return jsonify({'ok': False, 'error': 'User not found'}), 404
+
+    bio = ((data.get('bio') if 'bio' in data else cur['bio']) or '')[:160]
+    avatar_b64 = (data.get('avatar_b64') if 'avatar_b64' in data else (cur['avatar_b64'] or '')) or ''
+    is_private = (1 if data.get('is_private') else 0) if 'is_private' in data else int(cur['is_private'] or 0)
+    notify_dm = (1 if data.get('notify_dm') else 0) if 'notify_dm' in data else int(cur['notify_dm'] or 1)
+    notify_friend_posts = (1 if data.get('notify_friend_posts') else 0) if 'notify_friend_posts' in data else int(cur['notify_friend_posts'] or 1)
+    notify_likes = (1 if data.get('notify_likes') else 0) if 'notify_likes' in data else int(cur['notify_likes'] or 1)
+    notify_comments = (1 if data.get('notify_comments') else 0) if 'notify_comments' in data else int(cur['notify_comments'] or 1)
 
     # Validate base64 image (must be data URI or empty)
     if avatar_b64 and not re.match(r'^data:image/(jpeg|png|gif|webp);base64,[A-Za-z0-9+/=]+$', avatar_b64):
+        conn.close()
         return jsonify({'ok': False, 'error': 'Invalid avatar format'}), 400
     # Limit avatar to ~200 KB base64
     if len(avatar_b64) > 270000:
+        conn.close()
         return jsonify({'ok': False, 'error': 'Avatar too large (max ~200 KB)'}), 400
 
-    conn = get_db()
-    conn.execute('UPDATE users SET bio=?, avatar_b64=?, is_private=? WHERE id=?', (bio, avatar_b64, is_private, uid))
+    conn.execute(
+        'UPDATE users SET bio=?, avatar_b64=?, is_private=?, notify_dm=?, notify_friend_posts=?, notify_likes=?, notify_comments=? WHERE id=?',
+        (bio, avatar_b64, is_private, notify_dm, notify_friend_posts, notify_likes, notify_comments, uid)
+    )
     conn.commit()
     conn.close()
     return jsonify({'ok': True})
@@ -987,8 +1074,8 @@ def send_message():
     msg = dict(conn.execute('SELECT * FROM messages WHERE id=?', (cur.lastrowid,)).fetchone())
     conn.close()
 
-    # Fire-and-forget Web Push to recipient
-    _push_notify_async(to_id, uid, text)
+    # Fire-and-forget push notification to recipient (if enabled in preferences)
+    _push_dm_async(to_id, uid, text)
 
     # If the user messaged the ChronoGraph bot, send the canned auto-reply
     if to_id == _get_bot_id():
@@ -1035,6 +1122,62 @@ def read_receipts():
     conn.close()
     return jsonify({'ok': True, 'receipts': [{'id': r['id'], 'read_at': r['read_at']} for r in rows]})
 
+
+@app.route('/api/badge')
+def badge_count():
+    uid, err = require_auth(request)
+    if err: return err
+    conn = get_db()
+    count = conn.execute(
+        'SELECT COUNT(*) FROM messages WHERE to_user_id=? AND read_at IS NULL AND deleted=0',
+        (uid,)
+    ).fetchone()[0]
+    conn.close()
+    return jsonify({'ok': True, 'unread_dm': int(count)})
+
+
+@app.route('/api/apns/register', methods=['POST'])
+def apns_register():
+    uid, err = require_auth(request)
+    if err: return err
+    data = request.get_json(force=True, silent=True) or {}
+    device_token = (data.get('device_token') or data.get('token') or '').strip().lower()
+    environment = (data.get('environment') or 'production').strip().lower()
+    platform = (data.get('platform') or 'ios').strip().lower()
+    if environment not in ('sandbox', 'production'):
+        environment = 'production'
+    if platform != 'ios':
+        platform = 'ios'
+    if not re.match(r'^[0-9a-f]{64}$', device_token):
+        return jsonify({'ok': False, 'error': 'Invalid APNs device token'}), 400
+    sess_token = current_session_token(request)
+    conn = get_db()
+    try:
+        conn.execute(
+            'INSERT OR REPLACE INTO apns_devices (user_id, device_token, session_token, environment, platform, created_at, updated_at) '
+            "VALUES (?,?,?,?,?,COALESCE((SELECT created_at FROM apns_devices WHERE user_id=? AND device_token=?), strftime('%s','now')), strftime('%s','now'))",
+            (uid, device_token, sess_token, environment, platform, uid, device_token)
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return jsonify({'ok': True})
+
+
+@app.route('/api/apns/unregister', methods=['POST'])
+def apns_unregister():
+    uid, err = require_auth(request)
+    if err: return err
+    data = request.get_json(force=True, silent=True) or {}
+    device_token = (data.get('device_token') or data.get('token') or '').strip().lower()
+    if not re.match(r'^[0-9a-f]{64}$', device_token):
+        return jsonify({'ok': False, 'error': 'Invalid APNs device token'}), 400
+    conn = get_db()
+    conn.execute('DELETE FROM apns_devices WHERE user_id=? AND device_token=?', (uid, device_token))
+    conn.commit()
+    conn.close()
+    return jsonify({'ok': True})
+
 # ── Web Push ───────────────────────────────────────────────────────────────────
 
 @app.route('/api/push/subscribe', methods=['POST'])
@@ -1072,42 +1215,195 @@ def push_unsubscribe():
     return jsonify({'ok': True})
 
 
-def _push_notify_async(to_uid, from_uid, text):
-    """Send Web Push notification in a background thread (best-effort)."""
+def _send_push_payload_async(to_uid, payload, pref_col):
+    """Send Web Push and APNs payloads in a background thread if pref is enabled."""
     def _send():
+        conn = get_db()
+        pref_row = conn.execute(
+            'SELECT COALESCE(' + pref_col + ',1) AS enabled FROM users WHERE id=?',
+            (to_uid,)
+        ).fetchone()
+        if not pref_row or not int(pref_row['enabled'] or 1):
+            conn.close()
+            return
+
+        badge = conn.execute(
+            'SELECT COUNT(*) FROM messages WHERE to_user_id=? AND read_at IS NULL AND deleted=0',
+            (to_uid,)
+        ).fetchone()[0]
+
+        web_subs = conn.execute(
+            'SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id=?',
+            (to_uid,)
+        ).fetchall()
+        ios_subs = conn.execute(
+            "SELECT device_token, environment FROM apns_devices WHERE user_id=? AND platform='ios'",
+            (to_uid,)
+        ).fetchall()
+        conn.close()
+
+        # Web Push branch (best effort)
         try:
             from pywebpush import webpush, WebPushException
             vapid_private = os.environ.get('VAPID_PRIVATE_KEY', '')
             vapid_email   = os.environ.get('VAPID_EMAIL', 'mailto:admin@chronarchive.com')
-            if not vapid_private:
-                return
-            conn = get_db()
-            subs = conn.execute(
-                'SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id=?', (to_uid,)
-            ).fetchall()
-            sender = conn.execute('SELECT username FROM users WHERE id=?', (from_uid,)).fetchone()
-            conn.close()
-            if not subs or not sender:
-                return
-            payload = json.dumps({
-                'title': sender['username'],
-                'body':  text[:80] + ('…' if len(text) > 80 else ''),
-                'tag':   'cg-msg-' + str(from_uid)
-            })
-            for s in subs:
-                try:
-                    webpush(
-                        subscription_info={'endpoint': s['endpoint'],
-                                           'keys': {'p256dh': s['p256dh'], 'auth': s['auth']}},
-                        data=payload,
-                        vapid_private_key=vapid_private,
-                        vapid_claims={'sub': vapid_email}
-                    )
-                except WebPushException:
-                    pass
+            if vapid_private and web_subs:
+                web_payload = dict(payload)
+                web_payload['badge'] = int(badge)
+                payload_json = json.dumps(web_payload)
+                for s in web_subs:
+                    try:
+                        webpush(
+                            subscription_info={'endpoint': s['endpoint'],
+                                               'keys': {'p256dh': s['p256dh'], 'auth': s['auth']}},
+                            data=payload_json,
+                            vapid_private_key=vapid_private,
+                            vapid_claims={'sub': vapid_email}
+                        )
+                    except WebPushException:
+                        pass
         except ImportError:
-            pass  # pywebpush not installed; skip push
+            pass  # pywebpush not installed; skip web push
+
+        # APNs branch — uses httpx+PyJWT (works on Python 3.12+)
+        if APNS_TEAM_ID and APNS_KEY_ID and APNS_BUNDLE_ID and APNS_AUTH_KEY_PATH and \
+                os.path.isfile(APNS_AUTH_KEY_PATH) and ios_subs:
+            try:
+                import time, json as _json
+                import jwt
+                import httpx
+
+                with open(APNS_AUTH_KEY_PATH, 'r') as _f:
+                    _apns_key = _f.read()
+
+                def _make_jwt():
+                    now = int(time.time())
+                    return jwt.encode(
+                        {'iss': APNS_TEAM_ID, 'iat': now},
+                        _apns_key,
+                        algorithm='ES256',
+                        headers={'kid': APNS_KEY_ID}
+                    )
+
+                aps_body = {
+                    'aps': {
+                        'alert': {'title': payload.get('title', ''), 'body': payload.get('body', '')},
+                        'sound': 'default',
+                        'badge': int(badge),
+                    },
+                    'type': payload.get('type', ''),
+                    'from_user_id': payload.get('from_user_id'),
+                    'post_id': payload.get('post_id'),
+                }
+
+                import logging as _logging
+                _log = _logging.getLogger('gunicorn.error')
+
+                for s in ios_subs:
+                    env = (s['environment'] or 'production').strip().lower()
+                    host = 'api.sandbox.push.apple.com' if env == 'sandbox' else 'api.push.apple.com'
+                    url = f'https://{host}/3/device/{s["device_token"]}'
+                    headers = {
+                        'authorization': f'bearer {_make_jwt()}',
+                        'apns-topic': APNS_BUNDLE_ID,
+                        'apns-push-type': 'alert',
+                    }
+                    try:
+                        with httpx.Client(http2=True) as _client:
+                            resp = _client.post(url, json=aps_body, headers=headers, timeout=10)
+                        if resp.status_code == 200:
+                            _log.info('[APNS] sent ok token=%s env=%s', s['device_token'][:8], env)
+                        else:
+                            _log.error('[APNS] error token=%s env=%s status=%s body=%s',
+                                       s['device_token'][:8], env, resp.status_code, resp.text)
+                    except Exception as _exc:
+                        _log.error('[APNS] request error token=%s env=%s err=%s',
+                                   s['device_token'][:8], env, _exc)
+            except Exception as _outer:
+                import logging as _logging
+                _logging.getLogger('gunicorn.error').error('[APNS] setup error: %s', _outer)
+
     threading.Thread(target=_send, daemon=True).start()
+
+
+def _push_dm_async(to_uid, from_uid, text):
+    conn = get_db()
+    sender = conn.execute('SELECT username FROM users WHERE id=?', (from_uid,)).fetchone()
+    conn.close()
+    if not sender:
+        return
+    _send_push_payload_async(to_uid, {
+        'type': 'dm',
+        'from_user_id': int(from_uid),
+        'title': sender['username'],
+        'body': text[:80] + ('…' if len(text) > 80 else ''),
+        'tag': 'cg-msg-' + str(from_uid)
+    }, 'notify_dm')
+
+
+def _push_like_async(post_owner_uid, liker_uid, post_id):
+    if post_owner_uid == liker_uid:
+        return
+    conn = get_db()
+    liker = conn.execute('SELECT username FROM users WHERE id=?', (liker_uid,)).fetchone()
+    conn.close()
+    if not liker:
+        return
+    _send_push_payload_async(post_owner_uid, {
+        'type': 'like',
+        'from_user_id': int(liker_uid),
+        'post_id': int(post_id),
+        'title': 'New Like',
+        'body': liker['username'] + ' liked your post',
+        'tag': 'cg-like-' + str(post_id)
+    }, 'notify_likes')
+
+
+def _push_comment_async(post_owner_uid, commenter_uid, post_id, text):
+    if post_owner_uid == commenter_uid:
+        return
+    conn = get_db()
+    commenter = conn.execute('SELECT username FROM users WHERE id=?', (commenter_uid,)).fetchone()
+    conn.close()
+    if not commenter:
+        return
+    _send_push_payload_async(post_owner_uid, {
+        'type': 'comment',
+        'from_user_id': int(commenter_uid),
+        'post_id': int(post_id),
+        'title': 'New Comment',
+        'body': commenter['username'] + ': ' + (text[:70] + ('…' if len(text) > 70 else '')),
+        'tag': 'cg-comment-' + str(post_id)
+    }, 'notify_comments')
+
+
+def _push_friend_post_async(author_uid, post_id, title):
+    conn = get_db()
+    author = conn.execute('SELECT username FROM users WHERE id=?', (author_uid,)).fetchone()
+    if not author:
+        conn.close()
+        return
+    rows = conn.execute('''
+        SELECT CASE WHEN from_user_id=? THEN to_user_id ELSE from_user_id END AS friend_id
+        FROM friends
+        WHERE status='accepted' AND (from_user_id=? OR to_user_id=?)
+    ''', (author_uid, author_uid, author_uid)).fetchall()
+    conn.close()
+    body = (title or '').strip() or 'Shared a new post'
+    body = body[:80] + ('…' if len(body) > 80 else '')
+    for r in rows:
+        fid = int(r['friend_id'])
+        if fid == author_uid:
+            continue
+        _send_push_payload_async(fid, {
+            'type': 'friend_post',
+            'from_user_id': int(author_uid),
+            'post_id': int(post_id),
+            'title': author['username'],
+            'body': body,
+            'tag': 'cg-friend-post-' + str(post_id)
+        }, 'notify_friend_posts')
+
 
 # ── Admin ──────────────────────────────────────────────────────────────────────
 
@@ -1472,6 +1768,10 @@ def create_post():
     conn.commit()
     post_id = cur.lastrowid
     conn.close()
+
+    # Notify accepted friends about a new post if they opted in.
+    _push_friend_post_async(uid, post_id, title)
+
     return jsonify({'ok': True, 'post_id': post_id}), 201
 
 
@@ -1504,7 +1804,7 @@ def like_post(post_id):
     uid, err = require_auth(request)
     if err: return err
     conn = get_db()
-    row = conn.execute('SELECT id FROM posts WHERE id=? AND deleted=0', (post_id,)).fetchone()
+    row = conn.execute('SELECT id, user_id FROM posts WHERE id=? AND deleted=0', (post_id,)).fetchone()
     if not row:
         conn.close()
         return jsonify({'ok': False, 'error': 'Not found'}), 404
@@ -1517,7 +1817,12 @@ def like_post(post_id):
         conn.commit()
         liked = False
     count = conn.execute('SELECT COUNT(*) FROM post_likes WHERE post_id=?', (post_id,)).fetchone()[0]
+    post_owner_uid = int(row['user_id'])
     conn.close()
+
+    if liked:
+        _push_like_async(post_owner_uid, uid, post_id)
+
     return jsonify({'ok': True, 'liked': liked, 'likes_count': count})
 
 # ── Post comments ──────────────────────────────────────────────────────────────
@@ -1550,7 +1855,7 @@ def add_comment(post_id):
     uid, err = require_auth(request)
     if err: return err
     conn = get_db()
-    row = conn.execute('SELECT id FROM posts WHERE id=? AND deleted=0', (post_id,)).fetchone()
+    row = conn.execute('SELECT id, user_id FROM posts WHERE id=? AND deleted=0', (post_id,)).fetchone()
     if not row:
         conn.close()
         return jsonify({'ok': False, 'error': 'Not found'}), 404
@@ -1570,7 +1875,11 @@ def add_comment(post_id):
     conn.commit()
     cid = cur.lastrowid
     user = conn.execute('SELECT username, avatar_b64 FROM users WHERE id=?', (uid,)).fetchone()
+    post_owner_uid = int(row['user_id'])
     conn.close()
+
+    _push_comment_async(post_owner_uid, uid, post_id, text)
+
     return jsonify({'ok': True, 'comment': {
         'id':         cid,
         'user_id':    uid,

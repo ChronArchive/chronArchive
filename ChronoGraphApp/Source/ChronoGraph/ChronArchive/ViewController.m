@@ -1,5 +1,7 @@
 #import "ViewController.h"
 
+extern NSString * const CGAPNSTokenRefreshedNotification;
+
 static NSString * const CGReleaseInactiveWebViewsNotification = @"CGReleaseInactiveWebViewsNotification";
 
 static NSString *CGBase64FromData(NSData *data) {
@@ -177,6 +179,10 @@ static NSString *CGBase64FromData(NSData *data) {
                                                                                          selector:@selector(onReleaseInactiveWebViews:)
                                                                                                  name:CGReleaseInactiveWebViewsNotification
                                                                                              object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                                                         selector:@selector(onAPNSTokenRefreshed:)
+                                                                                                 name:CGAPNSTokenRefreshedNotification
+                                                                                             object:nil];
 }
 
 /* Hide the native nav bar on the tab root page; show it on any sub-page so the
@@ -204,6 +210,70 @@ static NSString *CGBase64FromData(NSData *data) {
     }
 }
 
+- (void)injectPushBridge {
+    if (!self.webView) return;
+    NSString *apnsToken = [[NSUserDefaults standardUserDefaults] objectForKey:@"cg_apns_token"];
+    NSString *apnsEnv   = [[NSUserDefaults standardUserDefaults] objectForKey:@"cg_apns_environment"];
+    if (!apnsEnv || ![apnsEnv length]) apnsEnv = @"sandbox";
+    if (![apnsEnv isEqualToString:@"sandbox"] && ![apnsEnv isEqualToString:@"production"]) {
+        apnsEnv = @"sandbox";
+    }
+    if (![[NSBundle mainBundle] pathForResource:@"embedded" ofType:@"mobileprovision"]) {
+        apnsEnv = @"sandbox";
+    }
+    if (!apnsToken || ![apnsToken length]) return;
+    NSString *escTok = [apnsToken stringByReplacingOccurrencesOfString:@"\\" withString:@"\\\\"];
+    escTok = [escTok stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"];
+    NSString *escEnv = [apnsEnv stringByReplacingOccurrencesOfString:@"\\" withString:@"\\\\"];
+    escEnv = [escEnv stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"];
+    NSString *js = [NSString stringWithFormat:
+        @"(function(){"
+            "window.__cgApnsToken='%@';"
+            "window.__cgApnsEnvironment='%@';"
+            "try{"
+                "var t=window.__cgApnsToken||'';"
+                "var env=(window.__cgApnsEnvironment==='production')?'production':'sandbox';"
+                "function cgSyncPush(){"
+                    "var s='';"
+                    "try{s=localStorage.getItem('cg_t')||localStorage.getItem('hm_t')||'';}catch(e1){}"
+                    "if(!(t&&s)) return;"
+                    "var k='apns:'+t+':'+s+':'+env;"
+                    "if(window.__cgApnsRegKey!==k){window.__cgApnsRegKey=k;}"
+                    "var xhr=new XMLHttpRequest();"
+                    "xhr.open('POST','https://chat.chronarchive.com/api/apns/register',true);"
+                    "xhr.setRequestHeader('Content-Type','application/json');"
+                    "xhr.setRequestHeader('X-CG-Token',s);"
+                    "try{xhr.timeout=12000;}catch(e2){}"
+                    "xhr.send(JSON.stringify({device_token:t,environment:env,platform:'ios'}));"
+                    "var br=new XMLHttpRequest();"
+                    "br.open('GET','https://chat.chronarchive.com/api/badge',true);"
+                    "br.setRequestHeader('X-CG-Token',s);"
+                    "br.onreadystatechange=function(){"
+                        "if(br.readyState===4&&br.status===200){"
+                            "try{"
+                                "var d=JSON.parse(br.responseText);"
+                                "if(d&&d.ok&&typeof d.unread_dm==='number'){"
+                                    "window.location='cgbadge://set?count='+encodeURIComponent(String(d.unread_dm));"
+                                "}"
+                            "}catch(pe){}"
+                        "}"
+                    "};"
+                    "br.send();"
+                "}"
+                "cgSyncPush();"
+                "if(!window.__cgApnsSyncTimer){window.__cgApnsSyncTimer=setInterval(cgSyncPush,15000);}"
+            "}catch(e2){}"
+        "})();", escTok, escEnv];
+    [self.webView stringByEvaluatingJavaScriptFromString:js];
+}
+
+- (void)onAPNSTokenRefreshed:(NSNotification *)note {
+    (void)note;
+    if (self.isViewLoaded && self.view.window != nil) {
+        [self injectPushBridge];
+    }
+}
+
 - (UIColor *)accentColorForName:(NSString *)name {
     if (!name) return [UIColor colorWithRed:0.35 green:0.78 blue:0.98 alpha:1.0];
     if ([name isEqualToString:@"green"]) {
@@ -216,6 +286,8 @@ static NSString *CGBase64FromData(NSData *data) {
     NSLog(@"[CGNATIVE] didFinishLoad req=%@", webView.request.URL.absoluteString);
 
     [webView stringByEvaluatingJavaScriptFromString:@"window.__cgNativeImagePicker=1;"];
+    [self injectPushBridge];
+
 
     NSInteger legacyMajor = (NSInteger)[[[UIDevice currentDevice] systemVersion] intValue];
 
@@ -444,6 +516,25 @@ static NSString *CGBase64FromData(NSData *data) {
                                                  navigationType:(UIWebViewNavigationType)navigationType {
     NSURL      *url    = request.URL;
     NSString   *scheme = url.scheme.lowercaseString;
+
+    if ([scheme isEqualToString:@"cgbadge"]) {
+        /* cgbadge://set?count=N — update the app badge number */
+        NSString *query = [url query];
+        NSInteger badgeCount = 0;
+        if (query) {
+            for (NSString *pair in [query componentsSeparatedByString:@"&"]) {
+                NSArray *parts = [pair componentsSeparatedByString:@"="];
+                if ([parts count] == 2 && [[parts objectAtIndex:0] isEqualToString:@"count"]) {
+                    NSString *val = [[parts objectAtIndex:1]
+                        stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+                    badgeCount = [val integerValue];
+                    break;
+                }
+            }
+        }
+        [[UIApplication sharedApplication] setApplicationIconBadgeNumber:badgeCount];
+        return NO;
+    }
 
     if ([scheme isEqualToString:@"cgswitch"]) {
         NSString *host = [[url host] lowercaseString];

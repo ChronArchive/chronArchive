@@ -167,7 +167,12 @@ find "$OUTPUT_DIR/Payload" -name '._*' -type f -delete 2>/dev/null || true
 xattr -cr "$OUTPUT_DIR/Payload" 2>/dev/null || true
 
 if command -v ldid &>/dev/null; then
-    ldid -S "$APP_DIR/ChronArchive"
+    ENTITLEMENTS="$SRCDIR/ChronArchive.entitlements"
+    if [[ -f "$ENTITLEMENTS" ]]; then
+        ldid -S"$ENTITLEMENTS" "$APP_DIR/ChronArchive"
+    else
+        ldid -S "$APP_DIR/ChronArchive"
+    fi
     echo "  ldid -S done"
 elif ! codesign -f -s - "$APP_DIR"; then
     echo "ERROR: codesign failed for $APP_DIR"

@@ -143,7 +143,12 @@ echo "  Injected launch images"
 
 xattr -cr "$FAT_APP"
 if command -v ldid &>/dev/null; then
-    ldid -S "$FAT_APP/ChronArchive"
+    ENTITLEMENTS="$SCRIPT_DIR/../Source/ChronoGraph/ChronArchive/ChronArchive.entitlements"
+    if [[ -f "$ENTITLEMENTS" ]]; then
+        ldid -S"$ENTITLEMENTS" "$FAT_APP/ChronArchive"
+    else
+        ldid -S "$FAT_APP/ChronArchive"
+    fi
 else
     codesign -f -s - "$FAT_APP"
 fi

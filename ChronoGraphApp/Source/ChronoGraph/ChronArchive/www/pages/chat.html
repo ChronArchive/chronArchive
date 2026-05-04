@@ -185,6 +185,17 @@
     .profile-btn  { display:block; width:100%; padding:13px; margin-bottom:10px; background:#fff; border:1px solid #d0d0d0; -webkit-border-radius:10px; border-radius:10px; color:#0055cc; font-size:15px; text-align:left; cursor:pointer; -webkit-appearance:none; font-family:inherit; }
     .profile-btn.red { color:#cc0000; }
     .profile-label { font-size:12px; color:#888; text-transform:uppercase; letter-spacing:0.5px; margin:16px 0 8px; font-weight:bold; }
+    .profile-toggle-row { display:table; width:100%; padding:10px 0; border-bottom:1px solid #e1e1e1; }
+    .profile-toggle-row:last-child { border-bottom:none; }
+    .profile-toggle-text { display:table-cell; vertical-align:middle; color:#1a1a1a; font-size:15px; }
+    .profile-toggle-sub { display:block; color:#888; font-size:12px; margin-top:2px; }
+    .profile-toggle-cell { display:table-cell; width:56px; text-align:right; vertical-align:middle; }
+    .toggle { position:relative; display:inline-block; width:44px; height:26px; }
+    .toggle input { display:none; }
+    .toggle-track { position:absolute; top:0; left:0; right:0; bottom:0; background:#ccc; -webkit-border-radius:13px; border-radius:13px; }
+    .toggle input:checked + .toggle-track { background:#34c759; }
+    .toggle-thumb { position:absolute; top:2px; left:2px; width:22px; height:22px; background:#fff; -webkit-border-radius:11px; border-radius:11px; -webkit-box-shadow:0 1px 3px rgba(0,0,0,0.3); box-shadow:0 1px 3px rgba(0,0,0,0.3); -webkit-transition:-webkit-transform 0.2s; transition:transform 0.2s; }
+    .toggle input:checked ~ .toggle-thumb { -webkit-transform:translateX(18px); transform:translateX(18px); }
     .save-btn { display:block; width:100%; padding:14px;
       background:-webkit-linear-gradient(top,#1a7ce8 0%,#0055cc 100%);
       background:linear-gradient(to bottom,#1a7ce8 0%,#0055cc 100%);
@@ -302,6 +313,47 @@
       <div id="profile-username-display" class="profile-name"></div>
       <div class="profile-label">Bio</div>
       <input type="text" id="profile-bio-input" class="profile-field" placeholder="Write something&#8230;" maxlength="160">
+
+      <div class="profile-label">Notifications</div>
+      <div style="background:#fff;border:1px solid #d0d0d0;border-radius:10px;padding:0 12px;">
+        <div class="profile-toggle-row">
+          <div class="profile-toggle-text">Direct Messages<span class="profile-toggle-sub">Notify when you get a DM</span></div>
+          <div class="profile-toggle-cell">
+            <label class="toggle">
+              <input type="checkbox" id="notify-dm-toggle" onchange="saveNotificationPrefs()">
+              <span class="toggle-track"></span><span class="toggle-thumb"></span>
+            </label>
+          </div>
+        </div>
+        <div class="profile-toggle-row">
+          <div class="profile-toggle-text">Friends' Posts<span class="profile-toggle-sub">Notify when friends post</span></div>
+          <div class="profile-toggle-cell">
+            <label class="toggle">
+              <input type="checkbox" id="notify-friend-posts-toggle" onchange="saveNotificationPrefs()">
+              <span class="toggle-track"></span><span class="toggle-thumb"></span>
+            </label>
+          </div>
+        </div>
+        <div class="profile-toggle-row">
+          <div class="profile-toggle-text">Likes<span class="profile-toggle-sub">Notify when someone likes your post</span></div>
+          <div class="profile-toggle-cell">
+            <label class="toggle">
+              <input type="checkbox" id="notify-likes-toggle" onchange="saveNotificationPrefs()">
+              <span class="toggle-track"></span><span class="toggle-thumb"></span>
+            </label>
+          </div>
+        </div>
+        <div class="profile-toggle-row">
+          <div class="profile-toggle-text">Comments<span class="profile-toggle-sub">Notify when someone comments on your post</span></div>
+          <div class="profile-toggle-cell">
+            <label class="toggle">
+              <input type="checkbox" id="notify-comments-toggle" onchange="saveNotificationPrefs()">
+              <span class="toggle-track"></span><span class="toggle-thumb"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div class="profile-label">Account</div>
       <button class="profile-btn" onclick="goChangePassword()">Change Password</button>
       <button class="profile-btn" id="admin-btn" onclick="goAdmin()" style="display:none;">Admin Console</button>
@@ -415,6 +467,7 @@ var S = {
   threadUid:null, threadUsername:null,
   lastMsgId:0, pollXhr:null, polling:false,
   receiptInterval:null,
+  notifyDm:true, notifyFriendPosts:true, notifyLikes:true, notifyComments:true,
   upUserId:null, upFriendStatus:null, upDirection:null, upBlocked:false, upFromScreen:'users-screen'
 };
 function cgLog(kind,msg){}
@@ -483,7 +536,10 @@ function show(id) {
     if (el) el.className = 'screen'+(ALL_SCREENS[i]===id?' active':'');
   }
   queueLegacyScrollRefresh(id);
-  if (id==='thread-screen') updateLegacyThreadChromePosition();
+  if (id==='thread-screen') {
+    updateLegacyThreadChromePosition();
+    updateThreadComposerPosition();
+  }
 }
 function escH(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtTime(ts){ var d=new Date(ts*1000),h=d.getHours(),m=d.getMinutes(),ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+(m<10?'0':'')+m+' '+ap; }
@@ -569,6 +625,22 @@ function doAuth(){
   });
 }
 function updateChatPill(){/* pill removed — account page handles it */}
+function setNativeBadgeCount(n){
+  n=parseInt(n,10); if(!isFinite(n)||n<0)n=0;
+  try{window.location='cgbadge://set?count='+encodeURIComponent(String(n));}catch(e){}
+}
+function syncNativeBadgeFromConversations(convs){
+  if(!convs||!convs.length){ setNativeBadgeCount(0); return; }
+  var sum=0;
+  for(var i=0;i<convs.length;i++) sum += parseInt(convs[i].unread||0,10)||0;
+  setNativeBadgeCount(sum);
+}
+function refreshNativeBadgeFromServer(){
+  if(!S.token) return;
+  req('GET','/api/badge',null,function(d){
+    if(d&&d.ok&&typeof d.unread_dm==='number') setNativeBadgeCount(d.unread_dm);
+  });
+}
 function afterLogin(d){
   cgLog('AUTH','success uid='+(d.user_id||0)+' uname='+(d.username||''));
   S.token=d.token;S.userId=d.user_id;S.username=d.username;S.isAdmin=!!(d.is_admin);
@@ -585,6 +657,10 @@ function afterLogin(d){
     }
     cgLog('AUTH','verify success uid='+(d2.id||S.userId||0));
     S.userId=d2.id||S.userId;S.username=d2.username;S.isAdmin=!!d2.is_admin;
+    S.notifyDm=(d2.notify_dm!==false);
+    S.notifyFriendPosts=(d2.notify_friend_posts!==false);
+    S.notifyLikes=(d2.notify_likes!==false);
+    S.notifyComments=(d2.notify_comments!==false);
     S.av=d2.avatar_b64||S.av;
     store.set('cg_n',S.username);store.set('cg_av',S.av);
     store.set('hm_n',S.username);store.set('hm_av',S.av);
@@ -600,6 +676,7 @@ function doLogout(){
   S.token=S.userId=S.username=null;S.isAdmin=false;
   store.del('cg_t');store.del('cg_u');store.del('cg_n');store.del('cg_a');store.del('cg_av');
   store.del('hm_t');store.del('hm_u');store.del('hm_n');store.del('hm_av');
+  setNativeBadgeCount(0);
   updateChatPill();
   show('auth-screen');
 }
@@ -611,6 +688,14 @@ function goProfile(){
     if(!d||!d.ok)return;
     document.getElementById('profile-username-display').innerHTML=escH(d.username);
     document.getElementById('profile-bio-input').value=d.bio||'';
+    S.notifyDm=(d.notify_dm!==false);
+    S.notifyFriendPosts=(d.notify_friend_posts!==false);
+    S.notifyLikes=(d.notify_likes!==false);
+    S.notifyComments=(d.notify_comments!==false);
+    var ndm=document.getElementById('notify-dm-toggle');if(ndm)ndm.checked=!!S.notifyDm;
+    var nfp=document.getElementById('notify-friend-posts-toggle');if(nfp)nfp.checked=!!S.notifyFriendPosts;
+    var nlk=document.getElementById('notify-likes-toggle');if(nlk)nlk.checked=!!S.notifyLikes;
+    var ncm=document.getElementById('notify-comments-toggle');if(ncm)ncm.checked=!!S.notifyComments;
     var av=document.getElementById('profile-av-display');
     if(d.avatar_b64){av.innerHTML='<img src="'+escH(d.avatar_b64)+'" style="width:80px;height:80px;border-radius:40px;display:block;">';}
     else av.innerHTML=escH(d.username.charAt(0).toUpperCase());
@@ -652,6 +737,19 @@ function saveProfile(){
     if(!err&&d&&d.ok)cgLog('PROFILE','save success');
     if(!err&&d&&d.ok&&av){store.set('cg_av',av);store.set('hm_av',av);updateChatPill();}
   });
+}
+function saveNotificationPrefs(){
+  var body={
+    notify_dm: !!(document.getElementById('notify-dm-toggle')&&document.getElementById('notify-dm-toggle').checked),
+    notify_friend_posts: !!(document.getElementById('notify-friend-posts-toggle')&&document.getElementById('notify-friend-posts-toggle').checked),
+    notify_likes: !!(document.getElementById('notify-likes-toggle')&&document.getElementById('notify-likes-toggle').checked),
+    notify_comments: !!(document.getElementById('notify-comments-toggle')&&document.getElementById('notify-comments-toggle').checked)
+  };
+  S.notifyDm=body.notify_dm;
+  S.notifyFriendPosts=body.notify_friend_posts;
+  S.notifyLikes=body.notify_likes;
+  S.notifyComments=body.notify_comments;
+  req('PUT','/api/me',body,function(){});
 }
 function goChangePassword(){show('changepw-screen');}
 function doChangePassword(){
@@ -765,6 +863,7 @@ function goConvos(){
           '<div class="cm">'+badge+'</div></div>';
       }
       document.getElementById('convos-body').innerHTML=html;
+      syncNativeBadgeFromConversations(convs);
       cgLog('CONVOS','loaded count='+convs.length);
       queueLegacyScrollRefresh('convos-screen');
     }catch(er){
@@ -942,6 +1041,7 @@ function openThread(uid,uname,avb64){
   document.getElementById('msg-input').value='';
   show('thread-screen');
   enforceThreadComposerPin();
+  req('POST','/api/messages/'+uid+'/read',null,function(){ refreshNativeBadgeFromServer(); });
   req('GET','/api/messages?with='+uid+'&after_id=0',null,function(d){
     document.getElementById('thread-body').innerHTML='';
     if(d&&d.messages&&d.messages.length){
@@ -953,6 +1053,7 @@ function openThread(uid,uname,avb64){
       setTimeout(scrollBot,320);
     }
     startPoll();startReceiptPoll();
+    refreshNativeBadgeFromServer();
     queueLegacyScrollRefresh('thread-screen');
   });
 }
@@ -1046,15 +1147,26 @@ function updateThreadComposerPosition(){
   var ib=document.querySelector?document.querySelector('#thread-screen .ibar'):null;
   var sb=document.querySelector?document.querySelector('#thread-screen .sb'):null;
   if(!ib || !sb) return;
-  var vh=window.innerHeight||document.documentElement.clientHeight||document.body.clientHeight||0;
-  var height = ib.offsetHeight || 56;
-  var top=Math.max(0, vh-height);
+  var height=ib.offsetHeight||56;
+
+  // UIWebView / legacy engines (e.g. iOS 6) do not provide reliable keyboard viewport
+  // metrics. Keep composer pinned to bottom to prevent mid-screen jumps and overlap.
+  if(!window.visualViewport){
+    ib.style.position='absolute';
+    ib.style.top='auto';
+    ib.style.bottom='0';
+    sb.style.bottom=height+'px';
+    return;
+  }
+
+  // Modern engines: track keyboard using visualViewport.
+  var vh=(window.visualViewport.height||0)||window.innerHeight||document.documentElement.clientHeight||document.body.clientHeight||0;
+  var vOffset=(window.visualViewport.offsetTop||0);
+  var top=Math.max(0, vOffset+vh-height);
   ib.style.position='absolute';
   ib.style.top=top+'px';
   ib.style.bottom='auto';
-  sb.style.bottom=height+'px';
-  var body=document.getElementById('thread-body');
-  if(body){ body.style.bottom='0'; }
+  sb.style.bottom=(document.getElementById('thread-screen').offsetHeight-top)+'px';
 }
 function syncThreadInputFocus(){
   var inp=document.getElementById('msg-input');
@@ -1135,6 +1247,11 @@ if(window.addEventListener){
   window.addEventListener('resize',updateLegacyThreadChromePosition,false);
   window.addEventListener('resize',updateThreadComposerPosition,false);
 }
+// visualViewport tracks keyboard appearance on modern WKWebView
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',updateThreadComposerPosition,false);
+  window.visualViewport.addEventListener('scroll',updateThreadComposerPosition,false);
+}
 syncThreadInputFocus();
 updateThreadComposerPosition();
 
@@ -1158,6 +1275,13 @@ function doPoll(){
       var newM=[];
       for(var j=0;j<d.messages.length;j++){if(!existing[String(d.messages[j].id)])newM.push(d.messages[j]);}
       if(newM.length){renderMsgs(newM);scrollBot();}
+      var hasIncoming=false;
+      for(var k=0;k<newM.length;k++){
+        if(newM[k].from_user_id!==S.userId){ hasIncoming=true; break; }
+      }
+      if(hasIncoming){
+        req('POST','/api/messages/'+S.threadUid+'/read',null,function(){ refreshNativeBadgeFromServer(); });
+      }
       if(newM.length)cgLog('POLL','new_messages count='+newM.length);
       S.lastMsgId=d.messages[d.messages.length-1].id;
     }
@@ -1370,6 +1494,8 @@ function saveAdminFilter(){
     +'.auth-field::-webkit-input-placeholder,.search-input::-webkit-input-placeholder,.msg-input::-webkit-input-placeholder,.profile-field::-webkit-input-placeholder{color:'+placeholderColor+'!important}'
     +'.header{background:'+accentBg+'!important;border-color:'+accentBorder+'!important}'
     +'.send-btn{background:'+accentBg+'!important;border-color:'+accentBorder+'!important}'
+    +'.ibar{background:'+t.grp+'!important;border-top-color:'+t.brd+'!important}'
+    +'.convo-row,.user-row,.friend-row,.admin-row,.stat-row{border-color:'+t.brd+'!important}'
     +bubbleRule;
   var bName='green';
   try{bName=getSafeAccentName();}catch(e){}
@@ -1497,12 +1623,18 @@ function applyLegacyScrollFallback(){
 function applyModernSafeTopFallback(){
   if(legacyIOSMajor()<=4)return;
   var safeTop=0;
-  var ua=navigator.userAgent||'';
-  var isModernIPhone=/iPhone/.test(ua) && Math.max(screen.width,screen.height)>=812;
-  if(isModernIPhone) safeTop=16;
-  if(window.innerHeight && screen && screen.height){
-    var diff=screen.height-window.innerHeight;
-    if(diff>safeTop && diff<80) safeTop=diff;
+  try{
+    // Measure env(safe-area-inset-top) directly — reliable on WKWebView with viewport-fit=cover
+    var tmp=document.createElement('div');
+    tmp.style.cssText='position:fixed;top:env(safe-area-inset-top,0px);left:0;width:0;height:0;visibility:hidden;pointer-events:none;';
+    document.documentElement.appendChild(tmp);
+    safeTop=tmp.getBoundingClientRect().top||0;
+    document.documentElement.removeChild(tmp);
+  }catch(e){
+    // Fallback for older WebKit that can't measure env()
+    var ua=navigator.userAgent||'';
+    var isModernIPhone=/iPhone/.test(ua)&&Math.max(screen.width,screen.height)>=812;
+    safeTop=isModernIPhone?44:0;
   }
   if(safeTop<0) safeTop=0;
   try{ document.documentElement.style.setProperty('--cg-safe-top', safeTop+'px'); }catch(e){}

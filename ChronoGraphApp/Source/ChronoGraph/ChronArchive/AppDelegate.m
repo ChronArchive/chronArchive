@@ -3,8 +3,46 @@
 #import <AVFoundation/AVFoundation.h>
 #import <objc/message.h>
 
+static NSString * const CGAPNSTokenDefaultsKey       = @"cg_apns_token";
+static NSString * const CGAPNSEnvironmentDefaultsKey = @"cg_apns_environment";
+NSString * const CGAPNSTokenRefreshedNotification    = @"CGAPNSTokenRefreshedNotification";
+
+static NSString *CGHexFromData(NSData *data) {
+    if (!data || ![data length]) return @"";
+    const unsigned char *bytes = (const unsigned char *)[data bytes];
+    NSMutableString *out = [NSMutableString stringWithCapacity:[data length] * 2];
+    NSUInteger i;
+    for (i = 0; i < [data length]; i++) {
+        [out appendFormat:@"%02x", bytes[i]];
+    }
+    return out;
+}
+
 @implementation AppDelegate
 @synthesize window = _window;
+
+- (void)requestNotificationPermissionsIfPossible:(UIApplication *)application {
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
+    if ([application respondsToSelector:@selector(registerUserNotificationSettings:)]) {
+        UIUserNotificationType types = (UIUserNotificationTypeAlert |
+                                        UIUserNotificationTypeBadge |
+                                        UIUserNotificationTypeSound);
+        UIUserNotificationSettings *settings =
+            [UIUserNotificationSettings settingsForTypes:types categories:nil];
+        [application registerUserNotificationSettings:settings];
+        return;
+    }
+#endif
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    if ([application respondsToSelector:@selector(registerForRemoteNotificationTypes:)]) {
+        UIRemoteNotificationType types = (UIRemoteNotificationTypeAlert |
+                                          UIRemoteNotificationTypeBadge |
+                                          UIRemoteNotificationTypeSound);
+        [application registerForRemoteNotificationTypes:types];
+    }
+#pragma clang diagnostic pop
+}
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     /* Audio session — set once here so every tab's video plays through the
@@ -92,7 +130,97 @@
         [self.window addSubview:tabs.view];
     }
     [self.window makeKeyAndVisible];
+    /* Request notification permission — iOS only shows the prompt once. */
+    [self requestNotificationPermissionsIfPossible:application];
+
+    /* Detect APNs environment from the embedded provisioning profile.
+       If no profile is present (common in ldid-signed IPA workflows), default
+       to sandbox so dev tokens are sent to the correct APNs endpoint. */
+    {
+        NSString *apnsEnv = @"sandbox";
+        NSString *provPath = [[NSBundle mainBundle] pathForResource:@"embedded"
+                                                             ofType:@"mobileprovision"];
+        if (provPath) {
+            NSData *provData = [NSData dataWithContentsOfFile:provPath];
+            if (provData) {
+                NSString *provString = [[NSString alloc] initWithData:provData
+                                                             encoding:NSISOLatin1StringEncoding];
+                NSRange startRange = [provString rangeOfString:@"<?xml"];
+                NSRange endRange   = [provString rangeOfString:@"</plist>"];
+                if (startRange.location != NSNotFound && endRange.location != NSNotFound) {
+                    NSRange plistRange = NSMakeRange(
+                        startRange.location,
+                        endRange.location + endRange.length - startRange.location);
+                    NSString *plistString = [provString substringWithRange:plistRange];
+                    NSData *plistData = [plistString dataUsingEncoding:NSUTF8StringEncoding];
+                    NSDictionary *plist = [NSPropertyListSerialization
+                        propertyListWithData:plistData options:0 format:nil error:nil];
+                    NSString *ent = [[plist objectForKey:@"Entitlements"]
+                                         objectForKey:@"aps-environment"];
+                    if ([ent isEqualToString:@"development"]) {
+                        apnsEnv = @"sandbox";
+                    } else if ([ent isEqualToString:@"production"]) {
+                        apnsEnv = @"production";
+                    }
+                }
+            }
+        }
+        [[NSUserDefaults standardUserDefaults] setObject:apnsEnv
+                                                  forKey:CGAPNSEnvironmentDefaultsKey];
+    }
+
     return YES;
+}
+
+- (void)applicationDidBecomeActive:(UIApplication *)application {
+    SEL regSel = NSSelectorFromString(@"registerForRemoteNotifications");
+    if ([application respondsToSelector:regSel]) {
+        ((void(*)(id,SEL))objc_msgSend)(application, regSel);
+        return;
+    }
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    if ([application respondsToSelector:@selector(registerForRemoteNotificationTypes:)]) {
+        UIRemoteNotificationType types = (UIRemoteNotificationTypeAlert |
+                                          UIRemoteNotificationTypeBadge |
+                                          UIRemoteNotificationTypeSound);
+        [application registerForRemoteNotificationTypes:types];
+    }
+#pragma clang diagnostic pop
+}
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
+- (void)application:(UIApplication *)application
+        didRegisterUserNotificationSettings:(UIUserNotificationSettings *)notificationSettings {
+    (void)application;
+    if (notificationSettings.types != UIUserNotificationTypeNone) {
+        SEL regSel = NSSelectorFromString(@"registerForRemoteNotifications");
+        UIApplication *shared = [UIApplication sharedApplication];
+        if ([shared respondsToSelector:regSel]) {
+            ((void(*)(id,SEL))objc_msgSend)(shared, regSel);
+        }
+    }
+}
+#endif
+
+- (void)application:(UIApplication *)application
+        didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
+    (void)application;
+    NSString *token = CGHexFromData(deviceToken);
+    if (token && [token length]) {
+        [[NSUserDefaults standardUserDefaults] setObject:token
+                                                  forKey:CGAPNSTokenDefaultsKey];
+        [[NSUserDefaults standardUserDefaults] synchronize];
+        [[NSNotificationCenter defaultCenter]
+            postNotificationName:CGAPNSTokenRefreshedNotification object:nil];
+    }
+    NSLog(@"[CGNATIVE] APNS token bytes=%lu", (unsigned long)[deviceToken length]);
+}
+
+- (void)application:(UIApplication *)application
+        didFailToRegisterForRemoteNotificationsWithError:(NSError *)error {
+    (void)application;
+    NSLog(@"[CGNATIVE] APNS register failed: %@", error.localizedDescription);
 }
 
 @end

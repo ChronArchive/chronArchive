@@ -99,12 +99,18 @@ INFO="$OUTPUT_DIR/Payload/ChronArchive.app/Info.plist"
 echo "  MinimumOSVersion → 7.0"
 echo "  Version → 1.1 (build 11)"
 
+ENTITLEMENTS="$PROJECT_DIR/ChronArchive/ChronArchive.entitlements"
+
 echo "  Stripping extended attributes..."
 xattr -cr "$OUTPUT_DIR/Payload/ChronArchive.app"
 echo "  Signing with ldid (jailbreak-compatible)..."
 BINARY="$OUTPUT_DIR/Payload/ChronArchive.app/ChronArchive"
 if command -v ldid &>/dev/null; then
-    ldid -S "$BINARY"
+    if [[ -f "$ENTITLEMENTS" ]]; then
+        ldid -S"$ENTITLEMENTS" "$BINARY"
+    else
+        ldid -S "$BINARY"
+    fi
     echo "  ldid -S done"
 else
     codesign -f -s - "$OUTPUT_DIR/Payload/ChronArchive.app" 2>&1 | sed 's/^/    /'

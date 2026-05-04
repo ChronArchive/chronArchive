@@ -98,6 +98,8 @@ INFO="$OUTPUT_DIR/Payload/ChronArchive.app/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 11" "$INFO" 2>/dev/null || true
 echo "  Version → 1.1 (build 11)"
 
+ENTITLEMENTS="$PROJECT_DIR/ChronArchive/ChronArchive.entitlements"
+
 # Ad-hoc sign the app so the Mach-O loader accepts it on the device.
 # AppSync Unified / ipainstaller bypass the signature *check*, but the
 # binary must still carry a code signature or the kernel refuses to load it.
@@ -105,7 +107,11 @@ echo "  Stripping extended attributes..."
 xattr -cr "$OUTPUT_DIR/Payload/ChronArchive.app"
 echo "  Signing with ldid (jailbreak-compatible)..."
 if command -v ldid &>/dev/null; then
-    ldid -S "$OUTPUT_DIR/Payload/ChronArchive.app/ChronArchive"
+    if [[ -f "$ENTITLEMENTS" ]]; then
+        ldid -S"$ENTITLEMENTS" "$OUTPUT_DIR/Payload/ChronArchive.app/ChronArchive"
+    else
+        ldid -S "$OUTPUT_DIR/Payload/ChronArchive.app/ChronArchive"
+    fi
     echo "  ldid -S done"
 else
     codesign -f -s - "$OUTPUT_DIR/Payload/ChronArchive.app" 2>&1 | sed 's/^/    /'
