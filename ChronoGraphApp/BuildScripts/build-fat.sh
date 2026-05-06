@@ -107,8 +107,7 @@ echo ""
 echo "[3/4] Updating Info.plist..."
 INFO="$FAT_APP/Info.plist"
 
-# Keep minimum OS at 3.1 so iPhone 4S/iOS 6 and older can install.
-# For iPhone 17 / iOS 26+, use the dedicated arm64e IPA instead.
+# Keep the legacy universal package at 3.1 for iPhone 2G/3G installs.
 /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 3.1" "$INFO"
 
 # Remove arch capability restriction so all devices can install
@@ -118,13 +117,13 @@ INFO="$FAT_APP/Info.plist"
 /usr/libexec/PlistBuddy -c "Delete :CFBundleIconFile" "$INFO" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Add :CFBundleIconFile string Icon-60.png" "$INFO"
 
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.2" "$INFO"
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 12" "$INFO"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.3" "$INFO"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 16" "$INFO"
 
 echo "  MinimumOSVersion → 3.1"
 echo "  UIRequiredDeviceCapabilities → removed"
 echo "  CFBundleIconFile → Icon-60.png"
-echo "  Version → 1.2 (build 12)"
+echo "  Version → 1.3 (build 13)"
 
 # ── Step 4: Inject latest www/, sign, and package ────────────────────────────
 echo ""
@@ -156,6 +155,10 @@ fi
 cd "$WORK_DIR"
 zip -qr "$FAT_DIR/chronograph.ipa" Payload/
 
+# Also emit an explicit iOS 6+ universal package for iPhone 4S-era installs.
+/usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 6.0" "$INFO"
+zip -qr "$FAT_DIR/chronograph-ios6.ipa" Payload/
+
 # ── Manifest ──────────────────────────────────────────────────────────────────
 MANIFEST_SRC="$SCRIPT_DIR/output/manifest.plist"
 MANIFEST_DST="$FAT_DIR/chronograph.plist"
@@ -170,6 +173,7 @@ echo ""
 echo "=== Done! ==="
 echo ""
 echo "  output-fat/chronograph.ipa   — Universal fat IPA"
+echo "  output-fat/chronograph-ios6.ipa — Universal iOS 6+ fat IPA"
 echo "  output-fat/chronograph.plist — OTA manifest"
 echo "  Architectures: $(lipo -archs "$FAT_APP/$BINARY_NAME")"
 echo ""

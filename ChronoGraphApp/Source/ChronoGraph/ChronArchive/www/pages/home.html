@@ -472,13 +472,78 @@ var S = {
   page:0, allLoaded:false,
   ctype:'photo', cpImg:null, cpFile:null, avData:null,
   authMode:'login', feedMode:'all',
-  mediaMap:{}, feedWatchdog:0
+  mediaMap:{}, feedWatchdog:0,
+  legacyFeedRetries:0, legacyFeedRetryTimer:0,
+  feedReqGuard:0,
+  feedInflight:false,
+  feedWatchdogTick:0,
+  feedModeUserSet:false
 };
 S.token = store.g('cg_t')||store.g('hm_t');
 S.uid   = parseInt(store.g('cg_u')||store.g('hm_u')||'0',10)||null;
 S.uname = store.g('cg_n')||store.g('hm_n');
 S.av    = store.g('cg_av')||store.g('hm_av')||'';
 function cgLog(kind,msg){try{if(window.console&&console.log)console.log('[CG]['+kind+'] '+msg);}catch(e){}}
+/* HOME TRACE DEBUG (easy to remove): search for HOME_TRACE block. */
+function homeTraceEnabled(){
+  try{ if(store.g('cg_home_trace')==='1') return true; }catch(e){}
+  return legacyIOSMajor()<=4;
+}
+function homeTrace(tag,msg){
+  if(!homeTraceEnabled()) return;
+  try{
+    var out='[CG][HOME_TRACE]['+tag+'] '+msg;
+    if(window.__cgNativePerfLog) window.__cgNativePerfLog(out);
+    else if(window.console&&console.log) console.log(out);
+  }catch(e){}
+}
+function homeLayoutSnapshot(tag){
+  if(!homeTraceEnabled()) return;
+  try{
+    var shell=document.getElementById('shell');
+    var wrap=document.getElementById('feed-wrap');
+    var feed=document.getElementById('posts-feed');
+    var hdr=document.getElementById('hdr');
+    homeTrace(tag,
+      'mode='+S.feedMode+
+      ' inflight='+(S.feedInflight?1:0)+
+      ' page='+(S.page||0)+
+      ' shellDisp='+(shell?(shell.style.display||''):'na')+
+      ' wrapTop='+(wrap?(wrap.style.top||''):'na')+
+      ' wrapH='+(wrap?(wrap.style.height||''):'na')+
+      ' hdrH='+(hdr?(hdr.style.height||''):'na')+
+      ' feedLen='+(feed&&feed.innerHTML?feed.innerHTML.length:0)
+    );
+  }catch(e){}
+}
+function forceLegacyFeedRepaint(){
+  if(!isLegacyIOS()) return;
+  var wrap=document.getElementById('feed-wrap');
+  if(!wrap) return;
+  try{
+    wrap.style.display='none';
+    wrap.offsetHeight;
+    wrap.style.display='block';
+    wrap.offsetHeight;
+  }catch(e){}
+}
+function cgPerfEnabled(){
+  if(window.__cgPerfEnabled===1||window.__cgPerfEnabled===true) return true;
+  if(isLegacyIOS()) return true;
+  try{return (store.g('cg_perf')==='1');}catch(e){return false;}
+}
+function cgPerfStart(){
+  if(!cgPerfEnabled()) return 0;
+  if(window.__cgPerfStart) return window.__cgPerfStart();
+  return (new Date()).getTime();
+}
+function cgPerfEnd(name,t0,extra){
+  if(!cgPerfEnabled()||!t0) return;
+  if(window.__cgPerfEnd){ window.__cgPerfEnd(name,t0,extra||''); return; }
+  var dt=(new Date()).getTime()-t0;
+  var slow=isLegacyIOS()?35:120;
+  if(dt>=slow) cgLog('PERF',name+' '+Math.round(dt)+'ms'+(extra?(' '+extra):''));
+}
 function isLegacyIOS(){ return legacyIOSMajor()<=4; }
 function rememberMedia(src){
   var k='m'+(new Date().getTime())+'_'+Math.floor(Math.random()*1000000);
@@ -551,7 +616,7 @@ function skipLogin(){try{store.s('cg_onboard_accepted','1');}catch(e){} hideOnbo
 function req(m,path,body,cb){
   var x; try{x=new XMLHttpRequest();}catch(e){try{x=new ActiveXObject('Microsoft.XMLHTTP');}catch(e2){return;}}
   try { x.open(m,API+path,true); } catch (eopen) { cgLog('OPEN_FAIL',m+' '+path+' err='+(eopen&&eopen.message?eopen.message:eopen)); if(cb)cb({ok:false,error:'Network error'},'Network error'); return; }
-  x.timeout = 15000;
+  try{x.timeout = 15000;}catch(et0){}
   if(body){ try{x.setRequestHeader('Content-Type','application/json');}catch(eh1){} }
   if(S.token){ try{x.setRequestHeader('X-CG-Token',S.token);}catch(eh2){} }
   x.onreadystatechange=function(){
@@ -709,7 +774,10 @@ function onLegacyPostImgErr(img){
 /* ─── Feed Tabs ─── */
 function setFeedTab(mode){
   cgLog('UI','setFeedTab from='+S.feedMode+' to='+mode);
+  S.feedModeUserSet=true;
   S.feedMode=mode;
+  S.legacyFeedRetries=0;
+  if(S.legacyFeedRetryTimer){try{clearTimeout(S.legacyFeedRetryTimer);}catch(e){} S.legacyFeedRetryTimer=0;}
   var tog=document.getElementById('hdr-feed-toggle');
   if(tog) tog.className=(mode==='friends'?'friends':'');
   loadFeed(true);
@@ -717,8 +785,23 @@ function setFeedTab(mode){
 
 /* ─── Feed ─── */
 function loadFeed(reset){
+  var tFeed=cgPerfStart();
+  if(isLegacyIOS() && reset && !S.feedModeUserSet && S.feedMode!=='all'){
+    S.feedMode='all';
+  }
   cgLog('FEED_LOAD','start reset='+(reset?1:0)+' page='+S.page+' mode='+S.feedMode+' token='+(S.token?1:0));
-  if(reset){S.page=0;S.allLoaded=false;document.getElementById('posts-feed').innerHTML='<div class="feed-load">Loading&#8230;</div>';}
+  homeLayoutSnapshot('loadFeed-start');
+  if(S.feedInflight && !reset){
+    cgLog('FEED_LOAD','skip inflight page='+S.page+' mode='+S.feedMode);
+    return;
+  }
+  if(reset){
+    S.page=0;S.allLoaded=false;
+    S.feedInflight=false;
+    S.legacyFeedRetries=0;
+    if(S.legacyFeedRetryTimer){try{clearTimeout(S.legacyFeedRetryTimer);}catch(e){} S.legacyFeedRetryTimer=0;}
+    document.getElementById('posts-feed').innerHTML='<div class="feed-load">Loading&#8230;</div>';
+  }
   if(S.allLoaded)return;
   var friendsParam=S.feedMode==='friends'&&S.token?'&friends=1':'';
   if(S.feedMode==='friends'&&!S.token){
@@ -726,11 +809,34 @@ function loadFeed(reset){
     queueLegacyScrollRefresh();
     return;
   }
-  req('GET','/api/posts?page='+S.page+friendsParam,null,function(d,err){
+  var reqDone=false;
+  if(S.feedReqGuard){try{clearTimeout(S.feedReqGuard);}catch(e0){} S.feedReqGuard=0;}
+  S.feedInflight=true;
+  var x=req('GET','/api/posts?page='+S.page+friendsParam,null,function(d,err){
+    reqDone=true;
+    S.feedInflight=false;
+    if(S.feedReqGuard){try{clearTimeout(S.feedReqGuard);}catch(e00){} S.feedReqGuard=0;}
     var feed=document.getElementById('posts-feed');
-    if(err||!d.ok){cgLog('FEED_LOAD','error page='+S.page+' mode='+S.feedMode+' err='+(err||((d&&d.error)||'')));feed.innerHTML='<div class="feed-empty">Could not load posts.</div>';queueLegacyScrollRefresh();return;}
+    if(err||!d.ok){
+      cgLog('FEED_LOAD','error page='+S.page+' mode='+S.feedMode+' err='+(err||((d&&d.error)||'')));
+      cgPerfEnd('home.feed.request',tFeed,'mode='+S.feedMode+' page='+S.page+' err=1');
+      if(isLegacyIOS() && S.page===0 && S.legacyFeedRetries<2){
+        S.legacyFeedRetries++;
+        feed.innerHTML='<div class="feed-load">Loading&#8230;</div>';
+        queueLegacyScrollRefresh();
+        if(S.legacyFeedRetryTimer){try{clearTimeout(S.legacyFeedRetryTimer);}catch(e){} }
+        S.legacyFeedRetryTimer=setTimeout(function(){ loadFeed(false); }, 700);
+        return;
+      }
+      feed.innerHTML='<div class="feed-empty">Could not load posts.</div>';
+      queueLegacyScrollRefresh();
+      return;
+    }
     var posts=d.posts||[];
+    var serverCount=posts.length;
+    cgPerfEnd('home.feed.request',tFeed,'mode='+S.feedMode+' page='+S.page+' posts='+(posts?posts.length:0));
     cgLog('FEED_DATA','mode='+S.feedMode+' page='+S.page+' posts='+posts.length);
+    homeTrace('feed-data','mode='+S.feedMode+' page='+S.page+' posts='+posts.length+' reset='+(reset?1:0));
     if(reset) feed.innerHTML='';
     if(!posts.length&&reset){
       var emptyMsg=S.feedMode==='friends'?'No friends\' posts yet.':'No posts yet. Be the first!';
@@ -739,6 +845,7 @@ function loadFeed(reset){
       return;
     }
     if(isLegacyIOS() && posts.length>8){posts=posts.slice(0,8);}
+    var tRender=cgPerfStart();
     var html='';
     try{
       for(var i=0;i<posts.length;i++) html+=renderPost(posts[i]);
@@ -749,11 +856,34 @@ function loadFeed(reset){
       return;
     }
     feed.innerHTML+=html;
+    forceLegacyFeedRepaint();
+    cgPerfEnd('home.feed.render',tRender,'mode='+S.feedMode+' rendered='+posts.length);
     cgLog('FEED_RENDER','rendered posts='+posts.length+' page='+S.page+' mode='+S.feedMode);
-    if(posts.length<20){S.allLoaded=true;}
+    if(serverCount<20){S.allLoaded=true;}
     else{feed.innerHTML+='<button class="load-more" onclick="loadMore()">Load more &#8595;</button>';}
     queueLegacyScrollRefresh();
+    setTimeout(function(){queueLegacyScrollRefresh();forceLegacyFeedRepaint();homeLayoutSnapshot('after-render-120');},120);
+    setTimeout(function(){queueLegacyScrollRefresh();forceLegacyFeedRepaint();homeLayoutSnapshot('after-render-500');},500);
   });
+  if(isLegacyIOS()){
+    S.feedReqGuard=setTimeout(function(){
+      if(reqDone) return;
+      S.feedInflight=false;
+      cgLog('FEED_LOAD','guard timeout mode='+S.feedMode+' page='+S.page+' retries='+(S.legacyFeedRetries||0));
+      try{ if(x&&x.abort) x.abort(); }catch(e1){}
+      if(S.legacyFeedRetries<3){
+        S.legacyFeedRetries++;
+        homeTrace('feed-guard-retry','retry='+(S.legacyFeedRetries||0)+' mode='+S.feedMode+' page='+S.page);
+        loadFeed(false);
+      } else {
+        var feed=document.getElementById('posts-feed');
+        if(feed && (feed.innerHTML||'').indexOf('feed-load')>=0){
+          feed.innerHTML='<div class="feed-empty">Could not load posts.</div>';
+          queueLegacyScrollRefresh();
+        }
+      }
+    },12000);
+  }
 }
 function loadMore(){
   cgLog('UI','loadMore currentPage='+S.page);
@@ -976,6 +1106,17 @@ function addCmt(pid){
 /* ─── Share ─── */
 function sharePost(pid){
   var url='https://chronarchive.com/chronograph.html#post-'+pid;
+  var text='Check out this post on ChronoGraph';
+  /* Native sharesheet bridge — ChronoGraph iOS app intercepts cgshare:// */
+  if(window.__cgNativeImagePicker){
+    try{
+      window.location='cgshare://send?t='+encodeURIComponent(text)+'&u='+encodeURIComponent(url);
+      return;
+    }catch(_e){}
+  }
+  if(navigator&&navigator.share){
+    try{ navigator.share({text:text,url:url}); return; }catch(_e2){}
+  }
   try{
     if(navigator.clipboard&&navigator.clipboard.writeText){
       navigator.clipboard.writeText(url).then(function(){alert('Link copied!');});
@@ -1416,17 +1557,27 @@ function enableLegacyFileInputs(){
 function scheduleLegacyFeedRetry(){
   if(legacyIOSMajor()>4)return;
   if(S.feedWatchdog){try{clearTimeout(S.feedWatchdog);}catch(e){}S.feedWatchdog=0;}
-  S.feedWatchdog=setTimeout(function(){
+  if(S.feedWatchdogTick){try{clearInterval(S.feedWatchdogTick);}catch(e2){}S.feedWatchdogTick=0;}
+  function runWatchdog(){
     var feed=document.getElementById('posts-feed');
     if(!feed)return;
     var html=feed.innerHTML||'';
-    if(html.indexOf('post-card')>=0||html.indexOf('feed-empty')>=0)return;
-    cgLog('LEGACY','feed watchdog retry mode='+S.feedMode+' page='+S.page);
-    loadFeed(true);
-  },1800);
+    if(html.indexOf('post-card')>=0||html.indexOf('feed-empty')>=0||html.indexOf('Could not load posts.')>=0){
+      if(S.feedWatchdogTick){try{clearInterval(S.feedWatchdogTick);}catch(e3){}S.feedWatchdogTick=0;}
+      return;
+    }
+    if(!S.feedInflight){
+      cgLog('LEGACY','feed watchdog retry mode='+S.feedMode+' page='+S.page);
+      homeLayoutSnapshot('watchdog-retry');
+      loadFeed(false);
+    }
+  }
+  S.feedWatchdog=setTimeout(runWatchdog,1800);
+  S.feedWatchdogTick=setInterval(runWatchdog,3000);
 }
 window.onload=function(){
   cgLog('BOOT','home ua='+navigator.userAgent);
+  homeLayoutSnapshot('onload-start');
   applyModernSafeTopFallback();
   applyTheme();
   applyLegacyScrollFallback();
@@ -1458,10 +1609,16 @@ window.onload=function(){
     });
   }
   var tog=document.getElementById('hdr-feed-toggle');
+  if(isLegacyIOS()){
+    S.feedMode='all';
+    S.feedModeUserSet=false;
+  }
   if(tog) tog.className = (S.feedMode==='friends'?'friends':'');
   loadFeed(true);
   scheduleLegacyFeedRetry();
   queueLegacyScrollRefresh();
+  setTimeout(function(){homeLayoutSnapshot('onload-250');queueLegacyScrollRefresh();forceLegacyFeedRepaint();},250);
+  setTimeout(function(){homeLayoutSnapshot('onload-1000');queueLegacyScrollRefresh();forceLegacyFeedRepaint();},1000);
   var fw=document.getElementById('feed-wrap');
   if(fw && legacyIOSMajor()>4) initPTR(fw,function(){ loadFeed(true); });
 };

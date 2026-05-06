@@ -253,7 +253,7 @@ function esc(s){var d=document.createElement('div');d.appendChild(document.creat
 function req(m,path,body,cb){
   var x;try{x=new XMLHttpRequest();}catch(e){if(cb)cb({ok:false,error:'Network error'},0);return;}
   try{x.open(m,path,true);}catch(eopen){cgLog('OPEN_FAIL',m+' '+path+' err='+(eopen&&eopen.message?eopen.message:eopen));if(cb)cb({ok:false,error:'Network error'},0);return;}
-  x.timeout=15000;
+    try{x.timeout=15000;}catch(et0){}
   if(body){try{x.setRequestHeader('Content-Type','application/json');}catch(eh1){}}
   if(token){try{x.setRequestHeader('X-CG-Token',token);}catch(eh2){}}
   x.onreadystatechange=function(){
@@ -507,33 +507,32 @@ function renderPerson(u){
 function searchWeb(q){
   cgLog('SEARCH','web start q='+q);
   var body=document.getElementById('results-body');
-  if(isLegacyIOS()){
-    cgLog('SEARCH','web legacy fallback q='+q);
-    body.innerHTML='<div class="res-load">Opening web search&#8230;</div>';
-    goWeb(q);
-    return;
-  }
-  /* Try SearXNG first; fall back to Bing redirect */
-  var url=SEARXNG+'/search?q='+encodeURIComponent(q)+'&format=json&language=en';
+  body.innerHTML='<div class="res-load">Searching the web\u2026</div>';
+  /* Always go through the SearXNG backend at search.chronarchive.com.
+     Bing has been removed entirely. iPhone 2G cannot do TLS 1.2, so legacy iOS
+     uses the http:// host (the SearXNG vhost serves both). */
+  var host=(legacyIOSMajor()<=4)?'http://search.chronarchive.com':SEARXNG;
+  var url=host+'/search?q='+encodeURIComponent(q)+'&format=json&language=en';
   var x;
-  try{x=new XMLHttpRequest();}catch(e){goWeb(q);return;}
+  try{x=new XMLHttpRequest();}catch(e){renderSearxFail(q,'no-xhr');return;}
   var timedOut=false;
   var timeoutId=setTimeout(function(){
     timedOut=true;
     cgLog('SEARCH','web timeout q='+q);
-    goWeb(q);
-  },5000);
+    renderSearxFail(q,'timeout');
+  },(legacyIOSMajor()<=4?12000:7000));
   x.open('GET',url,true);
   x.onreadystatechange=function(){
     if(timedOut||x.readyState!==4) return;
     clearTimeout(timeoutId);
-    if(x.status===0){goWeb(q);return;}
+    if(x.status===0){renderSearxFail(q,'status0');return;}
     var d;
-    try{d=parseJSON(x.responseText);}catch(e){goWeb(q);return;}
+    try{d=parseJSON(x.responseText);}catch(e){renderSearxFail(q,'parse');return;}
     var results=d.results||[];
-    if(!results.length){body.innerHTML='<div class="res-empty">No web results. <span style="color:#0055cc;cursor:pointer" onclick="goWeb(\''+esc(q).replace(/'/g,"&#39;")+'\')" >Open in browser</span></div>';return;}
+    if(!results.length){renderSearxFail(q,'empty');return;}
     var html='';
-    for(var i=0;i<Math.min(results.length,12);i++){
+    var max=(legacyIOSMajor()<=4)?6:12;
+    for(var i=0;i<Math.min(results.length,max);i++){
       var r=results[i];
       var title=r.title||r.url||'';
       var desc=r.content||'';if(desc.length>120)desc=desc.substring(0,120)+'&#8230;';
@@ -551,20 +550,32 @@ function searchWeb(q){
     if(timedOut) return;
     clearTimeout(timeoutId);
     cgLog('SEARCH','web error q='+q);
-    goWeb(q);
+    renderSearxFail(q,'xhr-err');
   };
   x.ontimeout=function(){
     if(timedOut) return;
     clearTimeout(timeoutId);
     cgLog('SEARCH','web timeout q='+q);
-    goWeb(q);
+    renderSearxFail(q,'xhr-timeout');
   };
   try{x.send(null);}catch(e){
     if(!timedOut){
       clearTimeout(timeoutId);
-      goWeb(q);
+      renderSearxFail(q,'send');
     }
   }
+}
+function renderSearxFail(q,reason){
+  cgLog('SEARCH','web fail q='+q+' reason='+(reason||''));
+  var body=document.getElementById('results-body');
+  if(!body) return;
+  var safeQ=esc(q).replace(/'/g,"&#39;");
+  var browseUrl='https://search.chronarchive.com/search?q='+encodeURIComponent(q);
+  if(legacyIOSMajor()<=4) browseUrl='http://search.chronarchive.com/search?q='+encodeURIComponent(q);
+  body.innerHTML=
+    '<div class="res-empty">No web results.<br>'+
+    '<span style="color:#0055cc;cursor:pointer" onclick="openUrl(\''+esc(browseUrl).replace(/'/g,"&#39;")+'\')">'+
+    'Open search.chronarchive.com</span></div>';
 }
 function safeOpenUrl(u){
   /* Use the native cgopen:// scheme so Safari opens the URL instead of UIWebView.
@@ -577,8 +588,11 @@ function safeOpenUrl(u){
   return false;
 }
 function goWeb(q){
+  // Bing removed. Open the SearXNG web UI in Safari via the native bridge.
   cgLog('SEARCH','web fallback open q='+q);
-  window.location.href='cgopen://open?u='+encodeURIComponent('https://m.bing.com/search?q='+encodeURIComponent(q));
+  var u='https://search.chronarchive.com/search?q='+encodeURIComponent(q);
+  if(legacyIOSMajor()<=4) u='http://search.chronarchive.com/search?q='+encodeURIComponent(q);
+  window.location.href='cgopen://open?u='+encodeURIComponent(u);
 }
 function openUrl(u){
   cgLog('SEARCH','openUrl '+u);

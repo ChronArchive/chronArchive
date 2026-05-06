@@ -1,6 +1,27 @@
 #import "ViewController.h"
+#import <AudioToolbox/AudioToolbox.h>
+#import <AudioToolbox/AudioServices.h>
+#import <AVFoundation/AVFoundation.h>
+#import <math.h>
+
+#ifndef AVAudioSessionPortOverrideNone
+#define AVAudioSessionPortOverrideNone 0
+#endif
+#ifndef AVAudioSessionPortOverrideSpeaker
+#define AVAudioSessionPortOverrideSpeaker 1
+#endif
 
 extern NSString * const CGAPNSTokenRefreshedNotification;
+
+/* Forward declarations for the inline CGVoIP manager (full impl at file bottom). */
+static void CGVoIPStart(int64_t callId, NSString *token, NSString *base, UIWebView *webView);
+static void CGVoIPStop(void);
+static NSDictionary *CGParseQueryString(NSString *q);
+static void CGVoIPRingStart(void);
+static void CGVoIPRingStop(void);
+static void CGVoIPSetSpeakerEnabled(BOOL enabled);
+static void CGVoIPNotify(NSString *state, NSString *msg);
+static BOOL gMuted = NO;
 
 static NSString * const CGReleaseInactiveWebViewsNotification = @"CGReleaseInactiveWebViewsNotification";
 
@@ -267,6 +288,86 @@ static NSString *CGBase64FromData(NSData *data) {
     [self.webView stringByEvaluatingJavaScriptFromString:js];
 }
 
+- (void)injectPerformanceBridge {
+    if (!self.webView) return;
+    NSString *js =
+        @"(function(){"
+            "try{"
+                "if(window.__cgPerfBooted) return 'skip';"
+                "window.__cgPerfBooted=1;"
+                "var ua=navigator.userAgent||'';"
+                "var legacy=/OS [1-4]_/.test(ua);"
+                "var enabled=legacy;"
+                "try{enabled=enabled||((localStorage.getItem('cg_perf')||'')==='1');}catch(e1){}"
+                "window.__cgPerfEnabled=enabled?1:0;"
+                "function nowMs(){"
+                    "try{return (window.performance&&performance.now)?performance.now():(new Date()).getTime();}catch(e2){return (new Date()).getTime();}"
+                "}"
+                "window.__cgPerfNow=nowMs;"
+                "window.__cgNativePerfLog=function(msg){"
+                    "if(!window.__cgPerfEnabled) return;"
+                    "try{"
+                        "var d=document;"
+                        "var n=d.createElement('iframe');"
+                        "n.style.display='none';"
+                        "n.src='cglog://log?m='+encodeURIComponent(String(msg||''));"
+                        "(d.documentElement||d.body).appendChild(n);"
+                        "setTimeout(function(){try{if(n.parentNode)n.parentNode.removeChild(n);}catch(_e){}},0);"
+                    "}catch(e3){try{if(window.console&&console.log)console.log('[CG][PERF] '+msg);}catch(e4){}}"
+                "};"
+                "window.__cgPerfStart=function(){return window.__cgPerfEnabled?nowMs():0;};"
+                "window.__cgPerfEnd=function(name,t0,extra){"
+                    "if(!window.__cgPerfEnabled||!t0) return;"
+                    "var dt=nowMs()-t0;"
+                    "var slow=legacy?35:120;"
+                    "if(dt>=slow){"
+                        "window.__cgNativePerfLog('[CG][PERF] '+name+' '+Math.round(dt)+'ms'+(extra?(' '+extra):''));"
+                    "}"
+                "};"
+                "window.__cgPerfMark=function(name,extra){"
+                    "if(!window.__cgPerfEnabled) return;"
+                    "window.__cgNativePerfLog('[CG][PERF] '+name+(extra?(' '+extra):''));"
+                "};"
+                "if(window.__cgPerfEnabled&&!window.__cgPerfXhrWrapped&&window.XMLHttpRequest){"
+                    "window.__cgPerfXhrWrapped=1;"
+                    "var oOpen=XMLHttpRequest.prototype.open;"
+                    "var oSend=XMLHttpRequest.prototype.send;"
+                    "XMLHttpRequest.prototype.open=function(method,url){"
+                        "this.__cgPerfMethod=method||'GET';"
+                        "this.__cgPerfUrl=url||'';"
+                        "return oOpen.apply(this,arguments);"
+                    "};"
+                    "XMLHttpRequest.prototype.send=function(){"
+                        "var xhr=this;"
+                        "xhr.__cgPerfT0=nowMs();"
+                        "function done(){"
+                            "if(!xhr||!xhr.__cgPerfT0) return;"
+                            "var dt=nowMs()-xhr.__cgPerfT0;"
+                            "var slowNet=legacy?450:900;"
+                            "if(dt>=slowNet){"
+                                "window.__cgNativePerfLog('[CG][PERF][NET] '+(xhr.__cgPerfMethod||'GET')+' '+(xhr.__cgPerfUrl||'')+' '+Math.round(dt)+'ms status='+(xhr.status||0));"
+                            "}"
+                            "xhr.__cgPerfT0=0;"
+                        "}"
+                        "if(xhr.addEventListener){"
+                            "xhr.addEventListener('loadend',done,false);"
+                        "}else{"
+                            "var old=xhr.onreadystatechange;"
+                            "xhr.onreadystatechange=function(){"
+                                "if(xhr.readyState===4) done();"
+                                "if(old) return old.apply(xhr,arguments);"
+                            "};"
+                        "}"
+                        "return oSend.apply(this,arguments);"
+                    "};"
+                "}"
+                "return 'ok';"
+            "}catch(e){return 'err='+e;}"
+        "})();";
+    NSString *res = [self.webView stringByEvaluatingJavaScriptFromString:js];
+    NSLog(@"[CGNATIVE] perfBridge %@", res);
+}
+
 - (void)onAPNSTokenRefreshed:(NSNotification *)note {
     (void)note;
     if (self.isViewLoaded && self.view.window != nil) {
@@ -285,7 +386,8 @@ static NSString *CGBase64FromData(NSData *data) {
 - (void)webViewDidFinishLoad:(UIWebView *)webView {
     NSLog(@"[CGNATIVE] didFinishLoad req=%@", webView.request.URL.absoluteString);
 
-    [webView stringByEvaluatingJavaScriptFromString:@"window.__cgNativeImagePicker=1;"];
+    [webView stringByEvaluatingJavaScriptFromString:@"window.__cgNativeImagePicker=1;window.__cgNativeVoIP=1;window.__cgNativeVoIPRing=1;"];
+    [self injectPerformanceBridge];
     [self injectPushBridge];
 
 
@@ -444,7 +546,12 @@ static NSString *CGBase64FromData(NSData *data) {
                         "function add(s){out.push(s);}"
                         "if(href.indexOf('/pages/home.html')>=0){"
                             "var feed=document.getElementById('posts-feed');"
-                            "if(feed && ((!feed.innerHTML)||feed.innerHTML.length<8) && typeof loadFeed==='function'){"
+                            "var h=feed&&feed.innerHTML?feed.innerHTML:'';"
+                            "var stuck=(!h)||h.length<8||h.indexOf('Loading')>=0||h.indexOf('feed-load')>=0;"
+                            "if(window.S&&(/OS [1-4]_/.test(navigator.userAgent||''))&&S.feedMode!=='all'&&!S.feedModeUserSet){"
+                                "try{S.feedMode='all';add('home:forceAll');}catch(efm){add('home:forceAllErr='+efm);}"
+                            "}"
+                            "if(feed && stuck && typeof loadFeed==='function'){"
                                 "try{loadFeed(true);add('home:loadFeed');}catch(eh){add('home:err='+eh);}"
                             "}"
                         "}"
@@ -536,6 +643,26 @@ static NSString *CGBase64FromData(NSData *data) {
         return NO;
     }
 
+    if ([scheme isEqualToString:@"cglog"]) {
+        NSString *query = [url query];
+        NSString *msg = @"";
+        if (query) {
+            NSArray *pairs = [query componentsSeparatedByString:@"&"];
+            for (NSString *pair in pairs) {
+                NSRange eq = [pair rangeOfString:@"="];
+                if (eq.location != NSNotFound) {
+                    NSString *key = [pair substringToIndex:eq.location];
+                    if (![key isEqualToString:@"m"]) continue;
+                    NSString *encoded = [pair substringFromIndex:(eq.location + 1)];
+                    msg = [encoded stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding] ?: @"";
+                    break;
+                }
+            }
+        }
+        NSLog(@"[CGJS] %@", msg);
+        return NO;
+    }
+
     if ([scheme isEqualToString:@"cgswitch"]) {
         NSString *host = [[url host] lowercaseString];
         NSString *uid = nil;
@@ -583,15 +710,114 @@ static NSString *CGBase64FromData(NSData *data) {
             [self performSelector:@selector(presentPostImagePicker) withObject:nil afterDelay:0.0];
             return NO;
         }
+        if ([host isEqualToString:@"dm"]) {
+            [self performSelector:@selector(presentDmImagePicker) withObject:nil afterDelay:0.0];
+            return NO;
+        }
+    }
+
+    if ([scheme isEqualToString:@"cgshare"]) {
+        /* cgshare://send?t=<text>&u=<url> — present UIActivityViewController */
+        NSString *q = [url query];
+        NSString *txt = @"";
+        NSString *shareUrl = @"";
+        if (q) {
+            for (NSString *pair in [q componentsSeparatedByString:@"&"]) {
+                NSRange eq = [pair rangeOfString:@"="];
+                if (eq.location == NSNotFound) continue;
+                NSString *k = [pair substringToIndex:eq.location];
+                NSString *v = [[pair substringFromIndex:(eq.location + 1)]
+                    stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding] ?: @"";
+                if ([k isEqualToString:@"t"]) txt = v;
+                else if ([k isEqualToString:@"u"]) shareUrl = v;
+            }
+        }
+        NSMutableArray *items = [NSMutableArray array];
+        if ([txt length] > 0) [items addObject:txt];
+        if ([shareUrl length] > 0) {
+            NSURL *u = [NSURL URLWithString:shareUrl];
+            if (u) [items addObject:u]; else [items addObject:shareUrl];
+        }
+        if ([items count] == 0) return NO;
+        Class avc = NSClassFromString(@"UIActivityViewController");
+        if (avc && [self respondsToSelector:@selector(presentViewController:animated:completion:)]) {
+            id sheet = [[avc alloc] initWithActivityItems:items applicationActivities:nil];
+            /* Anchor popover for iPad */
+            if ([sheet respondsToSelector:@selector(popoverPresentationController)]) {
+                id pop = [sheet performSelector:@selector(popoverPresentationController)];
+                if (pop) {
+                    [pop setValue:self.view forKey:@"sourceView"];
+                    NSValue *rectVal = [NSValue valueWithCGRect:CGRectMake(self.view.bounds.size.width/2, self.view.bounds.size.height-1, 1, 1)];
+                    [pop setValue:rectVal forKey:@"sourceRect"];
+                }
+            }
+            [self presentViewController:sheet animated:YES completion:nil];
+#if !__has_feature(objc_arc)
+            [sheet release];
+#endif
+        } else {
+            /* iOS < 6 — fall back to mailto: with the text/url body */
+            NSString *body = txt;
+            if ([shareUrl length] > 0) body = [body length] > 0 ? [NSString stringWithFormat:@"%@ %@", body, shareUrl] : shareUrl;
+            NSString *mailto = [NSString stringWithFormat:@"mailto:?body=%@",
+                [body stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding] ?: @""];
+            NSURL *m = [NSURL URLWithString:mailto];
+            if (m) [[UIApplication sharedApplication] openURL:m];
+        }
+        return NO;
     }
 
     /* about: and javascript: — always allow (inline handlers, about:blank etc.) */
     if ([scheme isEqualToString:@"about"] ||
         [scheme isEqualToString:@"javascript"]) return YES;
 
-    /* cgopen:// — JS-side explicit external URL open (search results, web search fallback).
-       The URL to open is the encoded URL-path/query of the cgopen:// request.
-       e.g.  window.location.href = 'cgopen://open?u=' + encodeURIComponent(targetURL); */
+    /* cgvoip://start?call_id=N&t=TOKEN&base=URL — start native AudioQueue VoIP relay
+       cgvoip://stop                              — tear down */
+    if ([scheme isEqualToString:@"cgvoip"]) {
+        NSString *host = [[url host] lowercaseString];
+        if ([host isEqualToString:@"stop"]) {
+            CGVoIPRingStop();
+            CGVoIPStop();
+            return NO;
+        }
+        if ([host isEqualToString:@"mute"]) {
+            NSDictionary *q = CGParseQueryString([url query]);
+            NSString *state = [[q objectForKey:@"state"] lowercaseString];
+            gMuted = ([state isEqualToString:@"on"] || [state isEqualToString:@"start"]);
+            return NO;
+        }
+        if ([host isEqualToString:@"speaker"]) {
+            NSDictionary *q = CGParseQueryString([url query]);
+            NSString *state = [[q objectForKey:@"state"] lowercaseString];
+            CGVoIPSetSpeakerEnabled([state isEqualToString:@"on"] || [state isEqualToString:@"start"]);
+            return NO;
+        }
+        if ([host isEqualToString:@"ring"]) {
+            NSDictionary *q = CGParseQueryString([url query]);
+            NSString *state = [[q objectForKey:@"state"] lowercaseString];
+            if ([state isEqualToString:@"start"]) CGVoIPRingStart();
+            else CGVoIPRingStop();
+            return NO;
+        }
+        if ([host isEqualToString:@"start"]) {
+            NSDictionary *q = CGParseQueryString([url query]);
+            NSString *cid  = [q objectForKey:@"call_id"];
+            NSString *tok  = [q objectForKey:@"t"];
+            NSString *base = [q objectForKey:@"base"];
+            int64_t callId = (cid ? (int64_t)[cid longLongValue] : 0);
+            if (callId > 0 && tok.length > 0 && base.length > 0) {
+                CGVoIPRingStop();
+                CGVoIPStart(callId, tok, base, webView);
+            } else {
+                NSLog(@"[CGVOIP] start ignored bad params");
+            }
+            return NO;
+        }
+        return NO;
+    }
+
+     /* cgopen:// — JS-side explicit URL open (search results, web search fallback).
+         Open inside app webview (pushed VC) instead of bouncing to Safari. */
     if ([scheme isEqualToString:@"cgopen"]) {
         NSString *query = [url query];
         NSString *target = nil;
@@ -610,9 +836,15 @@ static NSString *CGBase64FromData(NSData *data) {
             }
         }
         if (target && [target length] > 0) {
+            NSInteger legacyMajor = (NSInteger)[[[UIDevice currentDevice] systemVersion] intValue];
+            if (legacyMajor > 0 && legacyMajor <= 4 && [target hasPrefix:@"https://"]) {
+                target = [@"http://" stringByAppendingString:[target substringFromIndex:8]];
+            }
             NSURL *extURL = [NSURL URLWithString:target];
-            if (extURL && [[UIApplication sharedApplication] canOpenURL:extURL]) {
-                [[UIApplication sharedApplication] openURL:extURL];
+            if (extURL) {
+                ViewController *next = [[ViewController alloc] initWithURL:extURL rootURL:self.rootURL];
+                next.title = [extURL host];
+                [self.navigationController pushViewController:next animated:YES];
             }
         }
         return NO;
@@ -707,6 +939,10 @@ static NSString *CGBase64FromData(NSData *data) {
     [self presentImagePickerForTarget:@"post"];
 }
 
+- (void)presentDmImagePicker {
+    [self presentImagePickerForTarget:@"dm"];
+}
+
 - (UIImage *)scaledImageForAvatar:(UIImage *)image maxEdge:(CGFloat)maxEdge {
     if (!image) return nil;
     CGSize sz = image.size;
@@ -735,26 +971,112 @@ static NSString *CGBase64FromData(NSData *data) {
     UIImage *img = [info objectForKey:UIImagePickerControllerOriginalImage];
     if (!img) img = [info objectForKey:UIImagePickerControllerEditedImage];
     BOOL isAvatar = [self.imagePickerTarget isEqualToString:@"avatar"];
-    CGFloat maxEdge = isAvatar ? 256.0f : 1600.0f;
-    NSString *callback = isAvatar ? @"__cgNativeAvatarPicked" : @"__cgNativePostPicked";
-    UIImage *scaled = [self scaledImageForAvatar:img maxEdge:maxEdge];
-    NSData *jpeg = UIImageJPEGRepresentation(scaled, 0.80f);
-    NSString *b64 = CGBase64FromData(jpeg);
-    if (b64 && [b64 length] > 0) {
-        NSString *dataURL = [NSString stringWithFormat:@"data:image/jpeg;base64,%@", b64];
-        NSString *escaped = [dataURL stringByReplacingOccurrencesOfString:@"\\" withString:@"\\\\"];
-        escaped = [escaped stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"];
-        NSString *js = [NSString stringWithFormat:@"(function(){if(window.%@){window.%@('%@');}})();", callback, callback, escaped];
-        [self.webView stringByEvaluatingJavaScriptFromString:js];
-        NSLog(@"[CGNATIVE] %@Picker success bytes=%lu", isAvatar ? @"avatar" : @"post", (unsigned long)[jpeg length]);
+    BOOL isDm     = [self.imagePickerTarget isEqualToString:@"dm"];
+
+    /* Tier the post-image cost by device class so iPhone 2G / 3G / 3GS finish in
+       a couple of seconds instead of stalling SpringBoard for 10 s.
+       - Non-retina (scale==1) on iOS<=4: 640px / Q0.45 \u2192 ~30\u201360 KB.
+       - Non-retina on iOS 5\u20136 (3GS):    800px / Q0.55 \u2192 ~60\u2013110 KB.
+       - Retina @2x on iOS<=8 (4/4S/5/5c):  1200px / Q0.70.
+       - Retina @2x+ on iOS 9+:             1600px / Q0.80 (was the old default).
+       Avatars stay at 256/Q0.80 \u2014 already tiny.
+       NOTE: server-side recompression / square-crop is planned (see repo memory)
+       so these client tiers are temporary and conservative. */
+    CGFloat scale = 1.0f;
+    NSInteger osMajor = 2;
+    if ([[UIScreen mainScreen] respondsToSelector:@selector(scale)]) scale = [[UIScreen mainScreen] scale];
+    NSString *sysVer = [[UIDevice currentDevice] systemVersion];
+    if (sysVer && [sysVer length] > 0) osMajor = [[[sysVer componentsSeparatedByString:@"."] objectAtIndex:0] integerValue];
+
+    CGFloat maxEdge;
+    CGFloat jpegQuality;
+    if (isAvatar) {
+        maxEdge = 256.0f;
+        jpegQuality = 0.80f;
+    } else if (scale <= 1.0f && osMajor <= 4) {
+        maxEdge = 640.0f;  jpegQuality = 0.45f;
+    } else if (scale <= 1.0f && osMajor <= 6) {
+        maxEdge = 800.0f;  jpegQuality = 0.55f;
+    } else if (osMajor <= 8) {
+        maxEdge = 1200.0f; jpegQuality = 0.70f;
     } else {
-        NSLog(@"[CGNATIVE] %@Picker failed encode", isAvatar ? @"avatar" : @"post");
+        maxEdge = 1600.0f; jpegQuality = 0.80f;
     }
-    self.imagePickerTarget = nil;
+    NSString *callback = isAvatar ? @"__cgNativeAvatarPicked" : (isDm ? @"__cgNativeDmPicked" : @"__cgNativePostPicked");
+    NSString *kindTag  = isAvatar ? @"avatar" : (isDm ? @"dm" : @"post");
+
+    /* Dismiss the picker immediately so the UI returns to the app while we encode
+       the image in the background. Previously the picker stayed up during scale +
+       JPEG + base64 + JS-eval, which on iPhone 2G blew through the 10 s SpringBoard
+       fence and caused "wait_fences: failed to receive reply". */
     if ([picker respondsToSelector:@selector(dismissViewControllerAnimated:completion:)]) {
         [picker dismissViewControllerAnimated:YES completion:nil];
     } else {
         [picker dismissModalViewControllerAnimated:YES];
+    }
+    self.imagePickerTarget = nil;
+
+    UIImage *srcImg = img;
+    UIWebView *targetWeb = self.webView;
+    NSDate *t0 = [NSDate date];
+    NSLog(@"[CGNATIVE] %@Picker begin osMajor=%ld scale=%.1f maxEdge=%.0f q=%.2f srcW=%.0f srcH=%.0f",
+          kindTag, (long)osMajor, scale, maxEdge, jpegQuality,
+          srcImg ? srcImg.size.width : 0, srcImg ? srcImg.size.height : 0);
+
+    /* Inline encoder block, defined once and dispatched either on a GCD background
+       queue (iOS >= 4) or synchronously on the main thread (iOS 3 / iPhone 2G,
+       which predates libdispatch \u2014 calling dispatch_* there crashes the app). */
+    void (^encodeBlock)(void) = ^{
+        NSDate *tScale = [NSDate date];
+        UIImage *scaled = [self scaledImageForAvatar:srcImg maxEdge:maxEdge];
+        NSTimeInterval scaleMs = -[tScale timeIntervalSinceNow] * 1000.0;
+
+        NSDate *tJpeg = [NSDate date];
+        NSData *jpeg = UIImageJPEGRepresentation(scaled, jpegQuality);
+        NSTimeInterval jpegMs = -[tJpeg timeIntervalSinceNow] * 1000.0;
+
+        NSDate *tB64 = [NSDate date];
+        NSString *b64 = CGBase64FromData(jpeg);
+        NSTimeInterval b64Ms = -[tB64 timeIntervalSinceNow] * 1000.0;
+
+        NSLog(@"[CGNATIVE] %@Picker scale dt=%.0fms outW=%.0f outH=%.0f", kindTag, scaleMs,
+              scaled ? scaled.size.width : 0, scaled ? scaled.size.height : 0);
+        NSLog(@"[CGNATIVE] %@Picker jpeg dt=%.0fms bytes=%lu q=%.2f", kindTag, jpegMs, (unsigned long)[jpeg length], jpegQuality);
+        NSLog(@"[CGNATIVE] %@Picker b64  dt=%.0fms chars=%lu",       kindTag, b64Ms,  (unsigned long)[b64 length]);
+
+        if (!b64 || [b64 length] == 0) {
+            NSLog(@"[CGNATIVE] %@Picker failed encode", kindTag);
+            return;
+        }
+        NSString *dataURL = [NSString stringWithFormat:@"data:image/jpeg;base64,%@", b64];
+        NSString *escaped = [dataURL stringByReplacingOccurrencesOfString:@"\\" withString:@"\\\\"];
+        escaped = [escaped stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"];
+        NSString *js = [NSString stringWithFormat:@"(function(){if(window.%@){window.%@('%@');}})();", callback, callback, escaped];
+
+        void (^evalBlock)(void) = ^{
+            NSDate *tEval = [NSDate date];
+            [targetWeb stringByEvaluatingJavaScriptFromString:js];
+            NSTimeInterval evalMs = -[tEval timeIntervalSinceNow] * 1000.0;
+            NSTimeInterval totalMs = -[t0 timeIntervalSinceNow] * 1000.0;
+            NSLog(@"[CGNATIVE] %@Picker eval dt=%.0fms total=%.0fms bytes=%lu",
+                  kindTag, evalMs, totalMs, (unsigned long)[jpeg length]);
+        };
+        if (osMajor >= 4) {
+            dispatch_async(dispatch_get_main_queue(), evalBlock);
+        } else {
+            evalBlock();
+        }
+    };
+
+    if (osMajor >= 4) {
+        /* GCD path: scale + JPEG + base64 off the main thread; only the JS eval
+           hops back to main. Frees SpringBoard from the 10 s fence. */
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), encodeBlock);
+    } else {
+        /* iOS 3 / iPhone 2G: no libdispatch. Run synchronously on main. The
+           picker has already been dismissed, and the iPhone-2G tier (640 px,
+           Q 0.45, ~50 KB) finishes in well under the SpringBoard fence. */
+        encodeBlock();
     }
 }
 
@@ -788,3 +1110,550 @@ static NSString *CGBase64FromData(NSData *data) {
 }
 
 @end
+
+#pragma mark - CGVoIP — native AudioQueue VoIP relay (UIWebView path)
+
+/* Server-relayed audio: μ-law 8 kHz mono, 200 ms batches (1600 bytes / 1600 samples).
+   We capture with AudioQueue (Linear PCM 16-bit mono 8 kHz), batch 1600 samples,
+   μ-law-encode, POST to /api/calls/audio?call_id=N with X-CG-Token header.
+   Playback: GET /api/calls/audio?call_id=N&after_seq=S every 200 ms, μ-law decode,
+   enqueue into AudioQueue output. The whole thing runs on the main run loop using
+   NSURLConnection async delegates so we work on iOS 3 (no GCD on iPhone 2G). */
+
+#define CGVOIP_RATE        8000
+#define CGVOIP_BATCH       1600           /* samples per ~200ms */
+#define CGVOIP_NIN_BUFFERS 3
+#define CGVOIP_NOUT_BUFFERS 4
+
+static AudioQueueRef        gInQueue  = NULL;
+static AudioQueueRef        gOutQueue = NULL;
+static AudioQueueBufferRef  gInBufs[CGVOIP_NIN_BUFFERS];
+static AudioQueueBufferRef  gOutBufs[CGVOIP_NOUT_BUFFERS];
+static int64_t              gCallId   = 0;
+static int64_t              gRxSeq    = 0;
+static NSString            *gToken    = nil;
+static NSString            *gBase     = nil;
+static __weak UIWebView    *gWebView  = nil;
+static NSTimer             *gPullTimer = nil;
+static BOOL                 gActive   = NO;
+static AVAudioPlayer       *gRingPlayer = nil;
+static NSTimer             *gRingStopTimer = nil;
+static int64_t              gTxPkts = 0;
+static int64_t              gRxPkts = 0;
+static int64_t              gDropPkts = 0;
+static int64_t              gErrPkts = 0;
+static int                  gLastRTTMs = 0;
+static int                  gLastQueuePkts = 0;
+static NSTimeInterval       gLastStatsEmitTs = 0;
+static NSTimeInterval       gLastTxLogTs = 0;
+
+static NSString *CGVoIPRingFilePath(void) {
+    return [NSTemporaryDirectory() stringByAppendingPathComponent:@"cg_voip_ringtone.wav"];
+}
+
+static NSData *CGVoIPBuildRingWav(void) {
+    const int sampleRate = 22050;
+    const double duration = 2.4; /* two short rings + pause */
+    const int frames = (int)(sampleRate * duration);
+    const int dataSize = frames * 2;
+    NSMutableData *d = [NSMutableData dataWithLength:(44 + dataSize)];
+    unsigned char *b = (unsigned char *)[d mutableBytes];
+    memset(b, 0, (44 + dataSize));
+    memcpy(b + 0, "RIFF", 4);
+    {
+        UInt32 v = (UInt32)(36 + dataSize);
+        b[4] = (unsigned char)(v & 0xff); b[5] = (unsigned char)((v >> 8) & 0xff);
+        b[6] = (unsigned char)((v >> 16) & 0xff); b[7] = (unsigned char)((v >> 24) & 0xff);
+    }
+    memcpy(b + 8, "WAVEfmt ", 8);
+    b[16] = 16; b[20] = 1; b[22] = 1;
+    {
+        UInt32 sr = (UInt32)sampleRate;
+        UInt32 br = (UInt32)(sampleRate * 2);
+        b[24] = (unsigned char)(sr & 0xff); b[25] = (unsigned char)((sr >> 8) & 0xff);
+        b[26] = (unsigned char)((sr >> 16) & 0xff); b[27] = (unsigned char)((sr >> 24) & 0xff);
+        b[28] = (unsigned char)(br & 0xff); b[29] = (unsigned char)((br >> 8) & 0xff);
+        b[30] = (unsigned char)((br >> 16) & 0xff); b[31] = (unsigned char)((br >> 24) & 0xff);
+    }
+    b[32] = 2; b[34] = 16;
+    memcpy(b + 36, "data", 4);
+    {
+        UInt32 ds = (UInt32)dataSize;
+        b[40] = (unsigned char)(ds & 0xff); b[41] = (unsigned char)((ds >> 8) & 0xff);
+        b[42] = (unsigned char)((ds >> 16) & 0xff); b[43] = (unsigned char)((ds >> 24) & 0xff);
+    }
+    {
+        int i;
+        const double pi = 3.14159265358979323846;
+        for (i = 0; i < frames; i++) {
+            double t = ((double)i) / ((double)sampleRate);
+            double amp = 0.0;
+            if (t < 0.28) {
+                amp = sin(2.0 * pi * 730.0 * t);
+            } else if (t >= 0.40 && t < 0.68) {
+                amp = sin(2.0 * pi * 620.0 * t);
+            }
+            {
+                short s = (short)(amp * 11000.0);
+                int o = 44 + (i * 2);
+                b[o] = (unsigned char)(s & 0xff);
+                b[o + 1] = (unsigned char)((s >> 8) & 0xff);
+            }
+        }
+    }
+    return d;
+}
+
+static void CGVoIPEnsureRingPlayer(void) {
+    if (gRingPlayer) return;
+    @try {
+        NSString *path = CGVoIPRingFilePath();
+        if (![[NSFileManager defaultManager] fileExistsAtPath:path]) {
+            NSData *wav = CGVoIPBuildRingWav();
+            [wav writeToFile:path atomically:YES];
+        }
+        {
+            NSError *err = nil;
+            gRingPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:[NSURL fileURLWithPath:path] error:&err];
+            if (!gRingPlayer || err) {
+                NSLog(@"[CGVOIP] ring player init err=%@", err.localizedDescription);
+                gRingPlayer = nil;
+                return;
+            }
+            gRingPlayer.numberOfLoops = -1;
+            gRingPlayer.volume = 0.9f;
+            [gRingPlayer prepareToPlay];
+        }
+    } @catch (NSException *e) {
+        NSLog(@"[CGVOIP] ring player ex=%@", e);
+        gRingPlayer = nil;
+    }
+}
+
+@interface CGVoIPRingStopTarget : NSObject
+- (void)tick:(NSTimer *)t;
+@end
+@implementation CGVoIPRingStopTarget
+- (void)tick:(NSTimer *)t { CGVoIPRingStop(); }
+@end
+static CGVoIPRingStopTarget *gRingStopTarget = nil;
+
+static void CGVoIPRingStart(void) {
+    if (gRingStopTimer) {
+        [gRingStopTimer invalidate];
+        gRingStopTimer = nil;
+    }
+    if (!gRingStopTarget) gRingStopTarget = [[CGVoIPRingStopTarget alloc] init];
+    CGVoIPEnsureRingPlayer();
+    if (gRingPlayer) {
+        if (![gRingPlayer isPlaying]) {
+            gRingPlayer.currentTime = 0;
+            [gRingPlayer play];
+        }
+        gRingStopTimer = [NSTimer scheduledTimerWithTimeInterval:45.0
+                                                          target:gRingStopTarget
+                                                        selector:@selector(tick:)
+                                                        userInfo:nil
+                                                         repeats:NO];
+        return;
+    }
+    AudioServicesPlaySystemSound(1003);
+    gRingStopTimer = [NSTimer scheduledTimerWithTimeInterval:45.0
+                                                      target:gRingStopTarget
+                                                    selector:@selector(tick:)
+                                                    userInfo:nil
+                                                     repeats:NO];
+}
+
+static void CGVoIPRingStop(void) {
+    if (gRingStopTimer) {
+        [gRingStopTimer invalidate];
+        gRingStopTimer = nil;
+    }
+    if (gRingPlayer) {
+        [gRingPlayer stop];
+        gRingPlayer.currentTime = 0;
+    }
+}
+
+static void CGVoIPSetSpeakerEnabled(BOOL enabled) {
+    @try {
+        AVAudioSession *sess = [AVAudioSession sharedInstance];
+        NSError *err = nil;
+        if ([sess respondsToSelector:@selector(overrideOutputAudioPort:error:)]) {
+            [sess overrideOutputAudioPort:(enabled ? AVAudioSessionPortOverrideSpeaker : AVAudioSessionPortOverrideNone)
+                                     error:&err];
+            if (err) NSLog(@"[CGVOIP] override speaker err=%@", err.localizedDescription);
+        } else {
+            UInt32 v = enabled ? 1 : 0;
+            OSStatus s = AudioSessionSetProperty(kAudioSessionProperty_OverrideCategoryDefaultToSpeaker,
+                                                 sizeof(v), &v);
+            if (s != noErr) NSLog(@"[CGVOIP] legacy speaker set err=%d", (int)s);
+        }
+    } @catch (NSException *e) {
+        NSLog(@"[CGVOIP] speaker ex=%@", e);
+    }
+}
+
+static void CGVoIPEmitStats(void) {
+    NSTimeInterval now = [[NSDate date] timeIntervalSince1970];
+    if (now - gLastStatsEmitTs < 1.0) return;
+    gLastStatsEmitTs = now;
+    NSString *m = [NSString stringWithFormat:@"rtt=%d;tx=%lld;rx=%lld;drop=%lld;q=%d;err=%lld",
+                   gLastRTTMs, (long long)gTxPkts, (long long)gRxPkts,
+                   (long long)gDropPkts, gLastQueuePkts, (long long)gErrPkts];
+    CGVoIPNotify(@"stats", m);
+}
+
+/* μ-law (G.711) codec */
+static unsigned char CGLin2Ulaw(int16_t pcm) {
+    const int16_t CLIP = 32635, BIAS = 0x84;
+    int sign = (pcm < 0) ? 0x80 : 0;
+    if (sign) pcm = -pcm;
+    if (pcm > CLIP) pcm = CLIP;
+    pcm += BIAS;
+    int seg = 7, mask = 0x4000;
+    while ((pcm & mask) == 0 && seg > 0) { mask >>= 1; seg--; }
+    int mant = (pcm >> (seg + 3)) & 0x0F;
+    return (unsigned char)(~(sign | (seg << 4) | mant)) & 0xFF;
+}
+static int16_t CGUlaw2Lin(unsigned char u) {
+    u = (~u) & 0xFF;
+    int sign = u & 0x80;
+    int seg  = (u >> 4) & 0x07;
+    int mant =  u       & 0x0F;
+    int pcm  = ((mant << 3) + 0x84) << seg;
+    pcm -= 0x84;
+    return (int16_t)(sign ? -pcm : pcm);
+}
+
+static NSDictionary *CGParseQueryString(NSString *q) {
+    NSMutableDictionary *out = [NSMutableDictionary dictionary];
+    if (!q.length) return out;
+    NSArray *pairs = [q componentsSeparatedByString:@"&"];
+    for (NSString *p in pairs) {
+        NSRange eq = [p rangeOfString:@"="];
+        if (eq.location == NSNotFound) continue;
+        NSString *k = [p substringToIndex:eq.location];
+        NSString *vEnc = [p substringFromIndex:eq.location + 1];
+        NSString *v = [vEnc stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding] ?: @"";
+        if (k.length) [out setObject:v forKey:k];
+    }
+    return out;
+}
+
+@interface CGVoIPNotifyTarget : NSObject
+- (void)notify:(NSArray *)args;
+@end
+@implementation CGVoIPNotifyTarget
+- (void)notify:(NSArray *)args {
+    UIWebView *wv = gWebView;
+    if (!wv) return;
+    NSString *state = ([args count] > 0 ? [args objectAtIndex:0] : @"");
+    NSString *msg = ([args count] > 1 ? [args objectAtIndex:1] : @"");
+    NSString *escState = [state stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"];
+    NSString *escMsg   = [msg stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"];
+    NSString *js = [NSString stringWithFormat:
+        @"try{if(window.cgVoIPState)window.cgVoIPState('%@','%@');}catch(e){}",
+        escState, escMsg];
+    [wv stringByEvaluatingJavaScriptFromString:js];
+}
+@end
+static CGVoIPNotifyTarget *gNotifyTarget = nil;
+
+static void CGVoIPNotify(NSString *state, NSString *msg) {
+    if (!gNotifyTarget) gNotifyTarget = [[CGVoIPNotifyTarget alloc] init];
+    NSArray *args = [NSArray arrayWithObjects:(state ?: @""), (msg ?: @""), nil];
+    if ([NSThread isMainThread]) {
+        [gNotifyTarget notify:args];
+    } else {
+        [gNotifyTarget performSelectorOnMainThread:@selector(notify:)
+                                        withObject:args
+                                     waitUntilDone:NO];
+    }
+}
+
+@interface CGVoIPPushTarget : NSObject
+- (void)sendChunk:(NSData *)out;
+@end
+@implementation CGVoIPPushTarget
+- (void)sendChunk:(NSData *)out {
+    if (!gActive || gCallId == 0 || !out.length) return;
+    {
+        NSTimeInterval now = [[NSDate date] timeIntervalSince1970];
+        if (now - gLastTxLogTs >= 2.0) {
+            gLastTxLogTs = now;
+            NSLog(@"[CGVOIP] tx chunk bytes=%u call=%lld", (unsigned int)[out length], (long long)gCallId);
+        }
+    }
+    NSString *urlStr = [NSString stringWithFormat:@"%@/api/calls/audio?call_id=%lld",
+                        gBase, (long long)gCallId];
+    NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlStr]];
+    [req setHTTPMethod:@"POST"];
+    [req setValue:@"application/octet-stream" forHTTPHeaderField:@"Content-Type"];
+    [req setValue:gToken forHTTPHeaderField:@"X-CG-Token"];
+    [req setHTTPBody:out];
+    [req setTimeoutInterval:5.0];
+    NSURLConnection *c = [[NSURLConnection alloc] initWithRequest:req delegate:nil startImmediately:NO];
+    [c scheduleInRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
+    [c start];
+}
+@end
+static CGVoIPPushTarget *gPushTarget = nil;
+
+static void CGVoIPInputCallback(void *inUserData,
+                                AudioQueueRef inAQ,
+                                AudioQueueBufferRef inBuffer,
+                                const AudioTimeStamp *inStartTime,
+                                UInt32 inNumberPacketDescriptions,
+                                const AudioStreamPacketDescription *inPacketDescs) {
+    if (!gActive || gCallId == 0) {
+        AudioQueueEnqueueBuffer(inAQ, inBuffer, 0, NULL);
+        return;
+    }
+    if (gMuted) {
+        AudioQueueEnqueueBuffer(inAQ, inBuffer, 0, NULL);
+        return;
+    }
+    int16_t *pcm = (int16_t *)inBuffer->mAudioData;
+    UInt32 nSamples = inBuffer->mAudioDataByteSize / sizeof(int16_t);
+     @autoreleasepool {
+          /* Encode μ-law into a fresh NSData, then hand the upload off to the
+              main thread. iOS 6/armv7s was crashing when Foundation networking
+              objects were created directly from the AudioQueue input callback. */
+          NSMutableData *out = [NSMutableData dataWithLength:nSamples];
+          unsigned char *dst = (unsigned char *)out.mutableBytes;
+          for (UInt32 i = 0; i < nSamples; i++) dst[i] = CGLin2Ulaw(pcm[i]);
+          if (!gPushTarget) gPushTarget = [[CGVoIPPushTarget alloc] init];
+          [gPushTarget performSelectorOnMainThread:@selector(sendChunk:)
+                                                  withObject:out
+                                              waitUntilDone:NO];
+     }
+    gTxPkts += (nSamples / CGVOIP_BATCH) + ((nSamples % CGVOIP_BATCH) ? 1 : 0);
+    CGVoIPEmitStats();
+
+    AudioQueueEnqueueBuffer(inAQ, inBuffer, 0, NULL);
+}
+
+static void CGVoIPOutputCallback(void *inUserData,
+                                 AudioQueueRef inAQ,
+                                 AudioQueueBufferRef inBuffer) {
+    /* Output buffer became free — fill with silence and re-enqueue. The pull
+       timer below copies real audio in via AudioQueueEnqueueBuffer of *new*
+       buffers allocated against the queue. To keep latency low we just keep
+       this buffer recycled with silence so the queue stays primed. */
+    if (!gActive) return;
+    memset(inBuffer->mAudioData, 0, inBuffer->mAudioDataByteSize);
+    inBuffer->mAudioDataByteSize = inBuffer->mAudioDataBytesCapacity;
+    AudioQueueEnqueueBuffer(inAQ, inBuffer, 0, NULL);
+}
+
+@interface CGVoIPPullDelegate : NSObject {
+    NSMutableData *_responseData;
+    NSHTTPURLResponse *_response;
+    NSTimeInterval _startedAt;
+}
+@property (nonatomic, strong) NSMutableData *responseData;
+@property (nonatomic, strong) NSHTTPURLResponse *response;
+@property (nonatomic, assign) NSTimeInterval startedAt;
+@end
+@implementation CGVoIPPullDelegate
+@synthesize responseData = _responseData;
+@synthesize response = _response;
+@synthesize startedAt = _startedAt;
+
+- (void)connection:(NSURLConnection *)c didReceiveResponse:(NSURLResponse *)r {
+    if ([r isKindOfClass:[NSHTTPURLResponse class]]) self.response = (NSHTTPURLResponse *)r;
+    self.responseData = [NSMutableData data];
+}
+- (void)connection:(NSURLConnection *)c didReceiveData:(NSData *)d {
+    [self.responseData appendData:d];
+}
+- (void)connection:(NSURLConnection *)c didFailWithError:(NSError *)e {
+    NSLog(@"[CGVOIP] pull err=%@", e.localizedDescription);
+    gErrPkts++;
+    CGVoIPEmitStats();
+}
+- (void)connectionDidFinishLoading:(NSURLConnection *)c {
+    if (!gActive || !gOutQueue) return;
+    gLastRTTMs = (int)(([[NSDate date] timeIntervalSince1970] - self.startedAt) * 1000.0);
+    int64_t prevSeq = gRxSeq;
+    NSString *lastSeqStr = [self.response.allHeaderFields objectForKey:@"X-CG-Last-Seq"];
+    if (!lastSeqStr) lastSeqStr = [self.response.allHeaderFields objectForKey:@"x-cg-last-seq"];
+    if (lastSeqStr) {
+        int64_t s = (int64_t)[lastSeqStr longLongValue];
+        if (prevSeq > 0 && s > prevSeq + 1) gDropPkts += (s - prevSeq - 1);
+        if (s > gRxSeq) gRxSeq = s;
+    }
+    NSData *body = self.responseData;
+    gLastQueuePkts = (int)((body.length + CGVOIP_BATCH - 1) / CGVOIP_BATCH);
+    if (!body.length) return;
+    /* Decode μ-law → 16-bit PCM and enqueue a fresh AudioQueueBuffer. */
+    const unsigned char *src = body.bytes;
+    NSUInteger n = body.length;
+    AudioQueueBufferRef buf = NULL;
+    OSStatus s = AudioQueueAllocateBuffer(gOutQueue, (UInt32)(n * sizeof(int16_t)), &buf);
+    if (s != noErr || !buf) return;
+    int16_t *dst = (int16_t *)buf->mAudioData;
+    for (NSUInteger i = 0; i < n; i++) dst[i] = CGUlaw2Lin(src[i]);
+    buf->mAudioDataByteSize = (UInt32)(n * sizeof(int16_t));
+    AudioQueueEnqueueBuffer(gOutQueue, buf, 0, NULL);
+    gRxPkts += (n / CGVOIP_BATCH) + ((n % CGVOIP_BATCH) ? 1 : 0);
+    CGVoIPEmitStats();
+}
+@end
+
+static CGVoIPPullDelegate *gPullDel = nil;
+
+static void CGVoIPPullTick(NSTimer *timer);
+
+@interface CGVoIPTimerTarget : NSObject
+- (void)tick:(NSTimer *)t;
+@end
+@implementation CGVoIPTimerTarget
+- (void)tick:(NSTimer *)t { CGVoIPPullTick(t); }
+@end
+static CGVoIPTimerTarget *gTimerTarget = nil;
+
+static void CGVoIPPullTick(NSTimer *timer) {
+    if (!gActive || gCallId == 0) return;
+    NSString *urlStr = [NSString stringWithFormat:@"%@/api/calls/audio?call_id=%lld&after_seq=%lld",
+                        gBase, (long long)gCallId, (long long)gRxSeq];
+    NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:urlStr]];
+    [req setValue:gToken forHTTPHeaderField:@"X-CG-Token"];
+    [req setTimeoutInterval:4.0];
+    if (!gPullDel) gPullDel = [[CGVoIPPullDelegate alloc] init];
+    /* New delegate per request to avoid response-buffer races. */
+    CGVoIPPullDelegate *del = [[CGVoIPPullDelegate alloc] init];
+    del.startedAt = [[NSDate date] timeIntervalSince1970];
+    NSURLConnection *c = [[NSURLConnection alloc] initWithRequest:req delegate:del startImmediately:NO];
+    [c scheduleInRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
+    [c start];
+    /* Retain delegate by attaching via objc_setAssociatedObject would be cleaner;
+       simplest: store in a static, since calls overlap is fine on slow links. */
+    gPullDel = del;
+}
+
+static void CGVoIPStart(int64_t callId, NSString *token, NSString *base, UIWebView *webView) {
+    if (gActive) {
+        NSLog(@"[CGVOIP] start ignored, already active call=%lld", (long long)gCallId);
+        return;
+    }
+    CGVoIPRingStop();
+    gCallId  = callId;
+    gToken   = [token copy];
+    gBase    = [base copy];
+    gWebView = webView;
+    gRxSeq   = 0;
+    gActive  = YES;
+    gMuted   = NO;
+    gTxPkts = gRxPkts = gDropPkts = gErrPkts = 0;
+    gLastRTTMs = 0;
+    gLastQueuePkts = 0;
+    gLastStatsEmitTs = 0;
+    gLastTxLogTs = 0;
+    NSLog(@"[CGVOIP] start call=%lld base=%@", (long long)callId, base);
+
+    /* Configure AVAudioSession for play+record (iOS 3+ supported). */
+    @try {
+        AVAudioSession *sess = [AVAudioSession sharedInstance];
+        NSError *err = nil;
+        [sess setCategory:AVAudioSessionCategoryPlayAndRecord error:&err];
+        if (err) NSLog(@"[CGVOIP] setCategory err=%@", err.localizedDescription);
+        err = nil;
+        [sess setActive:YES error:&err];
+        if (err) NSLog(@"[CGVOIP] activate err=%@", err.localizedDescription);
+        CGVoIPSetSpeakerEnabled(YES);
+    } @catch (NSException *e) { NSLog(@"[CGVOIP] session ex=%@", e); }
+
+    AudioStreamBasicDescription fmt = {0};
+    fmt.mSampleRate       = CGVOIP_RATE;
+    fmt.mFormatID         = kAudioFormatLinearPCM;
+    fmt.mFormatFlags      = kLinearPCMFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsPacked;
+    fmt.mChannelsPerFrame = 1;
+    fmt.mBitsPerChannel   = 16;
+    fmt.mFramesPerPacket  = 1;
+    fmt.mBytesPerFrame    = 2;
+    fmt.mBytesPerPacket   = 2;
+
+    /* Input queue */
+    OSStatus s = AudioQueueNewInput(&fmt, CGVoIPInputCallback, NULL, NULL, NULL, 0, &gInQueue);
+    if (s != noErr) {
+        NSLog(@"[CGVOIP] AudioQueueNewInput err=%d", (int)s);
+        CGVoIPNotify(@"error", @"input_open_failed");
+        CGVoIPStop();
+        return;
+    }
+    UInt32 inBufBytes = CGVOIP_BATCH * sizeof(int16_t);
+    for (int i = 0; i < CGVOIP_NIN_BUFFERS; i++) {
+        AudioQueueAllocateBuffer(gInQueue, inBufBytes, &gInBufs[i]);
+        AudioQueueEnqueueBuffer(gInQueue, gInBufs[i], 0, NULL);
+    }
+    s = AudioQueueStart(gInQueue, NULL);
+    if (s != noErr) {
+        NSLog(@"[CGVOIP] AudioQueueStart input err=%d", (int)s);
+        CGVoIPNotify(@"error", @"input_start_failed");
+        CGVoIPStop();
+        return;
+    }
+
+    /* Output queue */
+    s = AudioQueueNewOutput(&fmt, CGVoIPOutputCallback, NULL, NULL, NULL, 0, &gOutQueue);
+    if (s != noErr) {
+        NSLog(@"[CGVOIP] AudioQueueNewOutput err=%d", (int)s);
+        CGVoIPNotify(@"error", @"output_open_failed");
+        CGVoIPStop();
+        return;
+    }
+    /* Pre-fill with silence so the queue can start. */
+    for (int i = 0; i < CGVOIP_NOUT_BUFFERS; i++) {
+        AudioQueueAllocateBuffer(gOutQueue, inBufBytes, &gOutBufs[i]);
+        memset(gOutBufs[i]->mAudioData, 0, inBufBytes);
+        gOutBufs[i]->mAudioDataByteSize = inBufBytes;
+        AudioQueueEnqueueBuffer(gOutQueue, gOutBufs[i], 0, NULL);
+    }
+    s = AudioQueueStart(gOutQueue, NULL);
+    if (s != noErr) {
+        NSLog(@"[CGVOIP] AudioQueueStart output err=%d", (int)s);
+        CGVoIPNotify(@"error", @"output_start_failed");
+        CGVoIPStop();
+        return;
+    }
+
+    /* Pull timer at 200 ms */
+    if (!gTimerTarget) gTimerTarget = [[CGVoIPTimerTarget alloc] init];
+    gPullTimer = [NSTimer scheduledTimerWithTimeInterval:0.2
+                                                  target:gTimerTarget
+                                                selector:@selector(tick:)
+                                                userInfo:nil
+                                                 repeats:YES];
+    NSLog(@"[CGVOIP] running");
+}
+
+static void CGVoIPStop(void) {
+    if (!gActive) return;
+    gActive = NO;
+    CGVoIPRingStop();
+    CGVoIPSetSpeakerEnabled(NO);
+    NSLog(@"[CGVOIP] stop call=%lld", (long long)gCallId);
+    if (gPullTimer) { [gPullTimer invalidate]; gPullTimer = nil; }
+    if (gInQueue) {
+        AudioQueueStop(gInQueue, true);
+        AudioQueueDispose(gInQueue, true);
+        gInQueue = NULL;
+    }
+    if (gOutQueue) {
+        AudioQueueStop(gOutQueue, true);
+        AudioQueueDispose(gOutQueue, true);
+        gOutQueue = NULL;
+    }
+    @try {
+        NSError *err = nil;
+        [[AVAudioSession sharedInstance] setActive:NO error:&err];
+    } @catch (NSException *e) {}
+    gCallId = 0;
+    gRxSeq  = 0;
+    gToken  = nil;
+    gBase   = nil;
+    gMuted  = NO;
+}

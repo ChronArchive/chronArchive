@@ -53,6 +53,7 @@ mkdir -p build/
     IPHONEOS_DEPLOYMENT_TARGET=6.0 \
     ONLY_ACTIVE_ARCH=NO \
     ENABLE_BITCODE=NO \
+    OTHER_LDFLAGS="-framework AudioToolbox -framework AVFoundation" \
     CODE_SIGN_IDENTITY="" \
     CODE_SIGNING_REQUIRED=NO \
     CODE_SIGNING_ALLOWED=NO \
@@ -94,9 +95,9 @@ done
 echo "  Injected launch images"
 
 INFO="$OUTPUT_DIR/Payload/ChronArchive.app/Info.plist"
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.2" "$INFO" 2>/dev/null || true
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 12" "$INFO" 2>/dev/null || true
-echo "  Version → 1.2 (build 12)"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.3" "$INFO" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 16" "$INFO" 2>/dev/null || true
+echo "  Version → 1.3 (build 13)"
 
 ENTITLEMENTS="$PROJECT_DIR/ChronArchive/ChronArchive.entitlements"
 
@@ -119,6 +120,7 @@ fi
 
 cd "$OUTPUT_DIR"
 zip -r ChronArchive.ipa Payload/ > /dev/null
+cp ChronArchive.ipa ChronArchive-ios6.ipa
 rm -rf Payload/
 cd "$SCRIPT_DIR"
 
@@ -126,6 +128,7 @@ echo ""
 echo "=== Done! ==="
 echo ""
 echo "  IPA → $OUTPUT_DIR/ChronArchive.ipa"
+echo "  IPA → $OUTPUT_DIR/ChronArchive-ios6.ipa"
 echo ""
 echo "Install via Veteris or AirDrop:"
 echo "  • AirDrop the IPA to your iPhone 4S (iOS 6)"

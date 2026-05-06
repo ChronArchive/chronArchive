@@ -82,6 +82,7 @@ mkdir -p build/
     IPHONEOS_DEPLOYMENT_TARGET=12.0 \
     ONLY_ACTIVE_ARCH=NO \
     ENABLE_BITCODE=NO \
+    OTHER_LDFLAGS="-framework AudioToolbox -framework AVFoundation" \
     CODE_SIGN_IDENTITY="" \
     CODE_SIGNING_REQUIRED=NO \
     CODE_SIGNING_ALLOWED=NO \
@@ -121,10 +122,10 @@ echo "  Injected launch images"
 
 INFO="$OUTPUT_DIR/Payload/ChronArchive.app/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 12.0" "$INFO" 2>/dev/null || true
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.2" "$INFO" 2>/dev/null || true
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 12" "$INFO" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.3" "$INFO" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion 16" "$INFO" 2>/dev/null || true
 echo "  MinimumOSVersion → 12.0"
-echo "  Version → 1.2 (build 12)"
+echo "  Version → 1.3 (build 13)"
 
 ENTITLEMENTS="$PROJECT_DIR/ChronArchive/ChronArchive.entitlements"
 

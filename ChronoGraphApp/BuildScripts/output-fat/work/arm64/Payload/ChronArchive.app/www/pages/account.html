@@ -374,6 +374,17 @@
         <div id="ep-uname" style="font-size:15px;color:#8e8e93;padding:4px 0 8px">—</div>
         <div class="flabel">Bio</div>
         <input type="text" id="ep-bio" class="field" placeholder="About yourself&#8230;" maxlength="160">
+        <div class="flabel">Recovery Email <span style="font-weight:normal;color:#8e8e93;font-size:12px;">(private)</span></div>
+        <input type="text" id="ep-email" class="field" placeholder="name@example.com" maxlength="254" autocorrect="off" autocapitalize="off">
+        <div id="ep-email-status" style="font-size:12px;color:#8e8e93;margin:-2px 0 8px;"></div>
+        <div id="ep-email-verify" style="display:none;margin:0 0 10px;">
+          <input type="button" id="ep-email-send-btn" class="fbtn fbtn-sec" value="Send verification code" onclick="sendEmailVerifyCode()">
+          <div id="ep-email-code-row" style="display:none;margin-top:8px;">
+            <input type="text" id="ep-email-code" class="field" placeholder="6-digit code" maxlength="6" inputmode="numeric" autocorrect="off" autocapitalize="off">
+            <input type="button" class="fbtn fbtn-sec" value="Verify" onclick="confirmEmailVerifyCode()">
+          </div>
+          <div id="ep-email-msg" style="font-size:12px;color:#8e8e93;margin-top:6px;"></div>
+        </div>
         <div id="ep-err" class="ferr"></div>
       </div>
     </div>
@@ -638,7 +649,7 @@ function esc(s){var d=document.createElement('div');d.appendChild(document.creat
 function req(m,path,body,cb){
   var x;try{x=new XMLHttpRequest();}catch(e){try{x=new ActiveXObject('Microsoft.XMLHTTP');}catch(e2){return;}}
   try{x.open(m,API+path,true);}catch(eopen){cgLog('OPEN_FAIL',m+' '+path+' err='+(eopen&&eopen.message?eopen.message:eopen));if(cb)cb({ok:false,error:'Network error'},'Network error');return;}
-  x.timeout=15000;
+  try{x.timeout=15000;}catch(et0){}
   if(body){try{x.setRequestHeader('Content-Type','application/json');}catch(eh1){}}
   if(S.token){try{x.setRequestHeader('X-CG-Token',S.token);}catch(eh2){}}
   x.onreadystatechange=function(){
@@ -928,9 +939,27 @@ function openEditProfile(){
   document.getElementById('ep-uname').textContent=S.uname||'';
   document.getElementById('ep-av').innerHTML=mkAv(S.av,S.uname,72);
   document.getElementById('ep-bio').value='';
+  var emI=document.getElementById('ep-email');if(emI)emI.value='';
+  var emS=document.getElementById('ep-email-status');if(emS){emS.innerHTML='';emS.style.color='#8e8e93';}
+  var evR=document.getElementById('ep-email-verify');if(evR)evR.style.display='none';
+  var evC=document.getElementById('ep-email-code-row');if(evC)evC.style.display='none';
+  var evM=document.getElementById('ep-email-msg');if(evM){evM.innerHTML='';evM.style.color='#8e8e93';}
   hideErr('ep-err');
   req('GET','/api/me',null,function(d){
-    if(d.ok)document.getElementById('ep-bio').value=d.bio||'';
+    if(!d||!d.ok)return;
+    document.getElementById('ep-bio').value=d.bio||'';
+    if(emI)emI.value=d.email||'';
+    S.emailVerified=!!d.email_verified;
+    if(emS){
+      if(d.email){
+        emS.innerHTML=d.email_verified?'Verified \u2713':'Not verified \u2014 used for password reset.';
+        emS.style.color=d.email_verified?'#34a853':'#8e8e93';
+      } else {
+        emS.innerHTML='Add an email so you can recover your account.';
+        emS.style.color='#8e8e93';
+      }
+    }
+    if(evR)evR.style.display=(d.email&&!d.email_verified)?'block':'none';
   });
   openSubscreen('ss-edit');
 }
@@ -977,7 +1006,13 @@ function saveProfile(){
   cgLog('PROFILE','save start hasAvatar='+(S.avData?1:0));
   hideErr('ep-err');
   var bio=(document.getElementById('ep-bio').value||'').replace(/^\s+|\s+$/g,'');
+  var emI=document.getElementById('ep-email');
+  var em=emI?(emI.value||'').replace(/^\s+|\s+$/g,'').toLowerCase():'';
+  if(em && (em.length>254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em))){
+    showErr('ep-err','Enter a valid email or leave it blank.');return;
+  }
   var body={bio:bio};
+  if(emI)body.email=em;
   if(S.avData)body.avatar_b64=S.avData;
   var btn=document.getElementById('ep-save-btn');btn.innerHTML='Saving&#8230;';
   req('PUT','/api/me',body,function(d,err){
@@ -987,8 +1022,44 @@ function saveProfile(){
     if(S.avData){S.av=S.avData;store.s('cg_av',S.av);S.avData=null;}
     document.getElementById('pc-av').innerHTML=mkAv(S.av,S.uname,72);
     document.getElementById('pc-bio').textContent=bio;
-    closeSubscreen('ss-edit');
+    if(em){
+      var emS=document.getElementById('ep-email-status');
+      if(emS){emS.innerHTML='Not verified \u2014 check your inbox for a code.';emS.style.color='#8e8e93';}
+      var evR=document.getElementById('ep-email-verify');if(evR)evR.style.display='block';
+      var evC=document.getElementById('ep-email-code-row');if(evC)evC.style.display='block';
+      var evM=document.getElementById('ep-email-msg');if(evM){evM.innerHTML='Code sent. Enter it above to verify.';evM.style.color='#8e8e93';}
+    } else {
+      var evR2=document.getElementById('ep-email-verify');if(evR2)evR2.style.display='none';
+      closeSubscreen('ss-edit');
+    }
     queueLegacyScrollRefresh();
+  });
+}
+
+function sendEmailVerifyCode(){
+  var btn=document.getElementById('ep-email-send-btn');
+  var msg=document.getElementById('ep-email-msg');
+  if(btn)btn.value='Sending\u2026';
+  req('POST','/api/email/verify-send',{},function(d,err){
+    if(btn)btn.value='Resend code';
+    if(err||!d||!d.ok){if(msg){msg.innerHTML=(d&&d.error)||'Could not send code.';msg.style.color='#cc0000';}return;}
+    if(d.already_verified){if(msg){msg.innerHTML='Already verified.';msg.style.color='#34a853';}return;}
+    var evC=document.getElementById('ep-email-code-row');if(evC)evC.style.display='block';
+    if(msg){msg.innerHTML='Code sent. Check your inbox.';msg.style.color='#8e8e93';}
+  });
+}
+function confirmEmailVerifyCode(){
+  var ci=document.getElementById('ep-email-code');
+  var msg=document.getElementById('ep-email-msg');
+  var code=ci?(ci.value||'').replace(/^\s+|\s+$/g,''):'';
+  if(!/^\d{6}$/.test(code)){if(msg){msg.innerHTML='Enter the 6-digit code from your email.';msg.style.color='#cc0000';}return;}
+  req('POST','/api/email/verify-confirm',{code:code},function(d,err){
+    if(err||!d||!d.ok){if(msg){msg.innerHTML=(d&&d.error)||'Invalid or expired code.';msg.style.color='#cc0000';}return;}
+    S.emailVerified=true;
+    if(msg){msg.innerHTML='Verified \u2713';msg.style.color='#34a853';}
+    var evR=document.getElementById('ep-email-verify');if(evR)evR.style.display='none';
+    var emS=document.getElementById('ep-email-status');
+    if(emS){emS.innerHTML='Verified \u2713';emS.style.color='#34a853';}
   });
 }
 

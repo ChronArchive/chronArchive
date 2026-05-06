@@ -143,6 +143,13 @@
       border:1px solid #c8c8c8;
       color:#1a1a1a;
       -webkit-border-bottom-left-radius:4px; border-bottom-left-radius:4px; }
+    .msg-system { text-align:center; margin:8px 0; }
+    .msg-system .msg-status {
+      display:inline-block; padding:6px 10px;
+      -webkit-border-radius:10px; border-radius:10px;
+      background:rgba(120,120,120,0.14); color:#666; font-size:12px;
+      border:1px solid rgba(120,120,120,0.18);
+    }
     .msg-meta { font-size:11px; color:#aaa; margin-top:2px; }
     .msg-read { color:#44c824; }
     /* delete reveal on long-press */
@@ -173,6 +180,8 @@
       color:#fff; padding:7px 12px; font-size:14px; font-weight:bold; cursor:pointer;
       -webkit-appearance:none; font-family:inherit; }
     .send-btn:disabled { opacity:0.5; }
+    /* DM photo button — text "+" so iPhone 2G/3G WebKit (no inline SVG support) renders it. */
+    .dm-photo-btn { font-size:20px; line-height:1; padding:6px 12px; margin-right:6px; vertical-align:middle; }
     /* Profile screen */
     .profile-wrap { padding:24px 20px; background:#f2f2f7; }
     .profile-av-wrap { text-align:center; margin-bottom:20px; }
@@ -237,6 +246,39 @@
       -webkit-transition:-webkit-transform 0.15s; transition:transform 0.15s; }
     .ptr-ind.ptr-ready:after { color:#0055cc;
       -webkit-transform:rotate(180deg); transform:rotate(180deg); }
+    /* ── iOS<=4 (iPhone 2G/3G) flat overrides ──
+       Old WebKit cannot composite gradients/shadows, so they paint per-frame on the
+       CPU and tank scroll. Flatten everything to solid fills for these devices. */
+    html.cg-legacy3 .header,
+    html.cg-legacy3 .ibar {
+      background:#3b7fd7 !important; background-image:none !important;
+      -webkit-box-shadow:none !important; box-shadow:none !important;
+    }
+    html.cg-legacy3 .ibar {
+      background:#dcdcdc !important;
+      border-top:1px solid #b0b0b0 !important;
+    }
+    html.cg-legacy3 .send-btn,
+    html.cg-legacy3 .auth-btn,
+    html.cg-legacy3 .save-btn {
+      background:#3b7fd7 !important; background-image:none !important;
+      border:1px solid #2a5fa8 !important; color:#fff !important;
+      -webkit-box-shadow:none !important; box-shadow:none !important;
+    }
+    html.cg-legacy3 .msg-out .msg-bubble {
+      background:#3b7fd7 !important; background-image:none !important;
+      border:1px solid #2a5fa8 !important; color:#fff !important;
+      -webkit-box-shadow:none !important; box-shadow:none !important;
+    }
+    html.cg-legacy3 .msg-in .msg-bubble {
+      background:#e6e6e6 !important; background-image:none !important;
+      border:1px solid #c8c8c8 !important; color:#1a1a1a !important;
+      -webkit-box-shadow:none !important; box-shadow:none !important;
+    }
+    html.cg-legacy3 .toggle-thumb,
+    html.cg-legacy3 .modal-box {
+      -webkit-box-shadow:none !important; box-shadow:none !important;
+    }
   </style>
 </head>
 <body>
@@ -256,9 +298,38 @@
         <div id="f-confirm-row" style="display:none;">
           <input type="password" id="f-confirm" class="auth-field" placeholder="Confirm password">
         </div>
+        <div id="f-email-row" style="display:none;">
+          <input type="text" id="f-email" class="auth-field" placeholder="Recovery email (optional)" autocorrect="off" autocapitalize="off">
+        </div>
         <input type="submit" id="auth-btn" class="auth-btn" value="Sign In">
       </form>
       <div id="auth-err" class="auth-err"></div>
+      <div id="forgot-link-row" style="text-align:center;margin-top:10px;">
+        <span style="font-size:13px;color:#0a84ff;cursor:pointer;" onclick="openForgotModal()">Forgot password?</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FORGOT PASSWORD MODAL -->
+<div id="forgot-screen" class="screen">
+  <div class="header">Reset Password
+    <span class="hl" onclick="closeForgotModal()">&#8249; Back</span>
+  </div>
+  <div class="sb" style="top:44px;">
+    <div class="auth-wrap">
+      <div id="forgot-step1">
+        <div style="font-size:13px;color:#666;margin:6px 4px 10px;">Enter your username or recovery email. If a matching account exists, we'll send a 6-digit code.</div>
+        <input type="text" id="fg-ident" class="auth-field" placeholder="Username or email" autocorrect="off" autocapitalize="off">
+        <input type="button" class="auth-btn" value="Send code" onclick="forgotSendCode()">
+      </div>
+      <div id="forgot-step2" style="display:none;">
+        <div style="font-size:13px;color:#666;margin:6px 4px 10px;">Enter the 6-digit code from your email and a new password.</div>
+        <input type="text"     id="fg-code" class="auth-field" placeholder="6-digit code" maxlength="6" autocorrect="off" autocapitalize="off">
+        <input type="password" id="fg-newpass" class="auth-field" placeholder="New password (8+ chars)">
+        <input type="button" class="auth-btn" value="Reset password" onclick="forgotReset()">
+      </div>
+      <div id="forgot-msg" class="auth-err"></div>
     </div>
   </div>
 </div>
@@ -292,6 +363,7 @@
   </div>
   <div class="sb" id="thread-body"></div>
   <div class="ibar">
+    <div class="isc"><button id="dm-photo-btn" class="send-btn dm-photo-btn" onclick="pickDmImage()" title="Send photo">+</button><input type="file" id="dm-image-input" accept="image/*" style="display:none;"></div>
     <div class="ifc"><input type="text" id="msg-input" class="msg-input" placeholder="Message&#8230;" autocorrect="off"></div>
     <div class="isc"><button id="send-btn" class="send-btn" onclick="sendMsg()">Send</button></div>
   </div>
@@ -313,6 +385,18 @@
       <div id="profile-username-display" class="profile-name"></div>
       <div class="profile-label">Bio</div>
       <input type="text" id="profile-bio-input" class="profile-field" placeholder="Write something&#8230;" maxlength="160">
+
+      <div class="profile-label">Recovery Email <span style="font-weight:normal;color:#888;font-size:11px;">(private)</span></div>
+      <input type="text" id="profile-email-input" class="profile-field" placeholder="name@example.com" maxlength="254" autocorrect="off" autocapitalize="off">
+      <div id="profile-email-status" style="font-size:11px;color:#888;margin:4px 4px 8px;"></div>
+      <div id="profile-email-verify-row" style="display:none;margin:4px 4px 10px;">
+        <button id="profile-email-send-btn" class="btn-secondary" onclick="sendEmailVerifyCode()" style="font-size:13px;padding:6px 10px;">Send verification code</button>
+        <div id="profile-email-verify-input-row" style="display:none;margin-top:6px;">
+          <input type="text" id="profile-email-verify-code" class="profile-field" placeholder="6-digit code" maxlength="6" inputmode="numeric" autocorrect="off" autocapitalize="off" style="width:140px;display:inline-block;vertical-align:middle;">
+          <button class="btn-secondary" onclick="confirmEmailVerifyCode()" style="font-size:13px;padding:6px 10px;margin-left:6px;vertical-align:middle;">Verify</button>
+        </div>
+        <div id="profile-email-verify-msg" style="font-size:11px;color:#888;margin-top:4px;"></div>
+      </div>
 
       <div class="profile-label">Notifications</div>
       <div style="background:#fff;border:1px solid #d0d0d0;border-radius:10px;padding:0 12px;">
@@ -428,8 +512,30 @@
   <div class="modal-box">
     <div class="modal-title" id="thread-modal-title">Options</div>
     <button class="modal-btn" onclick="viewUserProfile()">View Profile</button>
+    <button class="modal-btn" id="thread-call-menu-btn" onclick="callFromThread()">Voice call</button>
     <button class="modal-btn red" id="thread-block-btn" onclick="blockFromThread()"></button>
     <button class="modal-btn cancel" onclick="closeModal('thread-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- VOIP INCOMING-CALL MODAL -->
+<div class="modal-overlay" id="cg-ring-modal">
+  <div class="modal-box">
+    <div class="modal-title">Incoming voice call</div>
+    <div style="text-align:center;padding:8px 16px 14px;color:#444;font-size:15px;" id="cg-ring-name">Caller</div>
+    <button class="modal-btn" onclick="cgAcceptCall()">Accept</button>
+    <button class="modal-btn red" onclick="cgDeclineCall()">Decline</button>
+  </div>
+</div>
+
+<!-- VOIP IN-CALL MODAL -->
+<div class="modal-overlay" id="cg-incall-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="cg-incall-name">Voice call</div>
+    <div style="text-align:center;padding:8px 16px 14px;color:#666;font-size:14px;" id="cg-incall-status">Connecting&hellip;</div>
+    <div style="text-align:left;padding:0 16px 10px;color:#666;font-size:12px;line-height:1.45;" id="cg-call-stats">Latency: - | Packets: - | Queue: -</div>
+    <button class="modal-btn" id="cg-mute-btn" onclick="cgVoIPToggleMute()">Mute mic</button>
+    <button class="modal-btn red" onclick="cgHangupCall()">Hang up</button>
   </div>
 </div>
 
@@ -474,13 +580,122 @@ var store = {
 var S = {
   token:null, userId:null, username:null, isAdmin:false,
   threadUid:null, threadUsername:null,
+  threadLegacyLock:false,
+  legacyChromeTicker:null, legacyChromeTickFn:null,
+  perfOpenThreadT0:0, perfOpenThreadApiT0:0,
   lastMsgId:0, pollXhr:null, polling:false,
   receiptInterval:null,
   notifyDm:true, notifyFriendPosts:true, notifyLikes:true, notifyComments:true,
   notifyFriendRequests:true,
   upUserId:null, upFriendStatus:null, upDirection:null, upBlocked:false, upFromScreen:'users-screen'
 };
-function cgLog(kind,msg){}
+
+/* C4: flatten gradients/shadows on iPhone 2G/3G/3GS via a single class. */
+try{
+  if(legacyIOSMajor()<=4 && document.documentElement){
+    var _cls=document.documentElement.className||'';
+    if(_cls.indexOf('cg-legacy3')<0) document.documentElement.className=_cls+' cg-legacy3';
+  }
+}catch(_eLeg){}
+
+/* F: structured perf2 logger. Always emits when native bridge is present. */
+function perf2(name,extra){
+  try{
+    var line='[CG][PERF2] '+name+(extra?(' '+extra):'');
+    if(window.__cgNativePerfLog) window.__cgNativePerfLog(line);
+    else if(window.console&&console.log) console.log(line);
+  }catch(e){}
+}
+function perf2Now(){
+  try{ if(window.__cgPerfNow) return window.__cgPerfNow(); }catch(e){}
+  return (new Date()).getTime();
+}
+function perf2Dt(t0){ return Math.round(perf2Now()-(t0||0)); }
+/* One-shot viewport stamp per page load. */
+try{
+  var _vp_w=window.innerWidth||document.documentElement.clientWidth||0;
+  var _vp_h=window.innerHeight||document.documentElement.clientHeight||0;
+  var _vp_dpr=window.devicePixelRatio||1;
+  var _vp_st='';
+  try{ _vp_st=getComputedStyle(document.documentElement).getPropertyValue('--cg-safe-top')||''; }catch(_e1){}
+  perf2('viewport.dims','w='+_vp_w+' h='+_vp_h+' dpr='+_vp_dpr+' safeTop='+(_vp_st||'na')+' legacy='+legacyIOSMajor()+' gradMode='+(legacyIOSMajor()<=4?'flat':'full'));
+}catch(_evp){}
+function cgPerfEnabled(){
+  if(window.__cgPerfEnabled===1||window.__cgPerfEnabled===true) return true;
+  if(legacyIOSMajor()<=4) return true;
+  try{return (store.get('cg_perf')==='1');}catch(e){return false;}
+}
+function cgPerfStart(){
+  if(!cgPerfEnabled()) return 0;
+  if(window.__cgPerfStart) return window.__cgPerfStart();
+  return (new Date()).getTime();
+}
+function cgPerfEnd(name,t0,extra){
+  if(!cgPerfEnabled()||!t0) return;
+  if(window.__cgPerfEnd){ window.__cgPerfEnd(name,t0,extra||''); return; }
+  var dt=(new Date()).getTime()-t0;
+  var slow=(legacyIOSMajor()<=4)?35:120;
+  if(dt>=slow){
+    try{ if(window.console&&console.log) console.log('[CG][PERF] '+name+' '+Math.round(dt)+'ms'+(extra?(' '+extra):'')); }catch(e){}
+  }
+}
+function cgLog(kind,msg){
+  if(kind!=='PERF'){
+    try{ if(!(store.get('cg_debug')==='1')) return; }catch(e){ return; }
+  }
+  try{if(window.console&&console.log)console.log('[CG]['+kind+'] '+msg);}catch(e){}
+}
+function chatTraceEnabled(){
+  try{ if(store.get('cg_chat_trace')==='1') return true; }catch(e){}
+  return legacyIOSMajor()<=4;
+}
+function chatTrace(tag,msg){
+  if(!chatTraceEnabled()) return;
+  try{
+    var out='[CG][CHAT_TRACE]['+tag+'] '+msg;
+    if(window.__cgNativePerfLog) window.__cgNativePerfLog(out);
+    else if(window.console&&console.log) console.log(out);
+  }catch(e){}
+}
+
+/* THREAD DEBUG: set localStorage.cg_thread_debug='1' to enable on any device.
+   Legacy iOS (<=4) defaults to enabled to aid device diagnostics. */
+function threadDbgEnabled(){
+  try{
+    var v=store.get('cg_thread_debug');
+    if(v==='0') return false;
+    if(v==='1') return true;
+  }catch(e){}
+  return legacyIOSMajor()<=4;
+}
+function threadDbg(tag,msg){
+  if(!threadDbgEnabled()) return;
+  try{ if(window.console&&console.log) console.log('[CG][THREADDBG]['+tag+'] '+msg); }catch(e){}
+}
+function threadLayoutSnapshot(tag){
+  if(!threadDbgEnabled()) return;
+  try{
+    var ts=document.getElementById('thread-screen');
+    var ib=document.querySelector?document.querySelector('#thread-screen .ibar'):null;
+    var sb=document.querySelector?document.querySelector('#thread-screen .sb'):null;
+    var hdr=document.querySelector?document.querySelector('#thread-screen .header'):null;
+    var y=window.pageYOffset||document.documentElement.scrollTop||document.body.scrollTop||0;
+    var vh=window.innerHeight||document.documentElement.clientHeight||document.body.clientHeight||0;
+    var active=ts&&(' '+ts.className+' ').indexOf(' active ')>=0?1:0;
+    threadDbg(tag,
+      'active='+active+
+      ' legacy='+legacyIOSMajor()+
+      ' nativeDoc='+(usingNativeLegacyDocScroll()?1:0)+
+      ' y='+y+' vh='+vh+
+      ' hdrTop='+(hdr?(hdr.style.top||''):'na')+
+      ' ibPos='+(ib?(ib.style.position||''):'na')+
+      ' ibTop='+(ib?(ib.style.top||''):'na')+
+      ' ibBottom='+(ib?(ib.style.bottom||''):'na')+
+      ' sbTop='+(sb?(sb.style.top||''):'na')+
+      ' sbBottom='+(sb?(sb.style.bottom||''):'na')
+    );
+  }catch(e){}
+}
 
 function getSafeThemeName(){
   var t='light';
@@ -514,7 +729,7 @@ function req(method, path, body, cb, timeout) {
   catch (eopen) { cgLog('OPEN_FAIL',method+' '+path+' err='+(eopen&&eopen.message?eopen.message:eopen)); if (cb) cb({ok:false,error:'Network error'}, 'Network error'); return null; }
   if (body) { try { x.setRequestHeader('Content-Type', 'application/json'); } catch (eh1) {} }
   if (S.token) { try { x.setRequestHeader('X-CG-Token', S.token); } catch (eh2) {} }
-  x.timeout = timeout || 20000;
+  try { x.timeout = timeout || 20000; } catch (et0) {}
   x.onreadystatechange = function() {
     if (x.readyState !== 4) return;
     cgLog('DONE',method+' '+path+' status='+x.status+' rs='+x.readyState+' len='+(x.responseText||'').length);
@@ -545,11 +760,270 @@ function show(id) {
     var el = document.getElementById(ALL_SCREENS[i]);
     if (el) el.className = 'screen'+(ALL_SCREENS[i]===id?' active':'');
   }
+  if(id!=='thread-screen') S.threadLegacyLock=false;
+  if(usingNativeLegacyDocScroll()){
+    // In document-flow legacy mode, ensure each screen switch starts at top.
+    if(id!=='thread-screen'){
+      if(typeof window.scrollTo==='function') window.scrollTo(0,0);
+      if(document.documentElement) document.documentElement.scrollTop=0;
+      if(document.body) document.body.scrollTop=0;
+      chatTrace('legacy-show-reset','id='+id);
+    }
+  }
+  // iPhone 2G/3G (iOS<=4) WebKit cannot honor position:fixed or inner overflow:scroll.
+  // Force the chat thread into document-flow when entering it, and revert when leaving.
+  // Same applies to the conversations list (Messages tab).
+  applyLegacyThreadDocFlow(id==='thread-screen');
+  applyLegacyConvosDocFlow(id==='convos-screen');
+  if(legacyIOSMajor()<=4 && id!=='thread-screen' && id!=='convos-screen'){
+    if(typeof window.scrollTo==='function') window.scrollTo(0,0);
+    if(document.documentElement) document.documentElement.scrollTop=0;
+    if(document.body) document.body.scrollTop=0;
+  }
   queueLegacyScrollRefresh(id);
   if (id==='thread-screen') {
+    threadLayoutSnapshot('show-thread-enter');
     updateLegacyThreadChromePosition();
     updateThreadComposerPosition();
+    threadLayoutSnapshot('show-thread-after-pos');
   }
+}
+
+/* iOS<=4 (iPhone 2G/3G) thread layout: page becomes the scroll container, but
+   header and composer stay glued to the viewport using position:absolute and a
+   small ticker that updates `top` from window.pageYOffset (PastryKit/iScroll
+   technique). position:fixed is broken on these devices. */
+function applyLegacyThreadDocFlow(enable){
+  if(legacyIOSMajor()>4) return;
+  var html=document.documentElement, body=document.body;
+  var ts=document.getElementById('thread-screen');
+  var hdr=ts?(ts.getElementsByTagName('div')[0]):null;
+  var sb=document.getElementById('thread-body');
+  var nativeDoc=usingNativeLegacyDocScroll();
+  var ib=null;
+  if(ts){
+    var divs=ts.getElementsByTagName('div');
+    for(var i=0;i<divs.length;i++){
+      if((' '+(divs[i].className||'')+' ').indexOf(' ibar ')>=0){ ib=divs[i]; break; }
+    }
+  }
+  if(enable){
+    if(html){ html.style.overflow='visible'; html.style.height='auto'; }
+    if(body){ body.style.overflow='visible'; body.style.height='auto'; body.style.minHeight='100%'; body.style.position='relative'; }
+    if(ts){
+      ts.style.position='static';
+      ts.style.top='auto'; ts.style.bottom='auto';
+      ts.style.left='auto'; ts.style.right='auto';
+      ts.style.height='auto';
+      ts.style.overflow='visible';
+    }
+    if(hdr){
+      hdr.style.position=nativeDoc?'fixed':'absolute';
+      hdr.style.left='0'; hdr.style.right='0';
+      hdr.style.zIndex='200';
+      hdr.style.top='0px';
+    }
+    if(sb){
+      sb.style.position='static';
+      sb.style.top='auto'; sb.style.bottom='auto';
+      sb.style.left='auto'; sb.style.right='auto';
+      sb.style.height='auto';
+      sb.style.minHeight='320px';
+      sb.style.overflow='visible';
+      sb.style.overflowY='visible';
+      sb.style.overflowX='visible';
+      sb.style.webkitOverflowScrolling='auto';
+      sb.style.paddingTop='52px';
+      sb.style.paddingBottom='60px';
+    }
+    if(ib){
+      ib.style.position=nativeDoc?'fixed':'absolute';
+      ib.style.left='0'; ib.style.right='0';
+      ib.style.zIndex='200';
+      ib.style.height=nativeDoc?'56px':'50px';
+      ib.style.bottom=nativeDoc?'6px':'auto';
+      ib.style.top=nativeDoc?'auto':'0px';
+      ib.style.paddingBottom=nativeDoc?'6px':'';
+    }
+    if(nativeDoc) stopLegacyChromeTicker();
+    else startLegacyChromeTicker(hdr, ib);
+    chatTrace('legacy-thread-docflow','enabled');
+    perf2('thread.docflow.enable','');
+  } else {
+    stopLegacyChromeTicker();
+    if(html){ html.style.overflow=''; html.style.height=''; }
+    if(body){ body.style.overflow=''; body.style.height=''; body.style.minHeight=''; body.style.position=''; }
+    if(ts){
+      ts.style.position=''; ts.style.top=''; ts.style.bottom='';
+      ts.style.left=''; ts.style.right=''; ts.style.height=''; ts.style.overflow='';
+    }
+    if(hdr){ hdr.style.position=''; hdr.style.top=''; hdr.style.left=''; hdr.style.right=''; hdr.style.zIndex=''; }
+    if(sb){
+      sb.style.position=''; sb.style.top=''; sb.style.bottom='';
+      sb.style.left=''; sb.style.right=''; sb.style.height=''; sb.style.minHeight='';
+      sb.style.overflow=''; sb.style.overflowY=''; sb.style.overflowX='';
+      sb.style.webkitOverflowScrolling='';
+      sb.style.paddingTop=''; sb.style.paddingBottom='';
+    }
+    if(ib){
+      ib.style.position=''; ib.style.top=''; ib.style.bottom='';
+      ib.style.left=''; ib.style.right=''; ib.style.height='';
+      ib.style.marginTop=''; ib.style.paddingBottom=''; ib.style.zIndex='';
+    }
+    chatTrace('legacy-thread-docflow','disabled');
+    perf2('thread.docflow.disable','');
+  }
+}
+
+/* iOS<=4 conversations list (Messages tab) doc-flow scroller. Same root cause
+   as the thread: inner overflow:auto + position:absolute do not scroll on
+   iPhone 2G/3G WebKit. Promote the page to be the scroll container and pin
+   the header with absolute positioning that is repositioned by the chrome
+   ticker on touch / scroll-end. No composer (ib=null). */
+function applyLegacyConvosDocFlow(enable){
+  if(legacyIOSMajor()>4) return;
+  var html=document.documentElement, body=document.body;
+  var cs=document.getElementById('convos-screen');
+  var hdr=cs?(cs.getElementsByTagName('div')[0]):null;
+  var sb=document.getElementById('convos-body');
+  var nativeDoc=usingNativeLegacyDocScroll();
+  if(enable){
+    if(html){ html.style.overflow='visible'; html.style.height='auto'; }
+    if(body){ body.style.overflow='visible'; body.style.height='auto'; body.style.minHeight='100%'; body.style.position='relative'; }
+    if(cs){
+      cs.style.position='static';
+      cs.style.top='auto'; cs.style.bottom='auto';
+      cs.style.left='auto'; cs.style.right='auto';
+      cs.style.height='auto';
+      cs.style.overflow='visible';
+    }
+    if(hdr){
+      hdr.style.position=nativeDoc?'fixed':'absolute';
+      hdr.style.left='0'; hdr.style.right='0';
+      hdr.style.zIndex='200';
+      hdr.style.top='0px';
+    }
+    if(sb){
+      sb.style.position='static';
+      sb.style.top='auto'; sb.style.bottom='auto';
+      sb.style.left='auto'; sb.style.right='auto';
+      sb.style.height='auto';
+      sb.style.minHeight='320px';
+      sb.style.overflow='visible';
+      sb.style.overflowY='visible';
+      sb.style.overflowX='visible';
+      sb.style.webkitOverflowScrolling='auto';
+      sb.style.paddingTop='52px';
+      sb.style.paddingBottom='8px';
+      /* Reset cached inner-scroll layout values so a later screen change can
+         re-apply refreshLegacyScrollBox cleanly if doc-flow is ever disabled. */
+      sb.__cgLegacyTop=undefined; sb.__cgLegacyBottom=undefined; sb.__cgLegacyHeight=undefined;
+    }
+    if(nativeDoc) stopLegacyChromeTicker();
+    else startLegacyChromeTicker(hdr, null);
+    chatTrace('legacy-convos-docflow','enabled');
+    perf2('convos.docflow.enable','');
+  } else {
+    /* Only tear down if WE are the active controller; the thread ticker may
+       already have taken over by the time we run with enable=false. */
+    if(S.legacyChromeChrome && S.legacyChromeChrome.owner==='convos'){
+      stopLegacyChromeTicker();
+    }
+    if(html){ html.style.overflow=''; html.style.height=''; }
+    if(body){ body.style.overflow=''; body.style.height=''; body.style.minHeight=''; body.style.position=''; }
+    if(cs){
+      cs.style.position=''; cs.style.top=''; cs.style.bottom='';
+      cs.style.left=''; cs.style.right=''; cs.style.height=''; cs.style.overflow='';
+    }
+    if(hdr){ hdr.style.position=''; hdr.style.top=''; hdr.style.left=''; hdr.style.right=''; hdr.style.zIndex=''; }
+    if(sb){
+      sb.style.position=''; sb.style.top=''; sb.style.bottom='';
+      sb.style.left=''; sb.style.right=''; sb.style.height=''; sb.style.minHeight='';
+      sb.style.overflow=''; sb.style.overflowY=''; sb.style.overflowX='';
+      sb.style.webkitOverflowScrolling='';
+      sb.style.paddingTop=''; sb.style.paddingBottom='';
+    }
+    chatTrace('legacy-convos-docflow','disabled');
+    perf2('convos.docflow.disable','');
+  }
+}
+
+/* iOS<=4 chrome controller (event-driven, zero idle CPU):
+   - At rest: header + composer are absolutely positioned at the current
+     viewport offset (one tick on install, one on each touchend / scroll-end).
+   - During an active touch-drag scroll: hide both so they don't visibly chase
+     the finger (iOS 3 fires no intermediate scroll events; chasing is jittery
+     and forced 6+ reflows/sec under the old setInterval ticker).
+   - On touchend / scroll: instantly re-show + reposition once.
+   - If msg-input has focus (composing), never hide \u2014 keyboard composer must
+     stay anchored.
+   No setInterval. iPhone 2G CPU is freed for the long-poll readystatechange. */
+function startLegacyChromeTicker(hdr, ib){
+  /* If a controller from a different screen is already running, swap it out
+     cleanly so the new hdr/ib pair owns the scroll listeners. */
+  if(S.legacyChromeChrome) stopLegacyChromeTicker();
+  var owner=ib?'thread':'convos';
+  var c={hdr:hdr, ib:ib, hidden:false, dragging:false, savedHdrDisp:'', savedIbDisp:'', owner:owner};
+  S.legacyChromeChrome=c;
+  function reposition(){
+    var y=window.pageYOffset||document.documentElement.scrollTop||document.body.scrollTop||0;
+    var vh=window.innerHeight||document.documentElement.clientHeight||document.body.clientHeight||0;
+    if(c.hdr){ c.hdr.style.top=y+'px'; }
+    if(c.ib){  c.ib.style.top=(y+vh-50)+'px'; }
+  }
+  function isComposing(){
+    var inp=document.getElementById('msg-input');
+    return !!(inp && document.activeElement===inp);
+  }
+  function hideChrome(){
+     /* iPhone 2G can misclassify taps as touchmove; never hide chrome on
+       move or the header appears to vanish while scrolling. */
+     if(isComposing()) return;
+     reposition();
+  }
+  function showChrome(){
+    if(!c.hidden){ reposition(); return; }
+    if(c.hdr){ c.hdr.style.display=c.savedHdrDisp||''; }
+    c.hidden=false;
+    reposition();
+    perf2('thread.chrome.show','reason=idle');
+  }
+  c.onTouchStart=function(){ c.dragging=true; };
+  c.onTouchMove =function(){ if(c.dragging) hideChrome(); };
+  c.onTouchEnd  =function(){ c.dragging=false; showChrome(); };
+  c.onScroll    =function(){ /* iOS 3 fires this at scroll end */ showChrome(); };
+  /* Still expose a tick fn so scrollBot() can re-glue chrome after a programmatic
+     window.scrollTo() (no touch events involved there). */
+  S.legacyChromeTickFn=showChrome;
+  reposition();
+  if(window.addEventListener){
+    try{ window.addEventListener('touchstart', c.onTouchStart, false); }catch(_e1){}
+    try{ window.addEventListener('touchmove',  c.onTouchMove,  false); }catch(_e2){}
+    try{ window.addEventListener('touchend',   c.onTouchEnd,   false); }catch(_e3){}
+    try{ window.addEventListener('touchcancel',c.onTouchEnd,   false); }catch(_e4){}
+    try{ window.addEventListener('scroll',     c.onScroll,     false); }catch(_e5){}
+  }
+  perf2('thread.chrome.controller','start mode=event');
+}
+function stopLegacyChromeTicker(){
+  var c=S.legacyChromeChrome; if(!c) return;
+  if(window.removeEventListener){
+    try{ window.removeEventListener('touchstart', c.onTouchStart, false); }catch(_e1){}
+    try{ window.removeEventListener('touchmove',  c.onTouchMove,  false); }catch(_e2){}
+    try{ window.removeEventListener('touchend',   c.onTouchEnd,   false); }catch(_e3){}
+    try{ window.removeEventListener('touchcancel',c.onTouchEnd,   false); }catch(_e4){}
+    try{ window.removeEventListener('scroll',     c.onScroll,     false); }catch(_e5){}
+  }
+  /* Restore visibility before tearing down so a re-entry to thread is clean. */
+  if(c.hidden){
+    if(c.hdr) c.hdr.style.display=c.savedHdrDisp||'';
+    if(c.ib)  c.ib.style.display =c.savedIbDisp ||'';
+  }
+  S.legacyChromeChrome=null;
+  S.legacyChromeTickFn=null;
+  /* Legacy field kept for any external readers; no interval is used anymore. */
+  S.legacyChromeTicker=null;
+  perf2('thread.chrome.controller','stop');
 }
 function escH(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtTime(ts){ var d=new Date(ts*1000),h=d.getHours(),m=d.getMinutes(),ap=h>=12?'PM':'AM'; h=h%12||12; return h+':'+(m<10?'0':'')+m+' '+ap; }
@@ -566,17 +1040,34 @@ function refreshLegacyScrollBox(box, topInset, bottomInset){
   var bottom=bottomInset||0;
   var height=viewport-top-bottom;
   if(height<44) height=44;
+  var prevTop=box.scrollTop||0;
+  var sameLayout=(box.__cgLegacyTop===top && box.__cgLegacyBottom===bottom && box.__cgLegacyHeight===height);
+  if(sameLayout){
+    return;
+  }
   box.style.top=top+'px';
   box.style.bottom='auto';
   box.style.height=height+'px';
   box.style.minHeight='0';
-  box.style.overflowY='hidden';
-  box.offsetHeight;
-  box.style.overflowY='scroll';
+  box.style.overflowY=(box.id==='thread-body')?'scroll':'auto';
+  box.style.overflowX='hidden';
+  box.style.webkitOverflowScrolling=(box.id==='thread-body')?'auto':'touch';
+  box.__cgLegacyTop=top;
+  box.__cgLegacyBottom=bottom;
+  box.__cgLegacyHeight=height;
+  try{box.scrollTop=prevTop;}catch(e){}
+}
+function forceLegacyThreadScrollLayout(){
+  // On iPhone 2G/3G (iOS<=4) WebKit cannot do position:fixed nor inner
+  // overflow:scroll reliably. The thread view is now driven by document-flow
+  // via applyLegacyThreadDocFlow(true), so this function intentionally no-ops.
+  return;
 }
 function queueLegacyScrollRefresh(activeId){
   if(window.__cgNativeLegacyScroll)return;
   if(legacyIOSMajor()>4)return;
+  // C2: thread runs in doc-flow with its own ticker — no refresh path.
+  if(activeId==='thread-screen') return;
   function run(){
     var id=activeId;
     if(!id){
@@ -586,22 +1077,27 @@ function queueLegacyScrollRefresh(activeId){
         if(el && (' '+el.className+' ').indexOf(' active ')>=0){id=ALL_SCREENS[i];break;}
       }
     }
+    if(id==='thread-screen') return;
+    /* convos-screen runs in doc-flow on iOS<=4 (see applyLegacyConvosDocFlow). */
+    if(id==='convos-screen') return;
     if(id==='auth-screen') refreshLegacyScrollBox(document.getElementById('auth-screen').getElementsByTagName('div')[1],0,0);
-    else if(id==='convos-screen') refreshLegacyScrollBox('convos-body',44,0);
     else if(id==='users-screen') refreshLegacyScrollBox('users-body',92,0);
-    else if(id==='thread-screen') refreshLegacyScrollBox('thread-body',44,50);
     else if(id==='friends-screen') refreshLegacyScrollBox('friends-body',44,0);
     else if(id==='admin-screen') refreshLegacyScrollBox('admin-body',44,0);
-    else if(id==='profile-screen') refreshLegacyScrollBox(document.getElementById('profile-screen').getElementsByTagName('div')[2],44,0);
-    else if(id==='changepw-screen') refreshLegacyScrollBox(document.getElementById('changepw-screen').getElementsByTagName('div')[1],44,0);
-    else if(id==='user-profile-screen') refreshLegacyScrollBox(document.getElementById('user-profile-screen').getElementsByTagName('div')[1],44,0);
+    else if(id==='profile-screen') refreshLegacyScrollBox(document.querySelector?document.querySelector('#profile-screen .sb'):document.getElementById('profile-screen').getElementsByTagName('div')[2],44,0);
+    else if(id==='changepw-screen') refreshLegacyScrollBox(document.querySelector?document.querySelector('#changepw-screen .sb'):document.getElementById('changepw-screen').getElementsByTagName('div')[1],44,0);
+    else if(id==='user-profile-screen') refreshLegacyScrollBox(document.querySelector?document.querySelector('#user-profile-screen .sb'):document.getElementById('user-profile-screen').getElementsByTagName('div')[1],44,0);
+    chatTrace('legacy-refresh','id='+(id||'')+' y='+(window.pageYOffset||0));
   }
+  // C2: single deferred run (was 2 timers per call — wasteful on iPhone 2G).
   setTimeout(run,0);
-  setTimeout(run,120);
 }
 function mkAv(b64, name, sz) {
   sz = sz||42;
-  if(legacyIOSMajor()<=4 && b64 && b64.length>600000) b64='';
+  // C5: drop large base64 avatars on iOS<=4 to keep DOM size + memory low.
+  // 8KB inline image is plenty for a 36–42px avatar; anything larger costs more
+  // than the iPhone 2G can spare.
+  if(legacyIOSMajor()<=4 && b64 && b64.length>8000) b64='';
   if (b64) return '<img src="'+escH(b64)+'" style="width:'+sz+'px;height:'+sz+'px;border-radius:'+(sz/2)+'px;display:block;">';
   return escH((name||'?').charAt(0).toUpperCase());
 }
@@ -615,6 +1111,7 @@ function setMode(m){
   document.getElementById('tab-login').className='auth-tab'+(m==='login'?' on':'');
   document.getElementById('tab-register').className='auth-tab'+(m==='register'?' on':'');
   document.getElementById('f-confirm-row').style.display=m==='register'?'block':'none';
+  var er=document.getElementById('f-email-row');if(er)er.style.display=m==='register'?'block':'none';
   document.getElementById('auth-btn').value=m==='login'?'Sign In':'Create Account';
   document.getElementById('auth-err').style.display='none';
 }
@@ -626,12 +1123,60 @@ function doAuth(){
   document.getElementById('auth-err').style.display='none';
   if(!u||!p){showErr('Please fill in all fields.');return;}
   if(authMode==='register'&&p!==document.getElementById('f-confirm').value){showErr('Passwords do not match.');return;}
+  var body={username:u,password:p};
+  if(authMode==='register'){
+    var emEl=document.getElementById('f-email');
+    var em=emEl?(emEl.value||'').replace(/^\s+|\s+$/g,''):'';
+    if(em){
+      if(em.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){showErr('Please enter a valid email or leave it blank.');return;}
+      body.email=em;
+    }
+  }
   var btn=document.getElementById('auth-btn');
   btn.disabled=true;btn.value='Please wait\u2026';
-  req('POST','/api/'+(authMode==='login'?'login':'register'),{username:u,password:p},function(d,err){
+  req('POST','/api/'+(authMode==='login'?'login':'register'),body,function(d,err){
     btn.disabled=false;btn.value=authMode==='login'?'Sign In':'Create Account';
     if(err||!d||!d.ok){showErr((d&&d.error)||err||'Error');return;}
     afterLogin(d);
+  });
+}
+
+/* Forgot password 2-step modal */
+function openForgotModal(){
+  document.getElementById('forgot-step1').style.display='block';
+  document.getElementById('forgot-step2').style.display='none';
+  document.getElementById('fg-ident').value='';
+  document.getElementById('fg-code').value='';
+  document.getElementById('fg-newpass').value='';
+  var m=document.getElementById('forgot-msg');m.innerHTML='';m.style.display='none';
+  show('forgot-screen');
+}
+function closeForgotModal(){show('auth-screen');}
+function _forgotMsg(t,isErr){
+  var m=document.getElementById('forgot-msg');
+  m.innerHTML=escH(t);m.style.color=isErr?'#c00':'#0a7a0a';m.style.display='block';
+}
+function forgotSendCode(){
+  var v=(document.getElementById('fg-ident').value||'').replace(/^\s+|\s+$/g,'');
+  if(!v){_forgotMsg('Please enter your username or email.',true);return;}
+  _forgotMsg('Sending\u2026',false);
+  req('POST','/api/auth/forgot',{username:v,email:v},function(d){
+    document.getElementById('forgot-step2').style.display='block';
+    _forgotMsg('If an account with that name/email exists, a 6-digit code has been emailed. Enter it below.',false);
+  });
+}
+function forgotReset(){
+  var ident=(document.getElementById('fg-ident').value||'').replace(/^\s+|\s+$/g,'');
+  var code =(document.getElementById('fg-code').value||'').replace(/^\s+|\s+$/g,'');
+  var pw   = document.getElementById('fg-newpass').value;
+  if(!ident||!/^\d{6}$/.test(code)||!pw||pw.length<8){_forgotMsg('Enter the 6-digit code and a new password (8+ chars).',true);return;}
+  _forgotMsg('Resetting\u2026',false);
+  var body={code:code,new_password:pw};
+  if(ident.indexOf('@')>=0)body.email=ident; else body.username=ident;
+  req('POST','/api/auth/reset',body,function(d,err){
+    if(err||!d||!d.ok){_forgotMsg((d&&d.error)||err||'Reset failed.',true);return;}
+    _forgotMsg('Password reset! You can now sign in.',false);
+    setTimeout(function(){closeForgotModal();},1200);
   });
 }
 function updateChatPill(){/* pill removed — account page handles it */}
@@ -654,6 +1199,7 @@ function refreshNativeBadgeFromServer(){
 function afterLogin(d){
   cgLog('AUTH','success uid='+(d.user_id||0)+' uname='+(d.username||''));
   S.token=d.token;S.userId=d.user_id;S.username=d.username;S.isAdmin=!!(d.is_admin);
+  S.emailVerified=!!(d.email_verified);
   store.set('cg_t',d.token);store.set('cg_u',String(d.user_id));
   store.set('cg_n',d.username);store.set('cg_a',S.isAdmin?'1':'0');
   store.set('hm_t',d.token);store.set('hm_u',String(d.user_id));
@@ -667,6 +1213,7 @@ function afterLogin(d){
     }
     cgLog('AUTH','verify success uid='+(d2.id||S.userId||0));
     S.userId=d2.id||S.userId;S.username=d2.username;S.isAdmin=!!d2.is_admin;
+    S.emailVerified=!!d2.email_verified;
     S.notifyDm=(d2.notify_dm!==false);
     S.notifyFriendPosts=(d2.notify_friend_posts!==false);
     S.notifyLikes=(d2.notify_likes!==false);
@@ -679,6 +1226,7 @@ function afterLogin(d){
     updateChatPill();
     goConvos();
     openUserProfileFromHash();
+    try{ cgVoIPStartEventPoll(); }catch(_e){}
   });
 }
 function doLogout(){
@@ -699,6 +1247,15 @@ function goProfile(){
     if(!d||!d.ok)return;
     document.getElementById('profile-username-display').innerHTML=escH(d.username);
     document.getElementById('profile-bio-input').value=d.bio||'';
+    var emI=document.getElementById('profile-email-input');
+    if(emI)emI.value=d.email||'';
+    var emS=document.getElementById('profile-email-status');
+    if(emS)emS.innerHTML=d.email?(d.email_verified?'Verified \u2713':'Not verified \u2014 used for password reset.'):'Add an email so you can recover your account.';
+    if(emS)emS.style.color=d.email_verified?'#0a7':'#888';
+    var evR=document.getElementById('profile-email-verify-row');
+    if(evR)evR.style.display=(d.email&&!d.email_verified)?'block':'none';
+    var evI=document.getElementById('profile-email-verify-input-row');if(evI)evI.style.display='none';
+    var evM=document.getElementById('profile-email-verify-msg');if(evM){evM.innerHTML='';evM.style.color='#888';}
     S.notifyDm=(d.notify_dm!==false);
     S.notifyFriendPosts=(d.notify_friend_posts!==false);
     S.notifyLikes=(d.notify_likes!==false);
@@ -743,12 +1300,57 @@ function saveProfile(){
   cgLog('PROFILE','save start');
   var bio=document.getElementById('profile-bio-input').value;
   var av=document.getElementById('profile-av-display').getAttribute('data-b64')||'';
+  var emI=document.getElementById('profile-email-input');
+  var em=emI?(emI.value||'').replace(/^\s+|\s+$/g,'').toLowerCase():'';
+  if(em&&(em.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em))){
+    var emS=document.getElementById('profile-email-status');
+    if(emS){emS.innerHTML='Please enter a valid email or leave it blank.';emS.style.color='#c00';}
+    return;
+  }
   var btn=document.getElementById('profile-save-btn');
   btn.innerHTML='Saving\u2026';
-  req('PUT','/api/me',{bio:bio,avatar_b64:av},function(d,err){
+  var body={bio:bio,avatar_b64:av};
+  if(emI)body.email=em;
+  req('PUT','/api/me',body,function(d,err){
     btn.innerHTML=(!err&&d&&d.ok)?'Saved!':'Save';
     if(!err&&d&&d.ok)cgLog('PROFILE','save success');
     if(!err&&d&&d.ok&&av){store.set('cg_av',av);store.set('hm_av',av);updateChatPill();}
+    var emS=document.getElementById('profile-email-status');
+    if(emS&&!err&&d&&d.ok){
+      emS.innerHTML=em?'Not verified \u2014 check your inbox for a code.':'Add an email so you can recover your account.';
+      emS.style.color='#888';
+    }
+    var evR=document.getElementById('profile-email-verify-row');
+    if(evR&&!err&&d&&d.ok)evR.style.display=em?'block':'none';
+    var evI=document.getElementById('profile-email-verify-input-row');
+    if(evI&&!err&&d&&d.ok)evI.style.display=em?'block':'none';
+    var evM=document.getElementById('profile-email-verify-msg');
+    if(evM&&!err&&d&&d.ok&&em){evM.innerHTML='Code sent. Enter it above to verify.';evM.style.color='#888';}
+  });
+}
+function sendEmailVerifyCode(){
+  var btn=document.getElementById('profile-email-send-btn');
+  var msg=document.getElementById('profile-email-verify-msg');
+  if(btn)btn.innerHTML='Sending\u2026';
+  req('POST','/api/email/verify-send',{},function(d,err){
+    if(btn)btn.innerHTML='Resend code';
+    if(err||!d||!d.ok){if(msg){msg.innerHTML=(d&&d.error)||'Could not send code. Try again later.';msg.style.color='#c00';}return;}
+    if(d.already_verified){if(msg){msg.innerHTML='Already verified.';msg.style.color='#0a7';}return;}
+    var evI=document.getElementById('profile-email-verify-input-row');if(evI)evI.style.display='block';
+    if(msg){msg.innerHTML='Code sent. Check your inbox.';msg.style.color='#888';}
+  });
+}
+function confirmEmailVerifyCode(){
+  var ci=document.getElementById('profile-email-verify-code');
+  var msg=document.getElementById('profile-email-verify-msg');
+  var code=ci?(ci.value||'').replace(/^\s+|\s+$/g,''):'';
+  if(!/^\d{6}$/.test(code)){if(msg){msg.innerHTML='Enter the 6-digit code from your email.';msg.style.color='#c00';}return;}
+  req('POST','/api/email/verify-confirm',{code:code},function(d,err){
+    if(err||!d||!d.ok){if(msg){msg.innerHTML=(d&&d.error)||'Invalid or expired code.';msg.style.color='#c00';}return;}
+    if(msg){msg.innerHTML='Verified \u2713';msg.style.color='#0a7';}
+    var evR=document.getElementById('profile-email-verify-row');if(evR)evR.style.display='none';
+    var emS=document.getElementById('profile-email-status');
+    if(emS){emS.innerHTML='Verified \u2713';emS.style.color='#0a7';}
   });
 }
 function saveNotificationPrefs(){
@@ -824,15 +1426,9 @@ function legacyBubbleStyleAttr(mine){
 }
 function applyLegacyComposerTheme(){
   if(legacyIOSMajor()>4)return;
-  var style=document.getElementById('__cg-legacy-composer-style');
-  if(!style){
-    style=document.createElement('style');
-    style.id='__cg-legacy-composer-style';
-    (document.head||document.documentElement).appendChild(style);
-  }
-  style.innerHTML='#send-btn{background:#8abdec !important;background-image:none !important;border:1px solid #5a92c9 !important;color:#fff !important;opacity:1 !important;-webkit-box-shadow:0 1px 2px rgba(63,112,211,0.18) !important;box-shadow:0 1px 2px rgba(63,112,211,0.18) !important;}';
   var btn=document.getElementById('send-btn');
-  if(btn){
+  if(!btn)return;
+  try{
     btn.style.background='#8abdec';
     btn.style.backgroundColor='#8abdec';
     btn.style.backgroundImage='none';
@@ -841,19 +1437,24 @@ function applyLegacyComposerTheme(){
     btn.style.borderColor='#5a92c9';
     btn.style.color='#fff';
     btn.style.opacity='1';
+    btn.style.webkitAppearance='none';
+    btn.style.appearance='none';
     btn.style.webkitBoxShadow='0 1px 2px rgba(63,112,211,0.18)';
     btn.style.boxShadow='0 1px 2px rgba(63,112,211,0.18)';
-  }
+  }catch(e){}
 }
 
 /* CONVERSATIONS */
 function goConvos(){
+  var tConvos=cgPerfStart();
   cgLog('NAV','goConvos');
+  chatTrace('goConvos','token='+(S.token?1:0));
   var userSearch=document.getElementById('user-search');
   if(userSearch){
     try{ userSearch.blur(); }catch(e){}
     userSearch.value='';
   }
+  S.threadLegacyLock=false;
   stopPoll();show('convos-screen');
   if(!S.token){
     document.getElementById('convos-body').innerHTML='<div class="empty"><p>Welcome to Chronograph. Sign in to load your conversations.</p></div>';
@@ -861,13 +1462,15 @@ function goConvos(){
   }
   document.getElementById('convos-body').innerHTML='<div class="loading">Loading\u2026</div>';
   req('GET','/api/conversations',null,function(d,err){
+    cgPerfEnd('chat.convos.request',tConvos,'ok='+(d&&d.ok?1:0));
     if(err||!d||!d.ok||!d.conversations||!d.conversations.length){
       document.getElementById('convos-body').innerHTML='<div class="empty"><p>No conversations yet.<br>Tap <b>+ New</b> to start one.</p></div>';return;
     }
+    var tRender=cgPerfStart();
     var html='';
     try{
       var convs=d.conversations||[];
-      if(legacyIOSMajor()<=4 && convs.length>30) convs=convs.slice(0,30);
+      if(legacyIOSMajor()<=4 && convs.length>12) convs=convs.slice(0,12);
       for(var i=0;i<convs.length;i++){
         var c=convs[i];
         var preview=c.last_text?escH(c.last_text.length>44?c.last_text.substring(0,44)+'\u2026':c.last_text):'';
@@ -878,6 +1481,7 @@ function goConvos(){
           '<div class="cm">'+badge+'</div></div>';
       }
       document.getElementById('convos-body').innerHTML=html;
+      cgPerfEnd('chat.convos.render',tRender,'count='+(convs?convs.length:0));
       syncNativeBadgeFromConversations(convs);
       cgLog('CONVOS','loaded count='+convs.length);
       queueLegacyScrollRefresh('convos-screen');
@@ -905,6 +1509,7 @@ function goUsers(){
 }
 function loadUsers(q){
   cgLog('USERS','load q='+(q||''));
+  chatTrace('loadUsers','q='+(q||''));
   document.getElementById('users-body').innerHTML='<div class="loading">Loading\u2026</div>';
   req('GET','/api/users'+(q?'?q='+encodeURIComponent(q):''),null,function(d,err){
     if(err||!d||!d.ok||!d.users||!d.users.length){
@@ -954,6 +1559,7 @@ function loadUsers(q){
 /* USER PROFILE */
 function openUserProfile(uid,uname,backScreen){
   cgLog('USER_PROFILE','open uid='+uid+' uname='+(uname||''));
+  chatTrace('openUserProfile','uid='+uid+' uname='+(uname||'')+' from='+(backScreen||''));
   S.upUserId=uid;S.upFriendStatus=null;S.upBlocked=false;S.upFromScreen=backScreen||'users-screen';
   document.getElementById('up-title').innerHTML=escH(uname);
   document.getElementById('up-username').innerHTML=escH(uname);
@@ -961,6 +1567,7 @@ function openUserProfile(uid,uname,backScreen){
   var av=document.getElementById('up-av');
   av.innerHTML=escH((uname||'?').charAt(0).toUpperCase());
   show('user-profile-screen');
+  chatTrace('openUserProfile','screen-shown');
   updateFriendBtn();
   updateBlockBtn();
   bindLegacyUserProfileActions();
@@ -1049,48 +1656,129 @@ function openThreadFromProfile(){openThread(S.upUserId,document.getElementById('
 
 /* THREAD */
 function openThread(uid,uname,avb64){
-  cgLog('THREAD','open uid='+uid+' uname='+(uname||''));
-  stopPoll();S.threadUid=uid;S.threadUsername=uname;S.lastMsgId=0;
-  document.getElementById('thread-title').innerHTML=escH(uname);
-  document.getElementById('thread-body').innerHTML='<div class="loading">Loading\u2026</div>';
-  document.getElementById('msg-input').value='';
-  show('thread-screen');
-  enforceThreadComposerPin();
+  var tOpen=cgPerfStart();
+  S.perfOpenThreadT0=perf2Now();
+  perf2('openThread.start','uid='+uid+' legacy='+legacyIOSMajor());
+  var openDone=0;
+  uid=parseInt(uid,10)||0;
+  chatTrace('openThread-enter','uid='+uid+' uname='+(uname||''));
+  if(!uid){
+    chatTrace('openThread-invalid','uid=0');
+    return;
+  }
+  try{
+    cgLog('THREAD','open uid='+uid+' uname='+(uname||''));
+    threadDbg('openThread','uid='+uid+' uname='+(uname||''));
+    stopPoll();S.threadUid=uid;S.threadUsername=uname;S.lastMsgId=0;
+    S.threadLegacyLock=true;
+    document.getElementById('thread-title').innerHTML=escH(uname);
+    document.getElementById('thread-body').innerHTML='<div class="loading">Loading\u2026</div>';
+    document.getElementById('msg-input').value='';
+    var cb=document.getElementById('thread-call-btn');
+    if(cb)cb.style.display='none';
+    show('thread-screen');
+    forceLegacyThreadScrollLayout();
+    applyLegacyComposerTheme();
+    var sbtn=document.getElementById('send-btn');
+    if(sbtn){
+      sbtn.disabled=false;
+      sbtn.style.background='#8abdec';
+      sbtn.style.backgroundColor='#8abdec';
+      sbtn.style.backgroundImage='none';
+      sbtn.style.border='1px solid #5a92c9';
+      sbtn.style.color='#fff';
+      sbtn.style.opacity='1';
+    }
+    enforceThreadComposerPin();
+    threadLayoutSnapshot('openThread-after-pin');
+    chatTrace('openThread','uid='+uid+' shown=1');
+    perf2('openThread.shown','dt='+perf2Dt(S.perfOpenThreadT0)+'ms');
+  }catch(eopen){
+    chatTrace('openThread-ex',''+eopen);
+  }
+  S.perfOpenThreadApiT0=perf2Now();
   req('POST','/api/messages/'+uid+'/read',null,function(){ refreshNativeBadgeFromServer(); });
   req('GET','/api/messages?with='+uid+'&after_id=0',null,function(d){
+    openDone=1;
+    perf2('openThread.api','dt='+perf2Dt(S.perfOpenThreadApiT0)+'ms msgs='+((d&&d.messages&&d.messages.length)||0));
+    cgPerfEnd('chat.thread.request',tOpen,'uid='+uid+' msgs='+((d&&d.messages&&d.messages.length)||0));
+    var tDom=perf2Now();
     document.getElementById('thread-body').innerHTML='';
     if(d&&d.messages&&d.messages.length){
       renderMsgs(d.messages);
       S.lastMsgId=d.messages[d.messages.length-1].id;
       scrollBot();
-      setTimeout(scrollBot,0);
-      setTimeout(scrollBot,120);
-      setTimeout(scrollBot,320);
+      if(legacyIOSMajor()<=4){
+        setTimeout(scrollBot,120);
+        setTimeout(scrollBot,360);
+        setTimeout(scrollBot,900);
+      } else {
+        setTimeout(scrollBot,80);
+      }
     }
+    var tb=document.getElementById('thread-body');
+    var nodes=tb&&tb.getElementsByTagName?tb.getElementsByTagName('div').length:0;
+    perf2('openThread.dom','dt='+perf2Dt(tDom)+'ms nodes='+nodes+' total='+perf2Dt(S.perfOpenThreadT0)+'ms');
     startPoll();startReceiptPoll();
     refreshNativeBadgeFromServer();
     queueLegacyScrollRefresh('thread-screen');
   });
+  setTimeout(function(){
+    if(openDone) return;
+    chatTrace('openThread-timeout','uid='+uid);
+    perf2('openThread.timeout','uid='+uid);
+    var body=document.getElementById('thread-body');
+    if(body && (body.innerHTML||'').indexOf('loading')>=0){
+      body.innerHTML='<div class="empty"><p>Could not load messages.</p></div>';
+    }
+    var sb=document.getElementById('send-btn');
+    if(sb){sb.disabled=false;applyLegacyComposerTheme();}
+    queueLegacyScrollRefresh('thread-screen');
+  },12000);
 }
 function renderMsgs(msgs){
+  var tRender=cgPerfStart();
+  var tR2=perf2Now();
   cgLog('THREAD','renderMsgs count='+((msgs&&msgs.length)||0));
   var body=document.getElementById('thread-body');
+  var repinAfterRender=!usingNativeLegacyDocScroll();
   for(var i=0;i<msgs.length;i++){
     var m=msgs[i],mine=m.from_user_id===S.userId;
     var div=document.createElement('div');
+    var isCallStatus=!!(m.text&&m.text.indexOf('[Call] ')===0);
+    if(isCallStatus){
+      div.className='msg-row msg-system';
+      div.setAttribute('data-mid',m.id);
+      div.innerHTML='<div class="msg-status">'+escH(String(m.text).substring(7))+' · '+fmtTime(m.created_at)+'</div>';
+      body.appendChild(div);
+      continue;
+    }
     div.className='msg-row '+(mine?'msg-out':'msg-in');
     div.setAttribute('data-mid',m.id);
     var read='';
     if(mine&&m.read_at)read='<span class="msg-read"> \u2713\u2713</span>';
     else if(mine)read='<span class="msg-sent" id="r'+m.id+'"> \u2713</span>';
     var delBtn=mine?'<button class="msg-del-btn" onclick="deleteMsg('+m.id+',this)" title="Delete">Delete</button>':'';
-    div.innerHTML='<div class="msg-bubble"'+legacyBubbleStyleAttr(mine)+'>'+escH(m.text)+'</div><div class="msg-meta">'+fmtTime(m.created_at)+read+delBtn+'</div>';
+    var mediaHtml='';
+    if(m.media_url&&(m.media_kind==='image'||/\.(jpe?g|png|gif|webp)$/i.test(m.media_url))){
+      var thumb=m.media_thumb_url||m.media_url;
+      var fullSrc=cgWithDmToken(m.media_url);
+      var thumbSrc=cgWithDmToken(thumb);
+      mediaHtml='<div class="msg-media" style="margin-bottom:4px;"><a href="'+escH(fullSrc)+'" target="_blank"><img src="'+escH(thumbSrc)+'" alt="image" style="max-width:200px;max-height:200px;border-radius:8px;display:block;"></a></div>';
+    }
+    var textHtml=m.text?escH(m.text):'';
+    var bubbleInner=mediaHtml+textHtml;
+    if(!bubbleInner)bubbleInner='&nbsp;';
+    div.innerHTML='<div class="msg-bubble"'+legacyBubbleStyleAttr(mine)+'>'+bubbleInner+'</div><div class="msg-meta">'+fmtTime(m.created_at)+read+delBtn+'</div>';
     /* long-press to reveal delete */
     if(mine)addLongPress(div);
     body.appendChild(div);
   }
   forceVisibleBubbleStyles();
-  enforceThreadComposerPin();
+  if(repinAfterRender) enforceThreadComposerPin();
+  cgPerfEnd('chat.thread.render',tRender,'count='+((msgs&&msgs.length)||0));
+  var totalNodes=body&&body.getElementsByTagName?body.getElementsByTagName('div').length:0;
+  perf2('thread.render','dt='+perf2Dt(tR2)+'ms add='+((msgs&&msgs.length)||0)+' nodes='+totalNodes);
   queueLegacyScrollRefresh('thread-screen');
 }
 function addLongPress(row){
@@ -1120,19 +1808,21 @@ function enforceThreadComposerPin(){
   if(!usingNativeLegacyDocScroll()) return;
   var hdr=document.querySelector?document.querySelector('#thread-screen .header'):null;
   if(hdr){
-    hdr.style.position='absolute';
+    hdr.style.position='fixed';
+    hdr.style.top='0';
     hdr.style.left='0';
     hdr.style.right='0';
     hdr.style.zIndex='100';
   }
   var ib=document.querySelector?document.querySelector('#thread-screen .ibar'):null;
   if(ib){
-    ib.style.position='absolute';
+    ib.style.position='fixed';
+    ib.style.top='auto';
     ib.style.left='0';
     ib.style.right='0';
-    ib.style.bottom='6px';
+    ib.style.bottom='0';
     ib.style.height='56px';
-    ib.style.paddingBottom='6px';
+    ib.style.paddingBottom='0';
     ib.style.zIndex='101';
   }
   var body=document.getElementById('thread-body');
@@ -1145,15 +1835,23 @@ function enforceThreadComposerPin(){
     body.style.overflowY='visible';
   }
   updateLegacyThreadChromePosition();
+  threadLayoutSnapshot('enforceThreadComposerPin');
 }
 function updateLegacyThreadChromePosition(){
   if(!usingNativeLegacyDocScroll()) return;
+  if(legacyIOSMajor()<=4){
+    chatTrace('thread-legacy-pos-fixed','y='+(window.pageYOffset||0));
+    threadLayoutSnapshot('legacyChrome-fixed');
+    return;
+  }
   var y=window.pageYOffset||document.documentElement.scrollTop||document.body.scrollTop||0;
   var vh=window.innerHeight||document.documentElement.clientHeight||document.body.clientHeight||431;
   var hdr=document.querySelector?document.querySelector('#thread-screen .header'):null;
   var ib=document.querySelector?document.querySelector('#thread-screen .ibar'):null;
   if(hdr) hdr.style.top=y+'px';
   if(ib) ib.style.top=(y+vh-62)+'px';
+  chatTrace('thread-legacy-pos','y='+y+' vh='+vh+' ibTop='+(ib?(ib.style.top||''):'na'));
+  threadLayoutSnapshot('legacyChrome-update');
 }
 function updateThreadComposerPosition(){
   if(usingNativeLegacyDocScroll()) return;
@@ -1164,6 +1862,30 @@ function updateThreadComposerPosition(){
   if(!ib || !sb) return;
   var height=ib.offsetHeight||56;
 
+  if(legacyIOSMajor()<=4){
+    // Document-flow path is owned by applyLegacyThreadDocFlow().
+    // Just keep the send button styled and bail; do NOT write position/top/bottom here.
+    applyLegacyComposerTheme();
+    chatTrace('thread-pos-legacy4','docflow-noop');
+    return;
+  }
+
+  // iOS 5-10 UIWebView reports keyboard geometry inconsistently.
+  // Keep a deterministic pinned layout to avoid jump/teleport behavior.
+  if(legacyIOSMajor()<=10){
+    ib.style.position='fixed';
+    ib.style.left='0';
+    ib.style.right='0';
+    ib.style.top='auto';
+    ib.style.bottom='0';
+    ib.style.zIndex='101';
+    sb.style.top='44px';
+    sb.style.bottom=height+'px';
+    chatTrace('thread-pos-legacy10','h='+height+' sbBottom='+(sb.style.bottom||''));
+    threadLayoutSnapshot('updateThreadComposer-legacy10');
+    return;
+  }
+
   // UIWebView / legacy engines (e.g. iOS 6) do not provide reliable keyboard viewport
   // metrics. Keep composer pinned to bottom to prevent mid-screen jumps and overlap.
   if(!window.visualViewport){
@@ -1171,6 +1893,8 @@ function updateThreadComposerPosition(){
     ib.style.top='auto';
     ib.style.bottom='0';
     sb.style.bottom=height+'px';
+    chatTrace('thread-pos-noVV','h='+height+' sbBottom='+(sb.style.bottom||''));
+    threadLayoutSnapshot('updateThreadComposer-noVV');
     return;
   }
 
@@ -1182,6 +1906,8 @@ function updateThreadComposerPosition(){
   ib.style.top=top+'px';
   ib.style.bottom='auto';
   sb.style.bottom=(document.getElementById('thread-screen').offsetHeight-top)+'px';
+  chatTrace('thread-pos-vv','top='+top+' sbBottom='+(sb.style.bottom||''));
+  threadLayoutSnapshot('updateThreadComposer-vv');
 }
 function syncThreadInputFocus(){
   var inp=document.getElementById('msg-input');
@@ -1198,16 +1924,23 @@ function syncThreadInputFocus(){
 }
 function scrollBot(){
   var b=document.getElementById('thread-body');
-  if(usingNativeLegacyDocScroll()){
-    enforceThreadComposerPin();
+  // iOS<=4 thread runs in document-flow. Always use the page scroll there.
+  if(usingNativeLegacyDocScroll() || legacyIOSMajor()<=4){
+    if(legacyIOSMajor()>4) enforceThreadComposerPin();
     var de=document.documentElement, db=document.body;
-    var sh=Math.max(de?de.scrollHeight:0, db?db.scrollHeight:0);
+    var tbExtent=0;
+    if(b){
+      tbExtent=(b.offsetTop||0)+(b.scrollHeight||0)+68;
+    }
+    var sh=Math.max(de?de.scrollHeight:0, db?db.scrollHeight:0, tbExtent);
     var wh=window.innerHeight || (de?de.clientHeight:0) || (db?db.clientHeight:0) || 0;
     var max=sh-wh;
     if(max<0)max=0;
     if(typeof window.scrollTo==='function')window.scrollTo(0,max);
     if(de)de.scrollTop=max;
     if(db)db.scrollTop=max;
+    if(legacyIOSMajor()<=4 && S.legacyChromeTickFn){ try{ S.legacyChromeTickFn(); }catch(_eC){} }
+    perf2('thread.scroll.maxY','sh='+sh+' wh='+wh+' max='+max);
     return;
   }
   if(b)b.scrollTop=b.scrollHeight+9999;
@@ -1218,16 +1951,29 @@ function sendMsg(){
   if(!text||!S.threadUid)return;
   cgLog('THREAD','send start to='+S.threadUid+' len='+text.length);
   input.value='';
+  _sendMsgWithBody({text:text});
+}
+
+function _sendMsgWithBody(extra){
+  if(!S.threadUid)return;
   var clientId='cg-'+S.userId+'-'+(new Date().getTime())+'-'+Math.floor(Math.random()*10000);
   var body=document.getElementById('thread-body');
   var div=document.createElement('div');
   div.className='msg-row msg-out';
   div.setAttribute('data-client-id',clientId);
-  div.innerHTML='<div class="msg-bubble"'+legacyBubbleStyleAttr(true)+'>'+escH(text)+'</div><div class="msg-meta" style="color:#444;">Sending\u2026</div>';
+  var preview='';
+  if(extra.image_data){
+    preview='<div class="msg-media" style="margin-bottom:4px;"><img src="'+escH(extra.image_data)+'" style="max-width:200px;max-height:200px;border-radius:8px;display:block;opacity:0.6;"></div>';
+  }
+  var txtPart=extra.text?escH(extra.text):'';
+  div.innerHTML='<div class="msg-bubble"'+legacyBubbleStyleAttr(true)+'>'+preview+txtPart+'</div><div class="msg-meta" style="color:#444;">Sending\u2026</div>';
   body.appendChild(div);scrollBot();
   queueLegacyScrollRefresh('thread-screen');
   document.getElementById('send-btn').disabled=true;
-  req('POST','/api/messages',{to_user_id:S.threadUid,text:text,client_id:clientId},function(d,err){
+  var payload={to_user_id:S.threadUid,client_id:clientId};
+  if(extra.text)payload.text=extra.text;
+  if(extra.image_data)payload.image_data=extra.image_data;
+  req('POST','/api/messages',payload,function(d,err){
     document.getElementById('send-btn').disabled=false;
     var nodes=body.getElementsByTagName('div');
     for(var i=0;i<nodes.length;i++){
@@ -1236,13 +1982,21 @@ function sendMsg(){
           cgLog('THREAD','send success id='+(d.message.id||0));
           nodes[i].setAttribute('data-mid',d.message.id);
           nodes[i].removeAttribute('data-client-id');
-          nodes[i].innerHTML='<div class="msg-bubble"'+legacyBubbleStyleAttr(true)+'>'+escH(d.message.text)+'</div>'+
-            '<div class="msg-meta">'+fmtTime(d.message.created_at)+'<span class="msg-sent" id="r'+d.message.id+'"> \u2713</span></div>';
-          if(d.message.id>S.lastMsgId)S.lastMsgId=d.message.id;
+          var mm=d.message;
+          var mediaHtml='';
+          if(mm.media_url){
+            var thumb=mm.media_thumb_url||mm.media_url;
+            var fullSrc=cgWithDmToken(mm.media_url);
+            var thumbSrc=cgWithDmToken(thumb);
+            mediaHtml='<div class="msg-media" style="margin-bottom:4px;"><a href="'+escH(fullSrc)+'" target="_blank"><img src="'+escH(thumbSrc)+'" style="max-width:200px;max-height:200px;border-radius:8px;display:block;"></a></div>';
+          }
+          nodes[i].innerHTML='<div class="msg-bubble"'+legacyBubbleStyleAttr(true)+'>'+mediaHtml+escH(mm.text||'')+'</div>'+
+            '<div class="msg-meta">'+fmtTime(mm.created_at)+'<span class="msg-sent" id="r'+mm.id+'"> \u2713</span></div>';
+          if(mm.id>S.lastMsgId)S.lastMsgId=mm.id;
           forceVisibleBubbleStyles();
         } else {
           cgLog('THREAD','send failed');
-          nodes[i].innerHTML='<div class="msg-bubble" style="background:#5a2020;">'+escH(text)+'</div>'+
+          nodes[i].innerHTML='<div class="msg-bubble" style="background:#5a2020;">'+escH(extra.text||'[Photo]')+'</div>'+
             '<div class="msg-meta" style="color:#ff453a;">Failed to send</div>';
         }
         break;
@@ -1250,6 +2004,581 @@ function sendMsg(){
     }
     queueLegacyScrollRefresh('thread-screen');
   });
+}
+
+/* DM image picker (native bridge for iOS app, fallback to <input type=file>) */
+/* Append the session token to private DM upload URLs so the browser's <img> tag
+   (which cannot send custom headers) is authorized by the server. */
+function cgWithDmToken(url){
+  if(!url) return url;
+  if(url.indexOf('/uploads/dm/')<0) return url;
+  /* Legacy iOS cannot always fetch modern TLS media origins reliably; force
+     DM media to the same API origin used by XHR calls. */
+  if(legacyIOSMajor()<=4){
+    var idx=url.indexOf('/uploads/dm/');
+    if(idx>=0) url=API+url.substring(idx);
+  }
+  if(url.indexOf('t=')>=0) return url;
+  if(!S||!S.token) return url;
+  return url+(url.indexOf('?')>=0?'&':'?')+'t='+encodeURIComponent(S.token);
+}
+function pickDmImage(){
+  if(!S.threadUid)return;
+  cgLog('THREAD','pickDmImage start native='+(window.__cgNativeImagePicker?1:0));
+  if(window.__cgNativeImagePicker){
+    try{ window.location='cgpick://dm'; return; }catch(e){}
+  }
+  var inp=document.getElementById('dm-image-input');
+  if(!inp)return;
+  if(legacyIOSMajor()<=4){try{inp.focus();}catch(e2){}}
+  if(inp.click)inp.click();
+}
+(function(){
+  var inp=document.getElementById('dm-image-input');
+  if(!inp)return;
+  function onch(){
+    var f=inp.files&&inp.files[0];if(!f)return;
+    var r=new FileReader();
+    r.onload=function(e){ if(window.__cgNativeDmPicked) window.__cgNativeDmPicked(e.target.result); };
+    r.readAsDataURL(f);
+    try{inp.value='';}catch(_e){}
+  }
+  if(inp.addEventListener)inp.addEventListener('change',onch,false);
+  else if(inp.attachEvent)inp.attachEvent('onchange',onch);
+})();
+window.__cgNativeDmPicked=function(dataUrl){
+  if(!dataUrl||!S.threadUid)return;
+  cgLog('THREAD','dm picked len='+dataUrl.length);
+  _sendMsgWithBody({image_data:dataUrl});
+};
+
+/* ── VoIP voice calling ──────────────────────────────────────────────────────
+   Server-relayed audio (μ-law 8 kHz mono, ~200 ms batches). Two engines:
+     · WebAudio (modern WKWebView): captures via getUserMedia + ScriptProcessor.
+     · Native bridge (legacy UIWebView, no WebRTC/getUserMedia): JS hands
+       call_id+token+base to cgvoip:// and the native CGVoIPManager (AudioQueue)
+       does capture and playback. Native pushes state back via window.cgVoIPState.
+   Signaling: existing /api/calls/{invite,answer,hangup}; events arrive via
+   /api/calls/events long-poll which we run continuously while logged in. */
+var cgCall = {
+  id:0, peerUid:0, peerName:'', state:'idle', role:'',
+  audioCtx:null, micStream:null, micProc:null, micGain:null,
+  playCtx:null, playNextT:0, txSeq:0, rxSeq:0,
+  audioTimer:null, eventsAfterId:0, eventsRunning:false, ringInterval:null,
+  eventsCursorLoaded:false, dialTimer:null, ringAcked:false,
+  muted:false, statsTimer:null,
+  st:{tx:0,rx:0,drop:0,err:0,rtt:0,lastSeq:0,rxBytes:0,nq:0}
+};
+
+function cgVoIPClearDialTimer(){
+  if(cgCall.dialTimer){ clearTimeout(cgCall.dialTimer); cgCall.dialTimer=null; }
+}
+
+function cgVoIPStartDialTimeout(){
+  cgVoIPClearDialTimer();
+  cgCall.dialTimer = setTimeout(function(){
+    if(cgCall.role==='caller' && cgCall.id && !cgCall.ringAcked && cgCall.state!=='in-call'){
+      cgVoIPEndCall(true, 'no_answer');
+      alert('Call not answered.');
+    }
+  }, 12000);
+}
+
+function cgVoIPResetStats(){
+  cgCall.st={tx:0,rx:0,drop:0,err:0,rtt:0,lastSeq:0,rxBytes:0,nq:0};
+}
+
+function cgVoIPStatsLine(){
+  var q='-';
+  if(cgCall.playCtx){
+    var now=cgCall.playCtx.currentTime||0;
+    var ms=Math.floor((cgCall.playNextT-now)*1000);
+    if(ms<0) ms=0;
+    q=String(ms)+'ms';
+  } else if(cgCall.st.nq>0){
+    q=String(cgCall.st.nq)+' pkt';
+  }
+  var p='TX '+cgCall.st.tx+' / RX '+cgCall.st.rx+' / drop '+cgCall.st.drop;
+  if(cgCall.st.err>0) p+=' / err '+cgCall.st.err;
+  return 'Latency: '+(cgCall.st.rtt?String(cgCall.st.rtt)+' ms':'-')+' | Packets: '+p+' | Queue: '+q;
+}
+
+function cgVoIPUpdateStatsUI(){
+  var el=document.getElementById('cg-call-stats');
+  if(el) el.innerHTML=escH(cgVoIPStatsLine());
+}
+
+function cgVoIPStartStatsTimer(){
+  if(cgCall.statsTimer) return;
+  cgCall.statsTimer=setInterval(cgVoIPUpdateStatsUI,1000);
+  cgVoIPUpdateStatsUI();
+}
+
+function cgVoIPStopStatsTimer(){
+  if(cgCall.statsTimer){ clearInterval(cgCall.statsTimer); cgCall.statsTimer=null; }
+}
+
+function cgVoIPSetMuteUI(){
+  var b=document.getElementById('cg-mute-btn');
+  if(b) b.innerHTML = cgCall.muted ? 'Unmute mic' : 'Mute mic';
+}
+
+function cgVoIPToggleMute(){
+  cgCall.muted = !cgCall.muted;
+  if(window.__cgNativeVoIP){
+    try{ cgVoIPNativeSignal('mute', 'state='+(cgCall.muted?'on':'off')); }catch(_e){}
+  }
+  cgVoIPSetMuteUI();
+}
+
+function cgVoIPCursorKey(){
+  return 'cg_call_after_' + String(S.userId || 0);
+}
+function cgVoIPLoadEventCursor(){
+  if(cgCall.eventsCursorLoaded) return;
+  cgCall.eventsCursorLoaded = true;
+  try{
+    var raw = store.get(cgVoIPCursorKey()) || '0';
+    var v = parseInt(raw, 10) || 0;
+    if(v > cgCall.eventsAfterId) cgCall.eventsAfterId = v;
+  }catch(_e){}
+}
+function cgVoIPSaveEventCursor(){
+  try{ store.set(cgVoIPCursorKey(), String(cgCall.eventsAfterId || 0)); }catch(_e){}
+}
+
+function cgVoIPNativeSignal(host, query){
+  var url = 'cgvoip://' + host + (query ? ('?' + query) : '');
+  try{
+    var f = document.getElementById('cg-voip-bridge');
+    if(!f){ f=document.createElement('iframe'); f.id='cg-voip-bridge'; f.style.display='none'; document.body.appendChild(f); }
+    f.src = url;
+    return true;
+  }catch(_e){ return false; }
+}
+
+function cgVoIPSupported(){
+  if(window.__cgNativeVoIP) return true;
+  return !!(window.AudioContext || window.webkitAudioContext) &&
+         !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+}
+
+function cgVoIPSetCallUI(state, peerName){
+  cgCall.state = state;
+  var ic = document.getElementById('cg-incall-modal');
+  var rg = document.getElementById('cg-ring-modal');
+  if(state==='in-call'){
+    if(ic){ ic.className='modal-overlay active';
+      var t=document.getElementById('cg-incall-name'); if(t)t.innerHTML=escH(peerName||cgCall.peerName||'Connected');
+      var s=document.getElementById('cg-incall-status'); if(s)s.innerHTML='Connected';
+    }
+    if(rg) rg.className='modal-overlay';
+  } else if(state==='dialing-out'){
+    if(ic){ ic.className='modal-overlay active';
+      var td=document.getElementById('cg-incall-name'); if(td)td.innerHTML=escH(peerName||cgCall.peerName||'Calling…');
+      var sd=document.getElementById('cg-incall-status'); if(sd)sd.innerHTML='Dialing…';
+    }
+    if(rg) rg.className='modal-overlay';
+  } else if(state==='ringing-out'){
+    if(ic){ ic.className='modal-overlay active';
+      var t2=document.getElementById('cg-incall-name'); if(t2)t2.innerHTML=escH(peerName||cgCall.peerName||'Calling…');
+      var s2=document.getElementById('cg-incall-status'); if(s2)s2.innerHTML='Ringing…';
+    }
+    if(rg) rg.className='modal-overlay';
+  } else if(state==='ringing-in'){
+    if(rg){ rg.className='modal-overlay active';
+      var t3=document.getElementById('cg-ring-name'); if(t3)t3.innerHTML=escH(peerName||cgCall.peerName||'Caller');
+    }
+    if(ic) ic.className='modal-overlay';
+  } else {
+    if(ic) ic.className='modal-overlay';
+    if(rg) rg.className='modal-overlay';
+  }
+  if(state==='idle') cgVoIPStopStatsTimer(); else cgVoIPStartStatsTimer();
+  cgVoIPSetMuteUI();
+  cgVoIPUpdateStatsUI();
+}
+
+function cgVoIPStartEventPoll(){
+  if(cgCall.eventsRunning) return;
+  cgVoIPLoadEventCursor();
+  cgCall.eventsRunning = true;
+  function tick(){
+    if(!S.token){ cgCall.eventsRunning=false; return; }
+    req('GET','/api/calls/events?after_id='+cgCall.eventsAfterId, null, function(d){
+      try{
+        if(d && d.ok && d.events && d.events.length){
+          var i,e,p,hadCursor=(cgCall.eventsAfterId>0),nowTs=Math.floor((new Date()).getTime()/1000),age;
+          for(i=0;i<d.events.length;i++){
+            e=d.events[i];
+            if(e.id>cgCall.eventsAfterId) cgCall.eventsAfterId=e.id;
+            try{ p=e.payload?parseJSON(e.payload):{}; }catch(_pe){ p={}; }
+            age = (e.created_at ? (nowTs - e.created_at) : 0);
+            if(!hadCursor && age > 45) continue;
+            cgVoIPHandleEvent(e.kind, e.call_id, e.from_uid, p);
+          }
+          cgVoIPSaveEventCursor();
+        }
+      }catch(_pe2){}
+      setTimeout(tick, 250);
+    }, function(_err){ setTimeout(tick, 2000); });
+  }
+  tick();
+}
+
+function cgVoIPHandleEvent(kind, callId, fromUid, payload){
+  cgLog('VOIP','event '+kind+' call='+callId+' from='+fromUid);
+  if(kind==='invite'){
+    if(cgCall.state!=='idle'){
+      req('POST','/api/calls/hangup',{call_id:callId,reason:'busy'},function(){});
+      return;
+    }
+    cgCall.id = callId; cgCall.peerUid = fromUid;
+    cgCall.peerName = (payload && payload.from_name) || ('User '+fromUid);
+    cgCall.role = 'callee';
+    cgVoIPSetCallUI('ringing-in', cgCall.peerName);
+    cgVoIPStartRingTone();
+  } else if(kind==='answer'){
+    if(callId===cgCall.id && cgCall.role==='caller'){
+      cgVoIPClearDialTimer();
+      cgVoIPStopRingTone();
+      cgVoIPSetCallUI('in-call', cgCall.peerName);
+      cgVoIPStartAudio();
+    }
+  } else if(kind==='ringing'){
+    if(callId===cgCall.id && cgCall.role==='caller'){
+      cgCall.ringAcked = true;
+      cgVoIPSetCallUI('ringing-out', cgCall.peerName);
+      cgVoIPStartRingTone();
+    }
+  } else if(kind==='hangup'){
+    if(callId===cgCall.id){
+      cgVoIPEndCall(false, (payload && payload.reason) || 'ended');
+    }
+  }
+}
+
+function cgVoIPStartRingTone(){
+  if(window.__cgNativeVoIPRing){
+    cgVoIPNativeSignal('ring', 'state=start');
+    return;
+  }
+  if(cgCall.ringInterval) return;
+  function playBurst(freq, at){
+    try{
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if(!Ctx) return;
+      var c = new Ctx();
+      var o = c.createOscillator(), g = c.createGain();
+      o.type='sine'; o.frequency.value=freq;
+      g.gain.value=0.15;
+      o.connect(g); g.connect(c.destination);
+      o.start(c.currentTime + at); o.stop(c.currentTime + at + 0.24);
+      setTimeout(function(){ try{c.close();}catch(_e){} }, 1200);
+    }catch(_e){}
+  }
+  function ringCycle(){
+    playBurst(730, 0.00);
+    playBurst(620, 0.40);
+  }
+  ringCycle();
+  cgCall.ringInterval = setInterval(ringCycle, 2400);
+}
+function cgVoIPStopRingTone(){
+  if(window.__cgNativeVoIPRing){
+    cgVoIPNativeSignal('ring', 'state=stop');
+  }
+  if(cgCall.ringInterval){ clearInterval(cgCall.ringInterval); cgCall.ringInterval=null; }
+}
+
+function startVoiceCall(){
+  if(!S.threadUid) return;
+  if(!cgVoIPSupported()){ alert('This device cannot make voice calls.'); return; }
+  if(cgCall.state!=='idle'){ alert('A call is already in progress.'); return; }
+  cgLog('VOIP','startVoiceCall to='+S.threadUid);
+  cgCall.peerUid  = S.threadUid;
+  cgCall.peerName = S.threadUsername || 'User';
+  cgCall.role     = 'caller';
+  cgCall.ringAcked = false;
+  cgVoIPSetCallUI('dialing-out', cgCall.peerName);
+  req('POST','/api/calls/invite',{callee_uid:S.threadUid,media_kind:'audio'},function(d){
+    cgLog('VOIP','invite cb ok='+(d&&d.ok?1:0)+' call='+(d&&d.call_id||0)+' err='+((d&&d.error)||''));
+    if(d && d.ok && d.call_id){
+      cgCall.id = d.call_id;
+      cgVoIPStartDialTimeout();
+    }
+    else {
+      var why = (d && d.error) || 'invite_failed';
+      cgLog('VOIP','invite failed reason='+why);
+      cgVoIPEndCall(true, why);
+      alert('Could not start call: '+why);
+    }
+  });
+}
+
+function cgAcceptCall(){
+  if(cgCall.state!=='ringing-in' || !cgCall.id) return;
+  cgVoIPStopRingTone();
+  req('POST','/api/calls/answer',{call_id:cgCall.id,sdp_answer:''},function(d){
+    if(d && d.ok){
+      cgVoIPSetCallUI('in-call', cgCall.peerName);
+      cgVoIPStartAudio();
+    } else {
+      cgVoIPEndCall(true, (d && d.error) || 'answer_failed');
+    }
+  });
+}
+function cgDeclineCall(){ cgVoIPEndCall(true, 'declined'); }
+function cgHangupCall(){  cgVoIPEndCall(true, 'ended');    }
+
+function cgVoIPEndCall(notify, reason){
+  cgVoIPClearDialTimer();
+  cgVoIPStopRingTone();
+  cgVoIPStopAudio();
+  if(notify && cgCall.id){
+    try{ req('POST','/api/calls/hangup',{call_id:cgCall.id,reason:String(reason||'ended').substring(0,32)},function(){}); }catch(_e){}
+  }
+  cgCall.id=0; cgCall.peerUid=0; cgCall.peerName=''; cgCall.role='';
+  cgCall.ringAcked=false;
+  cgCall.muted=false;
+  cgCall.txSeq=0; cgCall.rxSeq=0;
+  cgVoIPResetStats();
+  cgVoIPSetCallUI('idle');
+}
+
+window.cgVoIPState = function(state, msg){
+  cgLog('VOIP','native state='+state+' msg='+(msg||''));
+  if(state==='stats'){
+    try{
+      var s=String(msg||'').split(';');
+      var i,p,kv;
+      for(i=0;i<s.length;i++){
+        p=s[i]; kv=p.split('='); if(kv.length<2) continue;
+        var k=kv[0],v=parseInt(kv[1],10)||0;
+        if(k==='rtt') cgCall.st.rtt=v;
+        else if(k==='tx') cgCall.st.tx=v;
+        else if(k==='rx') cgCall.st.rx=v;
+        else if(k==='drop') cgCall.st.drop=v;
+        else if(k==='q') cgCall.st.nq=v;
+      }
+      cgVoIPUpdateStatsUI();
+    }catch(_s){}
+    return;
+  }
+  if(state==='ended' || state==='error'){
+    cgVoIPEndCall(true, msg||state);
+  }
+};
+
+function cgVoIPStartAudio(){
+  if(window.__cgNativeVoIPRing){
+    cgVoIPNativeSignal('speaker', 'state=on');
+  }
+  if(window.__cgNativeVoIP){
+    try{
+      cgVoIPResetStats();
+      cgVoIPNativeSignal('start', 'call_id='+cgCall.id+'&t='+encodeURIComponent(S.token||'')+'&base='+encodeURIComponent(API));
+    }catch(_e){ cgLog('VOIP','native start err='+_e); }
+    return;
+  }
+  try{
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    cgCall.audioCtx = new Ctx();
+    cgCall.playCtx  = cgCall.audioCtx;
+    cgCall.playNextT = cgCall.playCtx.currentTime + 0.15;
+    var gum = navigator.mediaDevices && navigator.mediaDevices.getUserMedia
+      ? navigator.mediaDevices.getUserMedia({audio:true,video:false}) : null;
+    if(!gum || !gum.then){
+      alert('Microphone capture is unavailable on this device.');
+      cgVoIPEndCall(true,'mic_unavailable');
+      return;
+    }
+    gum.then(function(stream){
+      cgCall.micStream = stream;
+      var src = cgCall.audioCtx.createMediaStreamSource(stream);
+      var proc = cgCall.audioCtx.createScriptProcessor(2048, 1, 1);
+      cgCall.micProc = proc;
+      var srcRate = cgCall.audioCtx.sampleRate || 48000;
+      var residue = new Float32Array(0);
+      var ulawBuf = new Uint8Array(1600); var ulawIdx = 0;
+      proc.onaudioprocess = function(ev){
+        if(cgCall.muted) return;
+        var inp = ev.inputBuffer.getChannelData(0);
+        var src2 = new Float32Array(residue.length + inp.length);
+        src2.set(residue, 0); src2.set(inp, residue.length);
+        var ratio = srcRate / 8000;
+        var outN  = Math.floor(src2.length / ratio);
+        var i, j, end, sum, n, sample;
+        for(i=0;i<outN;i++){
+          j   = Math.floor(i * ratio);
+          end = Math.floor((i+1) * ratio);
+          if(end > src2.length) end = src2.length;
+          sum = 0; n = 0;
+          for(var k=j;k<end;k++){ sum += src2[k]; n++; }
+          sample = n ? (sum / n) : 0;
+          if(sample >  1) sample =  1;
+          if(sample < -1) sample = -1;
+          ulawBuf[ulawIdx++] = cgLin2Ulaw((sample * 32767) | 0);
+          if(ulawIdx >= ulawBuf.length){ cgVoIPSendChunk(ulawBuf.slice(0)); ulawIdx = 0; }
+        }
+        var consumed = Math.floor(outN * ratio);
+        residue = src2.subarray(consumed);
+      };
+      var g = cgCall.audioCtx.createGain(); g.gain.value=0;
+      src.connect(proc); proc.connect(g); g.connect(cgCall.audioCtx.destination);
+      cgVoIPStartAudioPoll();
+    }, function(err){
+      cgLog('VOIP','mic err='+(err&&err.message||err));
+      alert('Microphone permission denied.');
+      cgVoIPEndCall(true,'mic_denied');
+    });
+  }catch(_e){
+    cgLog('VOIP','audio start err='+_e);
+    cgVoIPEndCall(true,'audio_start_failed');
+  }
+}
+
+function cgVoIPStopAudio(){
+  if(window.__cgNativeVoIPRing){
+    cgVoIPNativeSignal('speaker', 'state=off');
+  }
+  if(window.__cgNativeVoIP){
+    try{ cgVoIPNativeSignal('stop', ''); }catch(_e){}
+    return;
+  }
+  try{ if(cgCall.audioTimer){ clearTimeout(cgCall.audioTimer); cgCall.audioTimer=null; } }catch(_e){}
+  try{ if(cgCall.micProc){ cgCall.micProc.disconnect(); cgCall.micProc.onaudioprocess=null; } }catch(_e){}
+  try{ if(cgCall.micStream){ var ts=cgCall.micStream.getTracks(); for(var i=0;i<ts.length;i++) ts[i].stop(); } }catch(_e){}
+  try{ if(cgCall.audioCtx){ cgCall.audioCtx.close(); } }catch(_e){}
+  cgCall.micProc=null; cgCall.micStream=null; cgCall.audioCtx=null; cgCall.playCtx=null;
+}
+
+function cgVoIPSendChunk(ulawBytes){
+  if(!cgCall.id || cgCall.muted) return;
+  try{
+    var xhr = new XMLHttpRequest();
+    cgCall.st.tx++;
+    xhr.open('POST', API+'/api/calls/audio?call_id='+cgCall.id, true);
+    xhr.setRequestHeader('Content-Type','application/octet-stream');
+    if(S.token) xhr.setRequestHeader('X-CG-Token', S.token);
+    xhr.send(ulawBytes);
+  }catch(_e){ cgCall.st.err++; cgLog('VOIP','send err='+_e); }
+}
+
+function cgVoIPStartAudioPoll(){
+  function tick(){
+    if(!cgCall.id || cgCall.state!=='in-call'){ cgCall.audioTimer=null; return; }
+    try{
+      var xhr = new XMLHttpRequest();
+      var t0 = (new Date()).getTime();
+      xhr.open('GET', API+'/api/calls/audio?call_id='+cgCall.id+'&after_seq='+cgCall.rxSeq, true);
+      xhr.responseType = 'arraybuffer';
+      if(S.token) xhr.setRequestHeader('X-CG-Token', S.token);
+      xhr.onreadystatechange = function(){
+        if(xhr.readyState !== 4) return;
+        try{
+          if(xhr.status===200){
+            cgCall.st.rtt = (new Date()).getTime() - t0;
+            var lastSeq = parseInt(xhr.getResponseHeader('X-CG-Last-Seq')||'0',10);
+            if(cgCall.st.lastSeq && lastSeq > cgCall.st.lastSeq + 1){
+              cgCall.st.drop += (lastSeq - cgCall.st.lastSeq - 1);
+            }
+            if(lastSeq>0) cgCall.st.lastSeq = lastSeq;
+            if(lastSeq>cgCall.rxSeq) cgCall.rxSeq = lastSeq;
+            var buf = xhr.response;
+            if(buf && buf.byteLength){
+              cgCall.st.rx++;
+              cgCall.st.rxBytes += buf.byteLength;
+              cgVoIPPlayUlaw(new Uint8Array(buf));
+            }
+          } else {
+            cgCall.st.err++;
+          }
+        }catch(_e){ cgCall.st.err++; }
+        cgVoIPUpdateStatsUI();
+        cgCall.audioTimer = setTimeout(tick, 200);
+      };
+      xhr.send(null);
+    }catch(_e){ cgCall.audioTimer = setTimeout(tick, 1000); }
+  }
+  cgCall.audioTimer = setTimeout(tick, 200);
+}
+
+function cgVoIPPlayUlaw(u8){
+  if(!cgCall.playCtx) return;
+  var n = u8.length;
+  var f = new Float32Array(n);
+  var i;
+  for(i=0;i<n;i++){ f[i] = cgUlaw2Lin(u8[i]) / 32768; }
+  var dstRate = cgCall.playCtx.sampleRate || 48000;
+  var ratio = dstRate / 8000;
+  var outN  = Math.floor(n * ratio);
+  var out = cgCall.playCtx.createBuffer(1, outN, dstRate);
+  var od = out.getChannelData(0);
+  var srcIdx;
+  for(i=0;i<outN;i++){
+    srcIdx = i / ratio;
+    var i0 = Math.floor(srcIdx); var i1 = i0+1; if(i1>=n) i1=n-1;
+    var t = srcIdx - i0;
+    od[i] = f[i0]*(1-t) + f[i1]*t;
+  }
+  var node = cgCall.playCtx.createBufferSource();
+  node.buffer = out;
+  node.connect(cgCall.playCtx.destination);
+  var when = cgCall.playNextT;
+  var now  = cgCall.playCtx.currentTime;
+  if(when < now + 0.05) when = now + 0.05;
+  if(when > now + 1.5)  when = now + 0.2;
+  node.start(when);
+  cgCall.playNextT = when + (outN / dstRate);
+}
+
+function cgLin2Ulaw(pcm){
+  var BIAS = 0x84, CLIP = 32635;
+  var sign = (pcm < 0) ? 0x80 : 0;
+  if(sign) pcm = -pcm;
+  if(pcm > CLIP) pcm = CLIP;
+  pcm += BIAS;
+  var seg = 7; var mask = 0x4000;
+  while((pcm & mask) === 0 && seg > 0){ mask >>= 1; seg--; }
+  var mant = (pcm >> (seg + 3)) & 0x0F;
+  return (~(sign | (seg << 4) | mant)) & 0xFF;
+}
+function cgUlaw2Lin(u){
+  u = (~u) & 0xFF;
+  var sign = u & 0x80;
+  var seg  = (u >> 4) & 0x07;
+  var mant =  u       & 0x0F;
+  var pcm  = ((mant << 3) + 0x84) << seg;
+  pcm -= 0x84;
+  return sign ? -pcm : pcm;
+}
+
+/* Native sharesheet bridge. iOS app intercepts cgshare:// in shouldStartLoad and
+   presents UIActivityViewController. Web fallback uses navigator.share when present
+   and otherwise just copies to clipboard. */
+function cgShare(text,url){
+  text=text||'';
+  url=url||'';
+  if(window.__cgNativeImagePicker){
+    try{
+      var q='t='+encodeURIComponent(text)+'&u='+encodeURIComponent(url);
+      window.location='cgshare://send?'+q;
+      return;
+    }catch(_e){}
+  }
+  if(navigator&&navigator.share){
+    try{ navigator.share({text:text,url:url}); return; }catch(_e2){}
+  }
+  try{
+    var combo=(text?text+(url?' '+url:''):url);
+    if(navigator&&navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(combo);
+      alert('Copied to clipboard.');
+      return;
+    }
+  }catch(_e3){}
+  alert(text+(url?(' '+url):''));
 }
 (function(){
   var inp=document.getElementById('msg-input');
@@ -1281,15 +2610,26 @@ function stopPoll(){
 function doPoll(){
   if(!S.polling||!S.threadUid)return;
   cgLog('POLL','tick after_id='+(S.lastMsgId||0));
+  var tCycle=perf2Now();
   S.pollXhr=req('GET','/api/messages?with='+S.threadUid+'&after_id='+S.lastMsgId,null,function(d,err){
     if(!S.polling)return;
+    var newCount=0;
     if(d&&d.messages&&d.messages.length){
       var body=document.getElementById('thread-body'),existing={};
       var nodes=body.getElementsByTagName('div');
       for(var i=0;i<nodes.length;i++){var mid=nodes[i].getAttribute('data-mid');if(mid)existing[mid]=true;}
       var newM=[];
       for(var j=0;j<d.messages.length;j++){if(!existing[String(d.messages[j].id)])newM.push(d.messages[j]);}
-      if(newM.length){renderMsgs(newM);scrollBot();}
+      newCount=newM.length;
+      if(newM.length){
+        renderMsgs(newM);
+        scrollBot();
+        if(usingNativeLegacyDocScroll()){
+          setTimeout(function(){
+            updateLegacyThreadChromePosition();
+          },0);
+        }
+      }
       var hasIncoming=false;
       for(var k=0;k<newM.length;k++){
         if(newM[k].from_user_id!==S.userId){ hasIncoming=true; break; }
@@ -1300,7 +2640,13 @@ function doPoll(){
       if(newM.length)cgLog('POLL','new_messages count='+newM.length);
       S.lastMsgId=d.messages[d.messages.length-1].id;
     }
-    if(err){setTimeout(function(){if(S.polling)doPoll();},4000);}else{doPoll();}
+    perf2('chat.poll.cycle','dt='+perf2Dt(tCycle)+'ms new='+newCount+(err?' err=1':''));
+    // Stretch retry/cycle gap on iOS<=4 to ease CPU/battery on iPhone 2G EDGE.
+    var gapErr=(legacyIOSMajor()<=4)?6000:4000;
+    var gapOk =(legacyIOSMajor()<=4)?2500:0;
+    if(err){setTimeout(function(){if(S.polling)doPoll();},gapErr);}
+    else if(gapOk){setTimeout(function(){if(S.polling)doPoll();},gapOk);}
+    else{doPoll();}
   },30000);
 }
 
@@ -1308,7 +2654,9 @@ function doPoll(){
 function startReceiptPoll(){
   cgLog('RECEIPT','start');
   if(S.receiptInterval)clearInterval(S.receiptInterval);
-  S.receiptInterval=setInterval(pollReceipts,8000);
+  // Stretch receipt poll on iOS<=4 to keep iPhone 2G CPU usage low.
+  var gap=(legacyIOSMajor()<=4)?14000:8000;
+  S.receiptInterval=setInterval(pollReceipts,gap);
 }
 function pollReceipts(){
   if(!S.threadUid)return;
@@ -1328,9 +2676,13 @@ function openThreadMenu(){
   cgLog('UI','openThreadMenu threadUid='+(S.threadUid||0));
   var hr=document.getElementById('thread-modal-title');if(hr)hr.innerHTML=escH(S.threadUsername||'Options');
   document.getElementById('thread-block-btn').innerHTML='Block '+escH(S.threadUsername||'User');
+  /* Keep Voice call visible on all builds; startVoiceCall() handles eligibility. */
+  var cb=document.getElementById('thread-call-menu-btn');
+  if(cb)cb.style.display='block';
   document.getElementById('thread-modal').className='modal-overlay active';
 }
 function viewUserProfile(){closeModal('thread-modal');openUserProfile(S.threadUid,S.threadUsername,'thread-screen');}
+function callFromThread(){cgLog('VOIP','callFromThread uid='+(S.threadUid||0));closeModal('thread-modal');startVoiceCall();}
 function blockFromThread(){closeModal('thread-modal');req('POST','/api/blocks/'+S.threadUid,null,function(){goConvos();});}
 
 /* FRIENDS */
@@ -1545,7 +2897,7 @@ window.onfocus = function(){ if(typeof applyBubbleTheme==='function'){ var bName
       clearTimeout(_bootWatchdog);
       window.__cgBootDone = 1;
       window.__cgBootStarted = 0;
-      if(d&&d.ok){S.isAdmin=!!(d.is_admin);store.set('cg_a',S.isAdmin?'1':'0');if(d.avatar_b64){store.set('cg_av',d.avatar_b64);store.set('hm_av',d.avatar_b64);}updateChatPill();goConvos();openUserProfileFromHash();}
+      if(d&&d.ok){S.isAdmin=!!(d.is_admin);S.emailVerified=!!(d.email_verified);store.set('cg_a',S.isAdmin?'1':'0');if(d.avatar_b64){store.set('cg_av',d.avatar_b64);store.set('hm_av',d.avatar_b64);}updateChatPill();goConvos();openUserProfileFromHash();try{cgVoIPStartEventPoll();}catch(_e){}}
       else{store.del('cg_t');store.del('cg_u');store.del('cg_n');store.del('cg_a');store.del('cg_av');updateChatPill();show('auth-screen');}
     });
   } else { show('auth-screen'); }
@@ -1586,10 +2938,10 @@ function applyLegacyScrollFallback(){
     +'.screen{position:absolute !important;position:fixed !important;top:0 !important;left:0 !important;right:0 !important;bottom:0 !important;min-height:0 !important;}'
     +'.screen.active{display:block !important;}'
     +'.header{position:absolute !important;position:fixed !important;top:0 !important;left:0 !important;right:0 !important;z-index:100 !important;}'
-    +'.sb{position:absolute !important;position:fixed !important;top:44px !important;left:0 !important;right:0 !important;bottom:0 !important;height:auto !important;overflow-y:scroll !important;overflow-x:hidden !important;-webkit-overflow-scrolling:touch !important;padding-top:0 !important;}'
+    +'.sb{position:absolute !important;position:fixed !important;top:44px !important;left:0 !important;right:0 !important;bottom:0 !important;height:auto !important;overflow-y:auto !important;overflow-x:hidden !important;-webkit-overflow-scrolling:touch !important;padding-top:0 !important;width:auto !important;}'
     +'#auth-screen .sb{top:0 !important;}'
     +'#thread-body{bottom:50px !important;}'
-    +'.ibar{position:fixed !important;left:0 !important;right:0 !important;bottom:0 !important;z-index:101 !important;}'
+    +'.ibar{position:fixed !important;left:0 !important;right:0 !important;bottom:0 !important;width:auto !important;z-index:101 !important;}'
     +'#users-screen .search-bar{position:absolute !important;position:fixed !important;top:44px !important;left:0 !important;right:0 !important;z-index:101 !important;}'
     +'#users-body{top:92px !important;}'
     +'#changepw-screen .sb{top:44px !important;}'
@@ -1629,7 +2981,8 @@ function applyLegacyScrollFallback(){
       divs[i].style.right='0';
       divs[i].style.bottom=(screenId==='thread-screen')?'50px':'0';
       divs[i].style.height='auto';
-      divs[i].style.overflowY='scroll';
+      divs[i].style.width='auto';
+      divs[i].style.overflowY='auto';
       divs[i].style.overflowX='hidden';
       divs[i].style.webkitOverflowScrolling='touch';
       divs[i].style.paddingTop='0';
@@ -1665,6 +3018,10 @@ function applyModernSafeTopFallback(){
   if(!supportsVars){
     var headers=document.getElementsByClassName?document.getElementsByClassName('header'):[];
     for(var i=0;i<headers.length;i++){
+      headers[i].style.position='fixed';
+      headers[i].style.left='0';
+      headers[i].style.right='0';
+      headers[i].style.zIndex='100';
       headers[i].style.height=(44+safeTop)+'px';
       headers[i].style.paddingTop=safeTop+'px';
     }
@@ -1675,11 +3032,32 @@ function applyModernSafeTopFallback(){
     var rightTextBtns=document.getElementsByClassName?document.getElementsByClassName('hr-text'):[];
     for(var m=0;m<rightTextBtns.length;m++){ rightTextBtns[m].style.top=safeTop+'px'; }
     var panes=document.getElementsByClassName?document.getElementsByClassName('sb'):[];
-    for(var n=0;n<panes.length;n++){ panes[n].style.top=(44+safeTop)+'px'; }
+    for(var n=0;n<panes.length;n++){
+      var screenId=(panes[n].parentNode&&panes[n].parentNode.id)?panes[n].parentNode.id:'';
+      panes[n].style.position='fixed';
+      panes[n].style.left='0';
+      panes[n].style.right='0';
+      panes[n].style.top=(screenId==='auth-screen')?'0':((44+safeTop)+'px');
+      panes[n].style.bottom=(screenId==='thread-screen')?'50px':'0';
+    }
     var us=document.getElementById('users-search-wrap');
-    if(us){ us.style.top=(44+safeTop)+'px'; }
+    if(us){
+      us.style.position='fixed';
+      us.style.left='0';
+      us.style.right='0';
+      us.style.top=(44+safeTop)+'px';
+      us.style.zIndex='101';
+    }
     var ub=document.getElementById('users-body');
     if(ub){ ub.style.top=(92+safeTop)+'px'; }
+    var ib=document.querySelector?document.querySelector('#thread-screen .ibar'):null;
+    if(ib){
+      ib.style.position='fixed';
+      ib.style.left='0';
+      ib.style.right='0';
+      ib.style.bottom='0';
+      ib.style.zIndex='101';
+    }
   }
 }
 function enableLegacyAvatarInput(){

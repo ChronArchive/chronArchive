@@ -70,6 +70,7 @@ arch -x86_64 "$CLANG" \
     -framework Foundation \
     -framework CoreGraphics \
     -framework AVFoundation \
+    -framework AudioToolbox \
     "$BUILD_DIR/main.o" \
     "$BUILD_DIR/AppDelegate.o" \
     "$BUILD_DIR/ViewController.o" \
@@ -121,9 +122,9 @@ cat > "$APP_DIR/Info.plist" << 'PLIST'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.2</string>
+    <string>1.3</string>
     <key>CFBundleVersion</key>
-    <string>12</string>
+    <string>16</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>MinimumOSVersion</key>
